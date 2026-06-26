@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Propel - Word to HTML Conversion Tool</title>
+    <meta name="description" content="Convert a Word document into HTML">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Jordan Chou">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+    <link type="image/png" sizes="96x96" rel="shortcut icon" href="logo.png">
+    <link id="theme" rel="stylesheet" href="css/prettify.css">
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #d9e2ec;
+            --border-strong: #b9c6d3;
+            --text: #172033;
+            --muted: #667085;
+            --primary: #2557d6;
+            --primary-dark: #183a9f;
+            --success: #13795b;
+            --warning: #9a6700;
+            --danger: #b42318;
+            --info: #175cd3;
+            --shadow: 0 14px 35px rgba(16, 24, 40, 0.10);
+            --radius: 16px;
+            --header-height: 76px;
+            --log-height: 168px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.45;
+        }
+
+        body { min-width: 1180px; }
+
+        button, input, select, textarea { font: inherit; }
+
+        button { cursor: pointer; }
+
+        code {
+            padding: 0.1rem 0.35rem;
+            border-radius: 6px;
+            background: #eef2ff;
+            color: #263780;
+        }
+
+        .app-shell {
+            display: grid;
+            grid-template-rows: var(--header-height) minmax(0, 1fr) var(--log-height);
+            height: 100vh;
+        }
+
+        .app-header {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 20px;
+            padding: 14px 22px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .brand img {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+        }
+
+        .brand-title { display: flex; flex-direction: column; }
+        .brand-title strong { font-size: 1.35rem; line-height: 1; }
+        .brand-title span { color: var(--muted); font-size: 0.82rem; }
+
+        .workflow-tabs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            overflow-x: auto;
+        }
+
+        .workflow-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: #344054;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+
+        .workflow-tab.active,
+        .workflow-tab:hover {
+            border-color: rgba(37,87,214,0.32);
+            background: #eef4ff;
+            color: var(--primary-dark);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px minmax(460px, 1fr) 390px;
+            gap: 14px;
+            min-height: 0;
+            padding: 14px;
+        }
+
+        .panel {
+            min-height: 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .panel-header h2,
+        .panel-header h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .panel-subtitle {
+            margin: 3px 0 0;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .panel-body {
+            min-height: 0;
+            padding: 14px 16px;
+            overflow: auto;
+        }
+
+        .left-rail,
+        .right-rail,
+        .editor-panel { display: grid; grid-template-rows: auto minmax(0,1fr); }
+
+        .left-rail .panel-body,
+        .right-rail .panel-body { padding: 0; }
+
+        .rail-scroll,
+        .review-scroll {
+            height: 100%;
+            overflow: auto;
+            padding: 14px;
+        }
+
+        .workflow-section {
+            padding: 0 0 16px;
+            margin: 0 0 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .workflow-section:last-child { border-bottom: 0; margin-bottom: 0; }
+
+        .section-kicker {
+            margin: 0 0 10px;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .form-row { margin-bottom: 12px; }
+        .form-row label { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .form-control,
+        .file-input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid var(--border-strong);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--text);
+            padding: 10px 12px;
+        }
+
+        .file-input { padding: 8px; }
+
+        .drop-zone {
+            cursor: pointer;
+            display: grid;
+            gap: 10px;
+            place-items: center;
+            padding: 18px;
+            border: 2px dashed var(--border-strong);
+            border-radius: 14px;
+            background: #f8fbff;
+            text-align: center;
+            transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+        }
+
+        .drop-zone strong { display: block; }
+
+        .drop-zone.drag-active {
+            border-color: var(--primary);
+            background: #eef4ff;
+            box-shadow: inset 0 0 0 1px rgba(37,87,214,0.18);
+        }
+
+        .drop-zone .file-input {
+            max-width: 100%;
+            background: #fff;
+        }
+
+        .button-stack { display: grid; gap: 9px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 36px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--text);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+        .btn-primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); color: #fff; }
+        .btn-default { background: #fff; }
+        .btn-sm { min-height: 32px; padding: 6px 10px; font-size: 0.88rem; }
+        .btn-xs { min-height: 28px; padding: 4px 8px; font-size: 0.78rem; }
+        .btn-full { width: 100%; }
+
+        .command-card {
+            display: grid;
+            gap: 7px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface-2);
+        }
+
+        .command-card p { margin: 0; color: var(--muted); font-size: 0.84rem; }
+
+        .settings-box {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 12px;
+            border: 1px dashed var(--border-strong);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .checkline,
+        .radio-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .status-strip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        #outputText {
+            height: 100%;
+            resize: none;
+            border: 0;
+            border-radius: 0;
+            padding: 16px;
+            font-family: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            background: #0b1020;
+            color: #e6edf7;
+            outline: none;
+        }
+
+        .editor-panel { grid-template-rows: auto minmax(0, 1fr); }
+        .editor-panel .panel-body { padding: 0; overflow: hidden; }
+
+        .review-tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .review-tab {
+            padding: 8px 6px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: #fff;
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 0.82rem;
+        }
+
+        .review-tab.active,
+        .review-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary-dark);
+            background: #eef4ff;
+        }
+
+        .review-pane { display: none; }
+        .review-pane.active { display: block; }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .metric-card {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface-2);
+        }
+
+        .metric-card strong { display: block; font-size: 1.4rem; }
+        .metric-card span { color: var(--muted); font-size: 0.78rem; }
+
+        .label,
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .label-default { background: #eef2f6; color: #475467; }
+        .label-success, .text-success { background: #dcfae6; color: var(--success); }
+        .label-warning { background: #fef0c7; color: var(--warning); }
+        .label-danger { background: #fee4e2; color: var(--danger); }
+        .label-info { background: #d1e9ff; color: var(--info); }
+        .text-muted { color: var(--muted); }
+
+        #documentHealth dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0; }
+        #documentHealth dt { color: var(--muted); font-weight: 600; }
+        #documentHealth dd { margin: 0; font-weight: 800; }
+
+        #documentOutline ol,
+        #documentIssues ul,
+        #processingLog { margin: 0; padding: 0; list-style: none; }
+        #documentOutline li,
+        #documentIssues li {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #htmlPreview {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        #htmlPreview h1,
+        #htmlPreview h2,
+        #htmlPreview h3 { line-height: 1.2; }
+        #htmlPreview table { width: 100%; border-collapse: collapse; }
+        #htmlPreview th, #htmlPreview td { border: 1px solid var(--border); padding: 6px; }
+
+        .bottom-log {
+            display: grid;
+            grid-template-rows: auto minmax(0,1fr);
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            box-shadow: 0 -10px 25px rgba(16, 24, 40, 0.08);
+        }
+
+        .bottom-log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .bottom-log-header h2 { margin: 0; font-size: 0.95rem; }
+        .bottom-log-body { overflow: auto; padding: 10px 16px; }
+        #processingLog li { margin-bottom: 7px; }
+
+        #qaHelperResults {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        #presetButtonBar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #splits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 0;
+        }
+
+        #debug { margin: 0; font-weight: 700; }
+        #elapsedTime { margin: 0; color: var(--muted); }
+
+        .hidden,
+        .wb-inv,
+        [hidden] {
+            display: none !important;
+        }
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: grid;
+            place-items: center;
+            background: rgba(11, 16, 32, 0.28);
+        }
+
+        #loader::after {
+            content: "Converting...";
+            padding: 16px 22px;
+            border-radius: 999px;
+            background: #fff;
+            box-shadow: var(--shadow);
+            font-weight: 800;
+        }
+
+        #topBtn {
+            position: fixed;
+            right: 18px;
+            bottom: 184px;
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: #fff;
+            box-shadow: var(--shadow);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <header class="app-header" id="header">
+            <div class="brand">
+                <a href=""><img src="logo.png" alt="Propel Logo"></a>
+                <div class="brand-title">
+                    <strong>Propel <span class="label label-info">ALPHA</span></strong>
+                    <span>Word to HTML production workspace</span>
+                </div>
+            </div>
+
+            <nav class="workflow-tabs" aria-label="Propel workflow">
+                <a class="workflow-tab active" href="#outputSection" data-workflow-tab>1. Import</a>
+                <a class="workflow-tab" href="#cleanSection" data-workflow-tab>2. Clean</a>
+                <a class="workflow-tab" href="#enhanceSection" data-workflow-tab>3. Enhance</a>
+                <a class="workflow-tab" href="#qaSection" data-workflow-tab>4. QA</a>
+                <a class="workflow-tab" href="#exportSection" data-workflow-tab>5. Export</a>
+            </nav>
+
+            <div class="header-actions">
+                <button type="button" class="btn btn-sm" id="langBtn" title="Toggle the language">English</button>
+                <label id="outputLabel" class="btn btn-sm btn-primary">
+                    <input type="button" id="copyBtn" value="Copy" style="position:absolute;opacity:0;pointer-events:none;">
+                    Copy HTML
+                    <span id="copiedLabel" class="wb-inv label label-success">Copied</span>
+                </label>
+            </div>
+        </header>
+
+        <main class="main-grid">
+            <aside class="panel left-rail" aria-label="Propel commands">
+                <div class="panel-header">
+                    <div>
+                        <h2>Workflow</h2>
+                        <p class="panel-subtitle">Run commands without losing sight of the editor.</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="rail-scroll">
+                        <section class="workflow-section" id="outputSection">
+                            <p class="section-kicker">Import</p>
+                            <div class="form-row">
+                                <label for="file">Word document</label>
+                                <div class="drop-zone" id="fileDropZone">
+                                    <div>
+                                        <strong>Drop a Word document here</strong>
+                                        <p class="panel-subtitle">or choose a <code>.docx</code> file. You can also paste HTML directly into the editor.</p>
+                                    </div>
+                                    <input type="file" id="file" accept=".doc,.docx" class="file-input">
+                                    <p id="fileUploadStatus" class="panel-subtitle" aria-live="polite"></p>
+                                </div>
+                            </div>
+                            <p id="elapsedTime"></p>
+                            <p id="debug"></p>
+                        </section>
+
+                        <section class="workflow-section" id="cleanSection">
+                            <p class="section-kicker">Clean</p>
+                            <div class="command-card">
+                                <strong>Standard cleanup</strong>
+                                <p>Runs the same default cleanup used after Word import: clear image sources, remove Word bookmark anchors, clean Word table-of-contents links, and normalize smart quotes.</p>
+                                <button type="button" class="btn btn-primary btn-full" id="standardCleanupBtn">Run standard cleanup</button>
+                            </div>
+                        </section>
+
+                        <section class="workflow-section" id="enhanceSection">
+                            <p class="section-kicker">Enhance</p>
+                            <div class="button-stack">
+                                <div class="command-card">
+                                    <strong>Add IDs</strong>
+                                    <p>Adds IDs to headings, tables, and figures.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="addIDsBtn" title="Add IDs to headings, tables, and figures">Add IDs</button>
+                                    <label class="checkline" for="onThisPageOption" title="Creates On this page section">
+                                        <input id="onThisPageOption" type="checkbox"> Create <em>On this page</em>
+                                    </label>
+                                    <div id="otpSettings" class="settings-box">
+                                        <div class="form-row">
+                                            <label for="headerDepth">Heading depth</label>
+                                            <select class="form-control" id="headerDepth">
+                                                <option value="2" selected>2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                            </select>
+                                        </div>
+                                        <label class="checkline" for="isToC" title="Change heading to Table of contents">
+                                            <input id="isToC" type="checkbox"> Change to Table of contents
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="command-card">
+                                    <strong>Footnotes</strong>
+                                    <p>Generate WET-style footnote markup.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="footnotesBtn" title="Generate Footnotes">Generate footnotes</button>
+                                </div>
+
+                                <div class="command-card">
+                                    <strong>Spacing</strong>
+                                    <p>Validate missing non-breaking spaces.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="nbspBtn" title="Add missing &amp;nbsp; where needed">Validate &amp;nbsp;</button>
+                                </div>
+
+                                <div class="command-card">
+                                    <strong>Tables</strong>
+                                    <p>Send current HTML to Table Cleanup.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="tableCleanupBtn" title="Send HTML to Table Cleanup">Table Cleanup</button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="workflow-section" id="qaSection">
+                            <p class="section-kicker">QA Helper</p>
+                            <div class="form-row">
+                                <label for="tagList">Count tags/selectors</label>
+                                <textarea class="form-control" rows="7" name="tagTextarea" id="tagList" title="Enter the tags to be counted from the page (supports CSS selectors such as .classes and #ids)"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label for="presetButtonBar">Presets</label>
+                                <div id="presetButtonBar"></div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-full" id="qaHelperCountBtn" title="Submit the HTML markup">Count</button>
+                            <div class="wb-inv" id="qaHelperResults">
+                                <h3>Statistics</h3>
+                                <div class="form-row">
+                                    <span class="section-kicker">Theme</span>
+                                    <label for="lightTheme" class="radio-inline"><input id="lightTheme" type="radio" name="optradio" checked> Light</label>
+                                    <label for="darkTheme" class="radio-inline"><input id="darkTheme" type="radio" name="optradio"> Dark</label>
+                                </div>
+                                <p><button class="btn btn-default btn-xs" id="collapseBtn">Collapse all</button></p>
+                                <div id="qaHelperOutput"></div>
+                                <div class="wb-inv" id="qaHelperCompare"></div>
+                            </div>
+                        </section>
+
+                        <section class="workflow-section" id="exportSection">
+                            <p class="section-kicker">Export</p>
+                            <div class="command-card">
+                                <strong>Split by H1</strong>
+                                <p>Create copy buttons for each H1 section.</p>
+                                <button type="button" class="btn btn-primary btn-full" id="splitBtn" title="Split the HTML by H1s">Create H1 splits</button>
+                                <label><span id="splitCopiedLabel" class="wb-inv label label-success">Chapter copied</span></label>
+                                <div id="splits"></div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="panel editor-panel" aria-label="HTML editor">
+                <div class="panel-header editor-toolbar">
+                    <div>
+                        <h2>HTML editor</h2>
+                        <p class="panel-subtitle">Converted or pasted HTML. This stays central and always visible.</p>
+                    </div>
+                    <div class="status-strip">
+                        <span id="healthScore" class="label label-default">Not checked</span>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <textarea name="outputTextArea" id="outputText" title="Paste the HTML markup" placeholder="Upload a Word document or paste HTML code here"></textarea>
+                </div>
+            </section>
+
+            <aside class="panel right-rail" aria-label="Document review panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Review</h2>
+                        <p class="panel-subtitle">Preview, health, outline, and issues stay in sight.</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="review-tabs" role="tablist" aria-label="Review panels">
+                        <button class="review-tab active" type="button" data-review-tab="healthPane">Health</button>
+                        <button class="review-tab" type="button" data-review-tab="outlinePane">Outline</button>
+                        <button class="review-tab" type="button" data-review-tab="issuesPane">Issues</button>
+                        <button class="review-tab" type="button" data-review-tab="previewPane">Preview</button>
+                    </div>
+                    <div class="review-scroll">
+                        <section class="review-pane active" id="healthPane">
+                            <h3>Document health</h3>
+                            <div id="documentHealth"><p class="text-muted">Document counts will appear here after conversion or editing.</p></div>
+                        </section>
+                        <section class="review-pane" id="outlinePane">
+                            <h3>Heading outline</h3>
+                            <div id="documentOutline"><p class="text-muted">No headings found yet.</p></div>
+                        </section>
+                        <section class="review-pane" id="issuesPane">
+                            <h3>Potential issues</h3>
+                            <div id="documentIssues"><p class="text-muted">Potential issues will appear here.</p></div>
+                        </section>
+                        <section class="review-pane" id="previewPane">
+                            <h3>Rendered preview</h3>
+                            <div id="htmlPreview"><p class="text-muted">A lightweight rendered preview will appear here.</p></div>
+                        </section>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <section class="bottom-log" id="processingLogPanel" aria-label="Processing log">
+            <div class="bottom-log-header">
+                <h2>Processing log</h2>
+                <span class="panel-subtitle">Conversion, cleanup, QA, and export activity</span>
+            </div>
+            <div class="bottom-log-body">
+                <ol id="processingLog">
+                    <li class="text-muted">No actions yet. Upload a Word document or paste HTML to begin.</li>
+                </ol>
+            </div>
+        </section>
+    </div>
+
+    <div id="loader" class="hidden"><div class="inner one"></div><div class="inner two"></div><div class="inner three"></div></div>
+
+    <textarea class="wb-inv" id="copyArea"></textarea>
+    <textarea id="splitHTML" class="wb-inv"></textarea>
+    <input id="submitBtn" class="wb-inv" type="button" value="Convert">
+    <label class="wb-inv"><input id="budgetOption" type="checkbox">Budget</label>
+    <h2 id="commandsLabel" class="wb-inv">Commands</h2>
+    <button id="topBtn" title="Go to top">^</button>
+
+    <script src="src/budget.js"></script>
+    <script src="src/mammoth.browser.js"></script>
+    <script src="src/beautify-html.js"></script>
+    <script src="src/prettify.js"></script>
+    <script src="src/run_prettify.js"></script>
+    <script type="module" src="src/propel.js"></script>
+</body>
+</html>
