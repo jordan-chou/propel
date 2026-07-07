@@ -165,16 +165,21 @@ function createModernDashboardListeners() {
     });
 
     wysiwygButtons.forEach((button) => {
+        button.tabIndex = -1;
+
         button.addEventListener('pointerdown', (event) => {
             event.preventDefault();
+            event.stopPropagation();
+            runWysiwygCommand(button);
         });
 
         button.addEventListener('mousedown', (event) => {
             event.preventDefault();
         });
 
-        button.addEventListener('click', () => {
-            runWysiwygCommand(button);
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
         });
     });
 
@@ -472,16 +477,21 @@ function runWysiwygCommand(button) {
 
     const selectionRange = getTextSelectionRange(liveEditor) || lastLiveSelectionRange;
     restoreTextSelectionRange(liveEditor, selectionRange);
-    const handledCommand = command === 'bold' && applyStrongToSelection(liveEditor);
-    if (!handledCommand) {
-        document.execCommand(command, false, value);
-    }
-    normalizeLiveEditorMarkup();
+    document.execCommand(command, false, value);
     restoreTextSelectionRange(liveEditor, selectionRange);
-    rememberLiveSelection();
     syncLiveToInputHTML();
     updateCodeView();
     refreshReviewPanel();
+    if (command === 'bold') {
+        restoreTextSelectionRange(liveEditor, selectionRange);
+        requestAnimationFrame(() => {
+            restoreTextSelectionRange(liveEditor, selectionRange);
+        });
+        setTimeout(() => {
+            restoreTextSelectionRange(liveEditor, selectionRange);
+        }, 0);
+    }
+    rememberLiveSelection();
     if (command !== 'bold') {
         addProcessingLog(`Applied Live view edit: ${getWysiwygButtonLabel(button)}.`, 'info');
     }
@@ -489,10 +499,6 @@ function runWysiwygCommand(button) {
 
 function getWysiwygButtonLabel(button) {
     return button.getAttribute('aria-label') || button.getAttribute('title') || button.textContent.trim();
-}
-
-function normalizeLiveEditorMarkup() {
-    replaceElementTag(liveEditor, 'b', 'strong');
 }
 
 function replaceElementTag(root, sourceTag, targetTag) {
@@ -512,32 +518,16 @@ function replaceElementTag(root, sourceTag, targetTag) {
     });
 }
 
-function applyStrongToSelection(root) {
-    const selection = window.getSelection();
-    if (!root || !selection || selection.rangeCount === 0) {
-        return false;
+function removeEmptyStyleAttributes(root) {
+    if (!root) {
+        return;
     }
 
-    const range = selection.getRangeAt(0);
-    if (range.collapsed || !root.contains(range.startContainer) || !root.contains(range.endContainer)) {
-        return false;
-    }
-
-    try {
-        const strong = document.createElement('strong');
-        strong.appendChild(range.extractContents());
-        range.insertNode(strong);
-
-        const selectedRange = document.createRange();
-        selectedRange.selectNodeContents(strong);
-        root.focus({ preventScroll: true });
-        selection.removeAllRanges();
-        selection.addRange(selectedRange);
-        return true;
-    } catch (error) {
-        console.warn('Unable to apply custom bold formatting.', error);
-        return false;
-    }
+    Array.from(root.querySelectorAll('[style]')).forEach((element) => {
+        if (!element.getAttribute('style').trim()) {
+            element.removeAttribute('style');
+        }
+    });
 }
 
 function getTextSelectionRange(root) {
@@ -1084,8 +1074,11 @@ function syncLiveToInputHTML() {
         return;
     }
 
-    normalizeLiveEditorMarkup();
-    inputHTML.innerHTML = liveEditor.innerHTML;
+    const clone = liveEditor.cloneNode(true);
+    replaceElementTag(clone, 'b', 'strong');
+    replaceElementTag(clone, 'i', 'em');
+    removeEmptyStyleAttributes(clone);
+    inputHTML.innerHTML = clone.innerHTML;
     inputHTML.classList.add("content-area");
 }
 
