@@ -1284,6 +1284,28 @@ function getCodeEntryForPath(path) {
     return elementSyncLineMap.find((entry) => entry.pathKey === pathKey) || null;
 }
 
+function scrollEditorsToElementPath(path) {
+    if (!path || !Array.isArray(path)) {
+        return;
+    }
+
+    const liveElement = liveEditor ? getElementByPath(liveEditor, path) : null;
+    if (liveElement) {
+        scrollLiveElementIntoView(liveElement);
+    }
+
+    if (outputText) {
+        if (elementSyncLineMap.length === 0) {
+            updateElementSyncLineMap();
+        }
+
+        const codeEntry = getCodeEntryForPath(path);
+        if (codeEntry) {
+            scrollCodeToIndex(codeEntry.startIndex);
+        }
+    }
+}
+
 function getSyncEntryForCodeIndex(codeIndex) {
     const containingEntries = elementSyncLineMap
         .filter((entry) => entry.startIndex <= codeIndex && codeIndex <= entry.endIndex)
@@ -1665,9 +1687,22 @@ function updateHeadingOutline() {
 
     headings.forEach((heading) => {
         const level = Number(heading.tagName.substring(1));
+        const path = getElementPath(heading, inputHTML);
         const item = document.createElement('li');
+        const button = document.createElement('button');
+        const label = document.createElement('span');
+
         item.style.marginLeft = `${Math.max(0, level - 1) * 12}px`;
-        item.innerHTML = `<span class="label label-default">${heading.tagName.toLowerCase()}</span> ${escapeHTML(heading.textContent.trim() || '(empty heading)')}`;
+        button.type = 'button';
+        button.className = 'report-outline-button';
+        button.innerHTML = `<span class="label label-default">${heading.tagName.toLowerCase()}</span>`;
+        label.textContent = heading.textContent.trim() || '(empty heading)';
+        button.append(' ', label);
+        button.addEventListener('click', () => {
+            scrollEditorsToElementPath(path);
+        });
+
+        item.appendChild(button);
         outline.appendChild(item);
     });
 

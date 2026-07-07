@@ -1301,6 +1301,23 @@ textarea {
     overflow: auto;
 }
 
+.report-outline-button {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+.report-outline-button:hover,
+.report-outline-button:focus {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
 #htmlPreview {
     padding: 12px;
     border: 1px solid var(--border);
