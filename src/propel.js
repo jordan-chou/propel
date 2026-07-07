@@ -20,7 +20,6 @@ import * as Utils from './util.js';
 const file = document.getElementById('file');
 const outputSection = document.getElementById('outputSection');
 const outputText = document.getElementById('outputText');
-const copiedLabel = document.getElementById('copiedLabel');
 const copyArea = document.getElementById('copyArea');
 const copyBtn = document.getElementById('copyBtn');
 const topBtn = document.getElementById('topBtn');
@@ -29,6 +28,8 @@ const langBtn = document.getElementById('langBtn');
 // Anchors Aweigh elements
 const onThisPageBox = document.getElementById('onThisPageOption');
 const otpSettings = document.getElementById('otpSettings');
+const headerDepth = document.getElementById('headerDepth');
+const isToC = document.getElementById('isToC');
 
 // QA Helper elements
 const countBtn = document.getElementById('qaHelperCountBtn');
@@ -42,9 +43,16 @@ const footnotesBtn = document.getElementById('footnotesBtn');
 const nbspBtn = document.getElementById('nbspBtn');
 const tableCleanupBtn = document.getElementById('tableCleanupBtn');
 const splitBtn = document.getElementById('splitBtn');
+const addIDsSettingsBtn = document.getElementById('addIDsSettingsBtn');
+const addIDsSettingsCloseBtn = document.getElementById('addIDsSettingsCloseBtn');
+const addIDsSettingsBackdrop = document.getElementById('addIDsSettingsBackdrop');
 
 // Phase 1 redesign elements. These are optional so the same JS can still run on the old layout.
 const processingLog = document.getElementById('processingLog');
+const processingLogPanel = document.getElementById('processingLogPanel');
+const activityToggleBtn = document.getElementById('activityToggleBtn');
+const activityCloseBtn = document.getElementById('activityCloseBtn');
+const toastRegion = document.getElementById('toastRegion');
 const documentHealth = document.getElementById('documentHealth');
 const documentOutline = document.getElementById('documentOutline');
 const documentIssues = document.getElementById('documentIssues');
@@ -54,7 +62,14 @@ const reviewTabs = document.querySelectorAll('[data-review-tab]');
 const workflowTabs = document.querySelectorAll('[data-workflow-tab]');
 const standardCleanupBtn = document.getElementById('standardCleanupBtn');
 const fileDropZone = document.getElementById('fileDropZone');
-const fileUploadStatus = document.getElementById('fileUploadStatus');
+const liveEditor = document.getElementById('liveEditor');
+const editorDropZone = document.getElementById('editorDropZone');
+const editorPanel = document.querySelector('.editor-panel');
+const paneSplitter = document.getElementById('paneSplitter');
+const codeEditor = document.getElementById('codeEditor');
+const codeHighlight = document.getElementById('codeHighlight');
+const editorViewButtons = document.querySelectorAll('[data-editor-view]');
+const wysiwygButtons = document.querySelectorAll('[data-edit-command]');
 
 // Local HTML for input
 const inputHTML = document.createElement('div');
@@ -65,6 +80,8 @@ var startTime, endTime;
 var modifiedComponents = [];
 var headingIDCount, tableIDCount, figureIDCount = 0;
 var logCount = 0;
+var activeEditorView = 'live';
+var elementSyncLineMap = [];
 
 // Footnote generator
 var showFullPreview = false;
@@ -127,6 +144,79 @@ function createModernDashboardListeners() {
         standardCleanupBtn.addEventListener('click', standardCleanupCommand);
     }
 
+    if (activityToggleBtn) {
+        activityToggleBtn.addEventListener('click', () => {
+            setActivityPanelOpen(!isActivityPanelOpen());
+        });
+    }
+
+    if (activityCloseBtn) {
+        activityCloseBtn.addEventListener('click', () => {
+            setActivityPanelOpen(false);
+        });
+    }
+
+    editorViewButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            switchEditorView(button.getAttribute('data-editor-view'));
+        });
+    });
+
+    wysiwygButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            runWysiwygCommand(button);
+        });
+    });
+
+    if (liveEditor) {
+        liveEditor.addEventListener('focus', () => {
+            activeEditorView = 'live';
+        });
+
+        liveEditor.addEventListener('input', () => {
+            syncLiveToInputHTML();
+            updateCodeView();
+            refreshReviewPanel();
+        });
+
+        liveEditor.addEventListener('click', (event) => {
+            scrollCodeToLiveElement(event.target);
+        });
+
+        liveEditor.addEventListener('blur', () => {
+            syncLiveToInputHTML();
+            updateCodeView();
+        });
+    }
+
+    if (editorDropZone && file) {
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            editorDropZone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (editorPanel) {
+                    editorPanel.classList.add('drag-active');
+                }
+            });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+            editorDropZone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (editorPanel) {
+                    editorPanel.classList.remove('drag-active');
+                }
+            });
+        });
+
+        editorDropZone.addEventListener('drop', handleFileDrop);
+    }
+
+    if (paneSplitter && editorDropZone) {
+        paneSplitter.addEventListener('pointerdown', startPaneResize);
+    }
+
     if (fileDropZone && file) {
         fileDropZone.addEventListener('click', (event) => {
             if (event.target !== file) {
@@ -160,6 +250,33 @@ function createModernDashboardListeners() {
     });
 }
 
+function startPaneResize(event) {
+    event.preventDefault();
+    paneSplitter.setPointerCapture(event.pointerId);
+    paneSplitter.classList.add('drag-active');
+
+    const handleMove = (moveEvent) => {
+        const rect = editorDropZone.getBoundingClientRect();
+        const minPaneWidth = 260;
+        const splitterWidth = paneSplitter.offsetWidth || 8;
+        const availableWidth = rect.width - splitterWidth;
+        const rawWidth = moveEvent.clientX - rect.left;
+        const nextWidth = Math.min(Math.max(rawWidth, minPaneWidth), availableWidth - minPaneWidth);
+        editorDropZone.style.setProperty('--live-pane-width', `${nextWidth}px`);
+    };
+
+    const stopResize = () => {
+        paneSplitter.classList.remove('drag-active');
+        paneSplitter.removeEventListener('pointermove', handleMove);
+        paneSplitter.removeEventListener('pointerup', stopResize);
+        paneSplitter.removeEventListener('pointercancel', stopResize);
+    };
+
+    paneSplitter.addEventListener('pointermove', handleMove);
+    paneSplitter.addEventListener('pointerup', stopResize);
+    paneSplitter.addEventListener('pointercancel', stopResize);
+}
+
 /**
  * Attaches click listeners to page's buttons
  */
@@ -169,7 +286,9 @@ function createListeners() {
     }
 
     copyBtn.addEventListener('click', () => {
-        Utils.copyToClipboard(outputText, copiedLabel);
+        syncActiveEditorToInputHTML();
+        updateCodeView();
+        Utils.copyToClipboard(outputText);
         addProcessingLog('Copied HTML to clipboard.', 'success');
     });
 
@@ -178,6 +297,62 @@ function createListeners() {
     langBtn.addEventListener('click', toggleLanguage);
 
     onThisPageBox.addEventListener('click', handleToggleOnThisPageBox);
+    [onThisPageBox, headerDepth, isToC].forEach((control) => {
+        if (control) {
+            control.addEventListener('change', updateAddIDsSettingsState);
+        }
+    });
+    if (addIDsSettingsBtn && otpSettings) {
+        addIDsSettingsBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleAddIDsSettings();
+        });
+
+        otpSettings.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        if (addIDsSettingsCloseBtn) {
+            addIDsSettingsCloseBtn.addEventListener('click', () => {
+                closeAddIDsSettings();
+            });
+        }
+
+        if (addIDsSettingsBackdrop) {
+            addIDsSettingsBackdrop.addEventListener('click', () => {
+                closeAddIDsSettings();
+            });
+        }
+
+        document.addEventListener('click', () => {
+            closeAddIDsSettings();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeAddIDsSettings();
+            }
+        });
+    }
+
+    updateAddIDsSettingsState();
+
+    outputText.addEventListener('input', () => {
+        activeEditorView = 'code';
+        syncEditorToInputHTML();
+        updateLiveView();
+        refreshReviewPanel();
+        updateCodeHighlight();
+    });
+    outputText.addEventListener('focus', () => {
+        activeEditorView = 'code';
+    });
+    outputText.addEventListener('scroll', () => {
+        syncCodeHighlightScroll();
+    });
+    outputText.addEventListener('click', (event) => {
+        scrollLiveToCodeClick(event);
+    });
 
     // Input box. Use change instead of input so the formatter does not fight the user while typing.
     outputText.addEventListener('change', updateInputHTML);
@@ -204,6 +379,73 @@ function toggleLanguage() {
     langStrings = isEngLang ? engStrings : frStrings;
     langBtn.textContent = langStrings['LANG_BTN'];
     addProcessingLog(`Language changed to ${langBtn.textContent}.`, 'info');
+}
+
+function switchEditorView(view) {
+    if (!view || view === activeEditorView) {
+        return;
+    }
+
+    syncActiveEditorToInputHTML();
+    activeEditorView = view;
+
+    document.querySelectorAll('.editor-view').forEach((editorView) => {
+        editorView.classList.remove('active');
+    });
+    editorViewButtons.forEach((button) => {
+        button.classList.toggle('active', button.getAttribute('data-editor-view') === view);
+    });
+
+    if (view === 'code') {
+        updateCodeView();
+        if (codeEditor) {
+            codeEditor.classList.add('active');
+        }
+        if (liveEditor) {
+            liveEditor.classList.remove('active');
+        }
+        outputText.focus();
+        addProcessingLog('Switched to Code view.', 'info');
+        return;
+    }
+
+    updateLiveView();
+    if (liveEditor) {
+        liveEditor.classList.add('active');
+        liveEditor.focus();
+    }
+    if (codeEditor) {
+        codeEditor.classList.remove('active');
+    }
+    addProcessingLog('Switched to Live view.', 'info');
+}
+
+function runWysiwygCommand(button) {
+    if (!liveEditor) {
+        return;
+    }
+
+    if (activeEditorView !== 'live') {
+        switchEditorView('live');
+    }
+
+    liveEditor.focus();
+
+    const command = button.getAttribute('data-edit-command');
+    let value = button.getAttribute('data-edit-value') || null;
+
+    if (command === 'createLink') {
+        value = prompt('Link URL');
+        if (!value) {
+            return;
+        }
+    }
+
+    document.execCommand(command, false, value);
+    syncLiveToInputHTML();
+    updateCodeView();
+    refreshReviewPanel();
+    addProcessingLog(`Applied Live view edit: ${button.textContent.trim()}.`, 'info');
 }
 
 /**
@@ -277,9 +519,47 @@ function processSelectedFile(selectedFile) {
  * Perform actions whenever On this page checkbox is pressed
  */
 function handleToggleOnThisPageBox() {
-    otpSettings.classList.toggle('fadeIn', onThisPageBox.checked);
-    addIDsBtn.innerText = `Add IDs${onThisPageBox.checked ? " and On this page" : ""}`;
     addProcessingLog(`${onThisPageBox.checked ? 'Enabled' : 'Disabled'} On this page generation.`, 'info');
+    updateAddIDsSettingsState();
+}
+
+function toggleAddIDsSettings() {
+    if (!otpSettings || !addIDsSettingsBtn) {
+        return;
+    }
+
+    const isOpen = otpSettings.classList.toggle('open');
+    addIDsSettingsBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (addIDsSettingsBackdrop) {
+        addIDsSettingsBackdrop.classList.toggle('open', isOpen);
+    }
+}
+
+function closeAddIDsSettings() {
+    if (!otpSettings || !addIDsSettingsBtn) {
+        return;
+    }
+
+    otpSettings.classList.remove('open');
+    addIDsSettingsBtn.setAttribute('aria-expanded', 'false');
+    if (addIDsSettingsBackdrop) {
+        addIDsSettingsBackdrop.classList.remove('open');
+    }
+}
+
+function updateAddIDsSettingsState() {
+    if (!addIDsSettingsBtn) {
+        return;
+    }
+
+    const hasCustomSettings = Boolean(
+        (onThisPageBox && onThisPageBox.checked) ||
+        (headerDepth && headerDepth.value !== '2') ||
+        (isToC && isToC.checked)
+    );
+
+    addIDsSettingsBtn.classList.toggle('modified', hasCustomSettings);
+    addIDsSettingsBtn.setAttribute('aria-label', hasCustomSettings ? 'Add IDs options, modified' : 'Add IDs options');
 }
 
 /**
@@ -328,8 +608,6 @@ function convertUsingMammoth(file) {
  */
 function handleConvertedHTML(html) {
     const loading = document.getElementById('loader');
-    const elapsedTime = document.getElementById('elapsedTime');
-
     inputHTML.innerHTML = html;
 
     const imgCount = cleanImgSources();
@@ -337,14 +615,14 @@ function handleConvertedHTML(html) {
     const hrefCount = cleanBookmarkHrefs();
     normalizeSmartQuotes();
 
-    elapsedTime.textContent = `Converted document in ${getEndTime()} seconds`;
+    const conversionTime = getEndTime();
     if (loading) { loading.classList.add("hidden"); }
 
     setFileUploadStatus(`Converted successfully.`);
     updateOutputText();
     Utils.scrollSmoothTo(outputSection);
 
-    addProcessingLog(`Converted document in ${getEndTime()} seconds.`, 'success');
+    addProcessingLog(`Converted document in ${conversionTime} seconds.`, 'success');
     addProcessingLog(`Initial cleanup: cleared ${imgCount} image src value(s), removed ${bookmarkCount} Word bookmark anchor(s), cleaned ${hrefCount} Word bookmark href(s).`, 'info');
 }
 
@@ -360,7 +638,7 @@ function standardCleanupCommand() {
     console.log('Standard cleanup');
 
     try {
-        syncEditorToInputHTML();
+        syncActiveEditorToInputHTML();
 
         if (!hasInput()) {
             throw new Error('Input is empty');
@@ -391,6 +669,7 @@ function addIDsCommand() {
     tableIDCount = 0;
     figureIDCount = 0;
     try {
+        syncActiveEditorToInputHTML();
         modifyHeadings(inputHTML, headingIDCount, modifiedComponents);
         modifyTables(inputHTML, tableIDCount, modifiedComponents);
         modifyFigures(inputHTML, figureIDCount, modifiedComponents);
@@ -415,6 +694,7 @@ function addIDsCommand() {
 function generateFootnotesCommand() {
     const debug = document.getElementById('debug');
     try {
+        syncActiveEditorToInputHTML();
         createBodyFtnTags(inputHTML, langStrings);
         replaceFootnoteSection(inputHTML, langStrings, isEngLang);
         
@@ -434,6 +714,7 @@ function generateFootnotesCommand() {
 function validateNbspCommand() {
     const debug = document.getElementById('debug');
     try {
+        syncActiveEditorToInputHTML();
         setInputHTMLForNbsp(inputHTML);
         inputHTML.innerHTML = fixAllIssues(!isEngLang);
         
@@ -450,6 +731,8 @@ function validateNbspCommand() {
 function tableCleanupCommand() {
     const debug = document.getElementById('debug');
     try {
+        syncActiveEditorToInputHTML();
+        updateCodeView();
         if (outputText.value.trim() === "") {
             throw new Error('Input is empty');
         }
@@ -471,6 +754,7 @@ function splitByH1Command() {
     const debug = document.getElementById('debug');
     document.getElementById('splits').innerHTML = "";
     try {
+        syncActiveEditorToInputHTML();
         const splits = document.getElementById('splits');
 
         splits.innerHTML = "";
@@ -481,6 +765,7 @@ function splitByH1Command() {
             createSplitButton(s);
             outputText.value += Utils.formattedHTML(s);
         }
+        updateCodeHighlight();
         updateInputHTML();
         setDebugMessage(debug, 'Create H1 splits successful', false);
         addProcessingLog(`Create H1 splits successful. Created ${sections.length} section(s).`, 'success');
@@ -494,6 +779,7 @@ function splitByH1Command() {
 function qaHelperCount() {
     const debug = document.getElementById('debug');
     try {
+        syncActiveEditorToInputHTML();
         countTags(inputHTML);
         refreshReviewPanel();
         addProcessingLog('QA Helper count completed.', 'success');
@@ -572,7 +858,8 @@ function updateOutputText() {
     if (!inputHTML.classList.contains("content-area")) {
         inputHTML.classList.add("content-area");
     }
-    outputText.value = Utils.formattedHTML(inputHTML);
+    updateCodeView();
+    updateLiveView();
     refreshReviewPanel();
 }
 
@@ -584,12 +871,406 @@ function updateInputHTML() {
     updateOutputText();
 }
 
+function syncActiveEditorToInputHTML() {
+    if (activeEditorView === 'live') {
+        syncLiveToInputHTML();
+        return;
+    }
+
+    syncEditorToInputHTML();
+}
+
 function syncEditorToInputHTML() {
     inputHTML.innerHTML = outputText.value;
     const contentArea = inputHTML.querySelector("div.content-area");
     if (contentArea) {
         Utils.stripTag(contentArea);
     }
+    inputHTML.classList.add("content-area");
+}
+
+function syncLiveToInputHTML() {
+    if (!liveEditor) {
+        return;
+    }
+
+    inputHTML.innerHTML = liveEditor.innerHTML;
+    inputHTML.classList.add("content-area");
+}
+
+function updateCodeView() {
+    if (!outputText) {
+        return;
+    }
+
+    if (!inputHTML.classList.contains("content-area")) {
+        inputHTML.classList.add("content-area");
+    }
+
+    outputText.value = hasInput() ? Utils.formattedHTML(inputHTML) : '';
+    updateElementSyncLineMap();
+    updateCodeHighlight();
+}
+
+function updateLiveView() {
+    if (!liveEditor) {
+        return;
+    }
+
+    const clone = inputHTML.cloneNode(true);
+    clone.querySelectorAll('script, style, link').forEach(element => element.remove());
+    liveEditor.innerHTML = hasInput() ? clone.innerHTML : '';
+}
+
+function scrollCodeToLiveElement(target) {
+    if (!liveEditor || !outputText || !target || !liveEditor.contains(target)) {
+        return;
+    }
+
+    const liveElement = getLiveSyncElement(target);
+    if (!liveElement) {
+        return;
+    }
+
+    const path = getElementPath(liveElement, liveEditor);
+    if (!path) {
+        return;
+    }
+
+    syncLiveToInputHTML();
+    updateCodeView();
+
+    const codeEntry = getCodeEntryForPath(path);
+    if (!codeEntry) {
+        return;
+    }
+
+    scrollCodeToIndex(codeEntry.startIndex);
+}
+
+function getLiveSyncElement(target) {
+    const element = target.nodeType === Node.TEXT_NODE ? target.parentElement : target;
+    if (!element || element === liveEditor) {
+        return null;
+    }
+
+    return element;
+}
+
+function scrollLiveToCodeClick(event) {
+    if (!liveEditor || !outputText || elementSyncLineMap.length === 0) {
+        return;
+    }
+
+    const match = getSyncEntryForCodeIndex(outputText.selectionStart || 0);
+    if (!match) {
+        return;
+    }
+
+    const liveElement = getElementByPath(liveEditor, match.path);
+    if (!liveElement) {
+        return;
+    }
+
+    scrollLiveElementIntoView(liveElement);
+}
+
+function getCodeEntryForLiveElement(liveElement) {
+    const path = getElementPath(liveElement, liveEditor);
+    if (!path) {
+        return null;
+    }
+
+    return getCodeEntryForPath(path);
+}
+
+function getCodeEntryForPath(path) {
+    const pathKey = path.join('.');
+    return elementSyncLineMap.find((entry) => entry.pathKey === pathKey) || null;
+}
+
+function getSyncEntryForCodeIndex(codeIndex) {
+    const containingEntries = elementSyncLineMap
+        .filter((entry) => entry.startIndex <= codeIndex && codeIndex <= entry.endIndex)
+        .sort((first, second) => {
+            if (second.path.length !== first.path.length) {
+                return second.path.length - first.path.length;
+            }
+
+            return (first.endIndex - first.startIndex) - (second.endIndex - second.startIndex);
+        });
+
+    if (containingEntries.length > 0) {
+        return containingEntries[0];
+    }
+
+    let previous = null;
+    for (const entry of elementSyncLineMap) {
+        if (entry.startIndex > codeIndex) {
+            break;
+        }
+        previous = entry;
+    }
+
+    return previous || elementSyncLineMap[0] || null;
+}
+
+function updateElementSyncLineMap() {
+    elementSyncLineMap = [];
+    if (!outputText || !outputText.value.trim()) {
+        return;
+    }
+
+    elementSyncLineMap = buildElementSourceMap(outputText.value);
+}
+
+function buildElementSourceMap(html) {
+    const entries = [];
+    const stack = [];
+    const documentFrame = {
+        path: null,
+        childCount: 0,
+        entry: null
+    };
+    const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+    stack.push(documentFrame);
+
+    let index = 0;
+    while (index < html.length) {
+        const tagStart = html.indexOf('<', index);
+        if (tagStart === -1) {
+            break;
+        }
+
+        if (html.startsWith('<!--', tagStart)) {
+            const commentEnd = html.indexOf('-->', tagStart + 4);
+            index = commentEnd === -1 ? html.length : commentEnd + 3;
+            continue;
+        }
+
+        const tagEnd = getTagEndIndex(html, tagStart);
+        if (tagEnd === -1) {
+            break;
+        }
+
+        const tagSource = html.slice(tagStart, tagEnd + 1);
+        const tagMatch = tagSource.match(/^<\s*(\/?)\s*([A-Za-z][\w:-]*)/);
+        if (!tagMatch) {
+            index = tagEnd + 1;
+            continue;
+        }
+
+        const isClosingTag = tagMatch[1] === '/';
+        const tagName = tagMatch[2].toLowerCase();
+
+        if (isClosingTag) {
+            closeSourceMapEntry(stack, tagName, tagEnd + 1);
+            index = tagEnd + 1;
+            continue;
+        }
+
+        const parentFrame = stack[stack.length - 1] || documentFrame;
+        const childIndex = parentFrame.childCount;
+        parentFrame.childCount += 1;
+        const path = parentFrame.path === null ? [] : parentFrame.path.concat(childIndex);
+        const isRootWrapper = path.length === 0;
+        const isSelfClosing = /\/\s*>$/.test(tagSource) || voidTags.has(tagName);
+        const entry = isRootWrapper ? null : {
+            tagName,
+            path,
+            pathKey: path.join('.'),
+            startIndex: tagStart,
+            openEndIndex: tagEnd + 1,
+            endIndex: tagEnd + 1
+        };
+
+        if (entry) {
+            entries.push(entry);
+        }
+
+        if (!isSelfClosing) {
+            stack.push({
+                tagName,
+                path,
+                childCount: 0,
+                entry
+            });
+        } else if (entry) {
+            entry.endIndex = tagEnd + 1;
+        }
+
+        index = tagEnd + 1;
+    }
+
+    return entries;
+}
+
+function closeSourceMapEntry(stack, tagName, endIndex) {
+    for (let index = stack.length - 1; index > 0; index -= 1) {
+        const frame = stack[index];
+        stack.pop();
+        if (frame.entry) {
+            frame.entry.endIndex = endIndex;
+        }
+        if (frame.tagName === tagName) {
+            return;
+        }
+    }
+}
+
+function getTagEndIndex(html, tagStart) {
+    let quote = null;
+
+    for (let index = tagStart + 1; index < html.length; index += 1) {
+        const char = html[index];
+        if (quote) {
+            if (char === quote) {
+                quote = null;
+            }
+            continue;
+        }
+
+        if (char === '"' || char === "'") {
+            quote = char;
+            continue;
+        }
+
+        if (char === '>') {
+            return index;
+        }
+    }
+
+    return -1;
+}
+
+function getElementPath(element, root) {
+    if (!element || !root || element === root || !root.contains(element)) {
+        return null;
+    }
+
+    const path = [];
+    let current = element;
+
+    while (current && current !== root) {
+        const parent = current.parentElement;
+        if (!parent) {
+            return null;
+        }
+
+        path.unshift(Array.from(parent.children).indexOf(current));
+        current = parent;
+    }
+
+    return path;
+}
+
+function getElementByPath(root, path) {
+    return path.reduce((current, index) => {
+        if (!current || !current.children || !current.children[index]) {
+            return null;
+        }
+
+        return current.children[index];
+    }, root);
+}
+
+function scrollCodeToIndex(codeIndex) {
+    outputText.scrollTop = getCodeScrollTopForIndex(codeIndex);
+    syncCodeHighlightScroll();
+}
+
+function getCodeScrollTopForIndex(codeIndex) {
+    const style = window.getComputedStyle(outputText);
+    const mirror = document.createElement('div');
+    const marker = document.createElement('span');
+    const mirroredProperties = [
+        'boxSizing',
+        'fontFamily',
+        'fontSize',
+        'fontStyle',
+        'fontWeight',
+        'letterSpacing',
+        'lineHeight',
+        'paddingBottom',
+        'paddingLeft',
+        'paddingRight',
+        'paddingTop',
+        'tabSize',
+        'textAlign',
+        'textIndent',
+        'textTransform',
+        'whiteSpace',
+        'wordBreak'
+    ];
+
+    mirroredProperties.forEach((property) => {
+        mirror.style[property] = style[property];
+    });
+    mirror.style.overflowWrap = style.overflowWrap;
+    mirror.style.position = 'absolute';
+    mirror.style.visibility = 'hidden';
+    mirror.style.left = '-9999px';
+    mirror.style.top = '0';
+    mirror.style.width = `${outputText.clientWidth}px`;
+    mirror.style.minHeight = '0';
+    mirror.style.height = 'auto';
+    mirror.style.overflow = 'hidden';
+
+    marker.textContent = '\u200b';
+    marker.style.display = 'inline-block';
+
+    mirror.appendChild(document.createTextNode(outputText.value.slice(0, codeIndex)));
+    mirror.appendChild(marker);
+    document.body.appendChild(mirror);
+
+    const targetTop = Math.max(0, marker.offsetTop - (outputText.clientHeight * 0.28));
+    mirror.remove();
+
+    return targetTop;
+}
+
+function scrollLiveElementIntoView(element) {
+    const editorRect = liveEditor.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+    const targetTop = Math.max(0, liveEditor.scrollTop + (elementRect.top - editorRect.top) - (liveEditor.clientHeight * 0.16));
+
+    liveEditor.scrollTop = targetTop;
+}
+
+function updateCodeHighlight() {
+    if (!codeHighlight || !outputText) {
+        return;
+    }
+
+    const code = codeHighlight.querySelector('code') || codeHighlight;
+    code.innerHTML = highlightHTML(outputText.value);
+    syncCodeHighlightScroll();
+}
+
+function syncCodeHighlightScroll() {
+    if (!codeHighlight || !outputText) {
+        return;
+    }
+
+    codeHighlight.scrollTop = outputText.scrollTop;
+    codeHighlight.scrollLeft = outputText.scrollLeft;
+}
+
+function highlightHTML(html) {
+    const escaped = escapeHTML(html);
+
+    return escaped.replace(/(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?)([A-Za-z][\w:-]*)([\s\S]*?)(\/?&gt;)/g, (match, comment, bracket, tagName, attributes, closeBracket) => {
+        if (comment) {
+            return `<span class="syntax-comment">${comment}</span>`;
+        }
+
+        const highlightedAttributes = attributes.replace(/([^\s=\/&]+)(=)(&quot;.*?&quot;|&#039;.*?&#039;|[^\s&]+)?/g, (attributeMatch, name, equals, value = '') => {
+            return `<span class="syntax-attr">${name}</span>${equals}<span class="syntax-value">${value}</span>`;
+        });
+
+        return `<span class="syntax-bracket">${bracket}</span><span class="syntax-name">${tagName}</span><span class="syntax-tag">${highlightedAttributes}${closeBracket}</span>`;
+    });
 }
 
 /**
@@ -597,6 +1278,10 @@ function syncEditorToInputHTML() {
  */
 function clearOutputText() {
     outputText.value = " ";
+    updateCodeHighlight();
+    if (liveEditor) {
+        liveEditor.innerHTML = "";
+    }
     refreshReviewPanel();
 }
 
@@ -612,11 +1297,7 @@ function getMammothLibrary() {
     return null;
 }
 
-function setFileUploadStatus(message) {
-    if (fileUploadStatus) {
-        fileUploadStatus.textContent = message;
-    }
-}
+function setFileUploadStatus() {}
 
 /**
  * Phase 1 review panel helpers
@@ -637,31 +1318,39 @@ function updateDocumentHealth() {
     if (!hasInput()) {
         healthScore.className = 'label label-default';
         healthScore.textContent = 'Not checked';
-        documentHealth.innerHTML = '<p class="text-muted">Document counts will appear here after conversion or editing.</p>';
+        documentHealth.innerHTML = '<p class="text-muted">Document report will appear here after conversion or editing.</p>';
         return;
     }
 
     const issueTotal = stats.emptyLinks + stats.missingHeadingIds + stats.missingTableIds + stats.missingFigureIds + stats.headingSkips;
+    let statusText = 'Looks clean';
+    let statusClass = 'label-success';
     if (issueTotal === 0) {
-        healthScore.className = 'label label-success';
-        healthScore.textContent = 'Looks clean';
+        statusText = 'Looks clean';
+        statusClass = 'label-success';
     } else if (issueTotal <= 3) {
-        healthScore.className = 'label label-warning';
-        healthScore.textContent = 'Review suggested';
+        statusText = 'Review suggested';
+        statusClass = 'label-warning';
     } else {
-        healthScore.className = 'label label-danger';
-        healthScore.textContent = 'Needs review';
+        statusText = 'Needs review';
+        statusClass = 'label-danger';
     }
 
+    healthScore.className = `label ${statusClass}`;
+    healthScore.textContent = statusText;
+
     documentHealth.innerHTML = `
-        <dl class="dl-horizontal small mrgn-bttm-0">
-            <dt>Headings</dt><dd>${stats.headings}</dd>
-            <dt>Tables</dt><dd>${stats.tables}</dd>
-            <dt>Figures</dt><dd>${stats.figures}</dd>
-            <dt>Images</dt><dd>${stats.images}</dd>
-            <dt>Links</dt><dd>${stats.links}</dd>
-            <dt>Footnote refs</dt><dd>${stats.footnoteRefs}</dd>
-            <dt>Potential issues</dt><dd>${issueTotal}</dd>
+        <div class="report-summary">
+            <span class="label ${statusClass}">${statusText}</span>
+            <span class="text-muted">${issueTotal} review item${issueTotal === 1 ? '' : 's'}</span>
+        </div>
+        <dl class="report-stats">
+            <div><dt>Headings</dt><dd>${stats.headings}</dd></div>
+            <div><dt>Tables</dt><dd>${stats.tables}</dd></div>
+            <div><dt>Figures</dt><dd>${stats.figures}</dd></div>
+            <div><dt>Images</dt><dd>${stats.images}</dd></div>
+            <div><dt>Links</dt><dd>${stats.links}</dd></div>
+            <div><dt>Footnotes</dt><dd>${stats.footnoteRefs}</dd></div>
         </dl>`;
 }
 
@@ -672,12 +1361,12 @@ function updateHeadingOutline() {
 
     const headings = Array.from(inputHTML.querySelectorAll('h1, h2, h3, h4, h5, h6'));
     if (headings.length === 0) {
-        documentOutline.innerHTML = '<p class="text-muted">No headings found yet.</p>';
+        documentOutline.innerHTML = '<div class="report-block"><strong>Outline</strong><p class="text-muted">No headings found yet.</p></div>';
         return;
     }
 
     const outline = document.createElement('ol');
-    outline.className = 'list-unstyled mrgn-bttm-0';
+    outline.className = 'report-outline';
 
     headings.forEach((heading) => {
         const level = Number(heading.tagName.substring(1));
@@ -688,6 +1377,10 @@ function updateHeadingOutline() {
     });
 
     documentOutline.innerHTML = '';
+    const heading = document.createElement('strong');
+    heading.textContent = 'Outline';
+    heading.className = 'report-heading';
+    documentOutline.appendChild(heading);
     documentOutline.appendChild(outline);
 }
 
@@ -700,7 +1393,7 @@ function updateIssues() {
     const issues = [];
 
     if (!hasInput()) {
-        documentIssues.innerHTML = '<p class="text-muted">Potential issues will appear here.</p>';
+        documentIssues.innerHTML = '<p class="text-muted">Items to review will appear here.</p>';
         return;
     }
 
@@ -788,9 +1481,22 @@ function hasInput() {
     return inputHTML.textContent.trim() !== '' || inputHTML.children.length > 0;
 }
 
-function setDebugMessage(debug, message, isError) {
-    debug.style.color = isError ? 'red' : '';
-    debug.innerText = message;
+function setDebugMessage() {}
+
+function isActivityPanelOpen() {
+    return Boolean(processingLogPanel && processingLogPanel.classList.contains('open'));
+}
+
+function setActivityPanelOpen(isOpen) {
+    if (!processingLogPanel) {
+        return;
+    }
+
+    processingLogPanel.classList.toggle('open', isOpen);
+    processingLogPanel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    if (activityToggleBtn) {
+        activityToggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
 }
 
 function addProcessingLog(message, type = 'info') {
@@ -812,6 +1518,29 @@ function addProcessingLog(message, type = 'info') {
     item.className = 'mrgn-bttm-sm';
     item.innerHTML = `<span class="label ${labelClass}">${labelText}</span> <span class="text-muted">${time}</span> ${escapeHTML(message)}`;
     processingLog.insertBefore(item, processingLog.firstChild);
+
+    if (!isActivityPanelOpen()) {
+        showActivityToast(message, type, labelText);
+    }
+}
+
+function showActivityToast(message, type, labelText) {
+    if (!toastRegion) {
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-message ${type}`;
+    toast.innerHTML = `<strong>${escapeHTML(labelText)}</strong><span>${escapeHTML(message)}</span>`;
+    toastRegion.prepend(toast);
+
+    while (toastRegion.children.length > 3) {
+        toastRegion.lastElementChild.remove();
+    }
+
+    setTimeout(() => {
+        toast.remove();
+    }, 4200);
 }
 
 function escapeHTML(value) {

@@ -1,348 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <title>Propel - Word to HTML Production Tool</title>
-    <meta name="description" content="Convert a Word document into production-ready HTML">
+    <title>Propel - Word to HTML Conversion Tool</title>
+    <meta name="description" content="Convert a Word document into HTML">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="Jordan Chou">
-
     <meta charset="UTF-8">
     <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
     <link type="image/png" sizes="96x96" rel="shortcut icon" href="logo.png">
-    <link rel="stylesheet" href="css/wet-boew.min.css">
-    <link rel="stylesheet" href="css/theme.min.css">
-    <link rel="stylesheet" href="css/custom.css">
-    <link rel="stylesheet" href="css/all.min.css">
     <link id="theme" rel="stylesheet" href="css/prettify.css">
+    <link rel="stylesheet" href="css/custom.css">
 </head>
 
 <body>
-    <div class="container">
-        <header id="header" class="mrgn-tp-md mrgn-bttm-lg">
-            <div class="row">
-                <div class="col-md-8">
-                    <h1 class="mrgn-bttm-sm">
-                        <a href=""><img style="width: 36px; height: auto; vertical-align: top;" src="logo.png" alt="Propel Logo"></a>
-                        Propel <span class="small">ALPHA</span>
-                    </h1>
-                    <p class="lead mrgn-bttm-sm">Word to HTML production workspace for Canada.ca publishing.</p>
+    <div class="app-shell">
+        <header class="app-header" id="header">
+            <div class="brand">
+                <a href=""><img src="logo.png" alt="Propel Logo"></a>
+                <div class="brand-title">
+                    <strong>Propel <span class="label label-info">ALPHA</span></strong>
+                    <span>Convert, edit, and copy clean HTML</span>
                 </div>
-                <div class="col-md-4 text-right">
-                    <p class="mrgn-bttm-sm"><strong>Document language</strong></p>
-                    <button type="button" class="btn btn-sm btn-default" id="langBtn" title="Toggle the language">English</button>
-                </div>
+            </div>
+
+            <nav class="workflow-tabs wb-inv" aria-label="Propel workflow">
+                <a class="workflow-tab active" href="#outputSection" data-workflow-tab>1. Import</a>
+                <a class="workflow-tab" href="#cleanSection" data-workflow-tab>2. Clean</a>
+                <a class="workflow-tab" href="#enhanceSection" data-workflow-tab>3. Enhance</a>
+                <a class="workflow-tab" href="#qaSection" data-workflow-tab>4. QA</a>
+                <a class="workflow-tab" href="#exportSection" data-workflow-tab>5. Export</a>
+            </nav>
+
+            <div class="header-actions">
+                <button type="button" class="btn btn-sm" id="activityToggleBtn" aria-expanded="false" aria-controls="processingLogPanel">Activity</button>
+                <button type="button" class="btn btn-sm" id="langBtn" title="Toggle the language">English</button>
+                <label id="outputLabel" class="btn btn-sm btn-primary">
+                    <input type="button" id="copyBtn" class="copy-control" value="Copy">
+                    Copy HTML
+                </label>
             </div>
         </header>
 
-        <nav aria-label="Propel workflow" class="mrgn-bttm-lg">
-            <ul class="nav nav-pills">
-                <li><a href="#importStep">1. Import</a></li>
-                <li><a href="#cleanStep">2. Clean</a></li>
-                <li><a href="#enhanceStep">3. Enhance</a></li>
-                <li><a href="#qaStep">4. QA</a></li>
-                <li><a href="#exportStep">5. Export</a></li>
-            </ul>
-        </nav>
-
-        <!-- Backward-compatible hidden controls retained because older scripts may look for these IDs. -->
-        <div class="wb-inv" aria-hidden="true">
-            <button type="button" id="submitBtn">Convert</button>
-            <label for="budgetOption"><input id="budgetOption" type="checkbox">Budget</label>
-        </div>
-
-        <section class="alert alert-info" aria-label="Current status">
-            <p id="elapsedTime" class="mrgn-bttm-sm">Upload a Word document or paste HTML into the editor to begin.</p>
-            <p id="debug" class="mrgn-bttm-0">No command has been run yet.</p>
-        </section>
-
-        <section id="importStep" class="panel panel-primary" aria-labelledby="importHeading">
-            <header class="panel-heading">
-                <h2 class="panel-title" id="importHeading">1. Import</h2>
-            </header>
-            <div class="panel-body" id="outputSection">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p>Upload a <code>.docx</code> file or paste HTML directly into the editor below.</p>
-                        <div class="file-input-container">
-                            <label for="file">Word document</label>
-                            <input type="file" id="file" accept=".doc, .docx" class="file-input form-control">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="well well-sm mrgn-bttm-0">
-                            <h3 class="mrgn-tp-0 h5">Import checklist</h3>
-                            <ul class="mrgn-bttm-0">
-                                <li>Use finalized Word source when possible.</li>
-                                <li>Confirm heading structure before conversion.</li>
-                                <li>Paste existing HTML below when reworking a page.</li>
-                            </ul>
-                        </div>
+        <main class="main-grid">
+            <aside class="panel left-rail" aria-label="Propel commands">
+                <div class="panel-header">
+                    <div>
+                        <h2>Tools</h2>
+                        <p class="panel-subtitle">Upload, clean, check, and export.</p>
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <div id="loader" class="hidden" aria-live="polite" aria-label="Converting document">
-            <div class="inner one"></div>
-            <div class="inner two"></div>
-            <div class="inner three"></div>
-        </div>
-
-        <section id="workspace" class="mrgn-tp-lg" aria-labelledby="workspaceHeading">
-            <h2 id="workspaceHeading">HTML workspace</h2>
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="panel panel-default">
-                        <header class="panel-heading">
-                            <h3 class="panel-title">HTML editor</h3>
-                        </header>
-                        <div class="panel-body">
-                            <label for="outputText" class="wb-inv">Converted or pasted HTML markup</label>
-                            <textarea class="form-control mrgn-bttm-sm" style="width: 100%; font-family: Consolas, Monaco, monospace;" rows="28" name="outputTextArea" id="outputText" title="Paste the HTML markup" placeholder="Upload a Word document or paste in the HTML code here"></textarea>
-                            <label id="outputLabel"><input type="button" class="btn btn-default btn-sm" id="copyBtn" value="Copy HTML">
-                                <span id="copiedLabel" class="wb-inv label label-success">Copied</span>
-                            </label>
-                            <textarea class="wb-inv" id="copyArea"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <aside class="panel panel-default" aria-labelledby="previewHeading">
-                        <header class="panel-heading">
-                            <h3 class="panel-title" id="previewHeading">Right preview panel</h3>
-                        </header>
-                        <div class="panel-body">
-                            <ul class="nav nav-tabs" role="tablist">
-                                <li class="active"><a href="#reviewSummary" role="tab" data-toggle="tab">Health</a></li>
-                                <li><a href="#reviewOutline" role="tab" data-toggle="tab">Outline</a></li>
-                                <li><a href="#reviewIssues" role="tab" data-toggle="tab">Issues</a></li>
-                                <li><a href="#reviewPreview" role="tab" data-toggle="tab">Preview</a></li>
-                            </ul>
-                            <div class="tab-content mrgn-tp-md">
-                                <div class="tab-pane active" id="reviewSummary" role="tabpanel">
-                                    <p><strong>Document health</strong> <span id="healthScore" class="label label-default">Not checked</span></p>
-                                    <div id="documentHealth" class="small">
-                                        <p class="text-muted">Document counts will appear here after conversion or editing.</p>
+                <div class="panel-body">
+                    <div class="rail-scroll">
+                        <section class="workflow-section" id="outputSection">
+                            <p class="section-kicker">Upload</p>
+                            <!-- <div class="pipeline wb-inv" aria-label="Conversion workflow">
+                                <div class="pipeline-step">Word document</div>
+                                <div class="pipeline-arrow">↓</div>
+                                <div class="pipeline-step">Mammoth.js conversion</div>
+                                <div class="pipeline-arrow">↓</div>
+                                <div class="pipeline-step">Initial cleanup pipeline</div>
+                                <div class="pipeline-arrow">↓</div>
+                                <div class="pipeline-step">Canonical HTML state</div>
+                                <div class="pipeline-arrow">↓</div>
+                                <div class="pipeline-step">Live view / Code view / Commands / Export</div>
+                            </div> -->
+                            <div class="form-row">
+                                <!-- <label for="file">Word document</label> -->
+                                <div class="drop-zone upload-drop-zone" id="fileDropZone">
+                                    <div>
+                                        <strong>Drop a Word document here</strong>
                                     </div>
-                                </div>
-                                <div class="tab-pane" id="reviewOutline" role="tabpanel">
-                                    <h4 class="mrgn-tp-0">Heading outline</h4>
-                                    <div id="documentOutline" class="small">
-                                        <p class="text-muted">The generated heading outline will appear here.</p>
-                                    </div>
-                                </div>
-                                <div class="tab-pane" id="reviewIssues" role="tabpanel">
-                                    <h4 class="mrgn-tp-0">Issues</h4>
-                                    <div id="documentIssues" class="small">
-                                        <p class="text-muted">Potential issues will appear here.</p>
-                                    </div>
-                                </div>
-                                <div class="tab-pane" id="reviewPreview" role="tabpanel">
-                                    <h4 class="mrgn-tp-0">Rendered preview</h4>
-                                    <div id="htmlPreview" class="well well-sm" style="max-height: 520px; overflow: auto;">
-                                        <p class="text-muted">A lightweight rendered preview will appear here.</p>
-                                    </div>
+                                    <input type="file" id="file" accept=".doc,.docx" class="file-input">
                                 </div>
                             </div>
-                        </div>
-                    </aside>
-                </div>
-            </div>
-        </section>
+                        </section>
 
-        <section id="cleanStep" class="panel panel-default" aria-labelledby="cleanHeading">
-            <header class="panel-heading">
-                <h2 class="panel-title" id="cleanHeading">2. Clean</h2>
-            </header>
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">Standard cleanup</h3>
-                            <p>Reserved for a future one-click production cleanup sequence.</p>
-                            <button type="button" class="btn btn-default btn-sm" id="standardCleanupBtn" disabled>Run standard cleanup</button>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">Validate spacing</h3>
-                            <p>Add missing non-breaking spaces where needed.</p>
-                            <button type="button" class="btn btn-primary btn-sm" id="nbspBtn" title="Add missing &amp;nbsp; where needed">Validate &amp;nbsp;</button>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">Tables</h3>
-                            <p>Send the current HTML to the table cleanup tool.</p>
-                            <button type="button" class="btn btn-primary btn-sm" id="tableCleanupBtn" title="Send HTML to Table Cleanup">Table Cleanup</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                        <section class="workflow-section" id="cleanSection">
+                            <!-- <p class="section-kicker">Clean</p>
+                            <div class="command-card">
+                                <strong>Standard cleanup</strong>
+                                <p>Apply the default cleanup to the current HTML.</p>
+                                <button type="button" class="btn btn-primary btn-full" id="standardCleanupBtn">Run standard cleanup</button>
+                            </div> -->
+                        </section>
 
-        <section id="enhanceStep" class="panel panel-default" aria-labelledby="enhanceHeading">
-            <header class="panel-heading">
-                <h2 class="panel-title" id="enhanceHeading">3. Enhance</h2>
-            </header>
-            <div class="panel-body">
-                <h2 id="commandsLabel" class="wb-inv">Commands</h2>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">IDs and page navigation</h3>
-                            <p>Add IDs to headings, tables, and figures.</p>
-                            <button type="button" class="btn btn-primary btn-sm" id="addIDsBtn" title="Add IDs to headings, tables, and figures">Add IDs</button>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">Footnotes</h3>
-                            <p>Generate WET-style footnotes from the converted HTML.</p>
-                            <button type="button" class="btn btn-primary btn-sm" id="footnotesBtn" title="Generate Footnotes">Generate footnotes</button>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">Workflow presets</h3>
-                            <p>Reserved for future presets such as report chapter, annex, or table-heavy page.</p>
-                            <button type="button" class="btn btn-default btn-sm" disabled>Choose preset</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="panel panel-info mrgn-tp-md">
-                    <header class="panel-heading">
-                        <h3 class="panel-title"><em>On this page</em> settings</h3>
-                    </header>
-                    <div class="panel-body">
-                        <div class="checkbox">
-                            <label for="onThisPageOption" title="Creates On this page section"><input id="onThisPageOption" type="checkbox">Create <em>On this page</em> when adding IDs</label>
-                        </div>
-                        <div id="otpSettings">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label for="headerDepth">Heading depth</label>
-                                    <select class="form-control mrgn-bttm-md input-sm" id="headerDepth">
-                                        <option value="2" selected>2</option>
-                                        <option value="3">3</option>
-                                        <option value="4">4</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="checkbox">
-                                        <label for="isToC" title="Change heading to Table of contents"><input id="isToC" type="checkbox">Change to Table of contents</label>
+                        <section class="workflow-section" id="enhanceSection">
+                            <p class="section-kicker">Enhance</p>
+                            <div class="button-stack">
+                                <div class="command-card">
+                                    <strong>Add IDs</strong>
+                                    <p>Add generic IDs to headings, tables, and figures.</p>
+                                    <div class="split-command">
+                                        <button type="button" class="btn btn-primary" id="addIDsBtn" title="Add IDs to headings, tables, and figures">Add IDs</button>
+                                        <button type="button" class="btn btn-primary command-settings-btn" id="addIDsSettingsBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="otpSettings" title="Add IDs options">...</button>
+                                        <div id="otpSettings" class="settings-box command-dialog" role="dialog" aria-modal="true" aria-labelledby="addIDsSettingsTitle">
+                                            <div class="dialog-header">
+                                                <strong id="addIDsSettingsTitle">Add IDs options</strong>
+                                                <button type="button" class="btn btn-xs" id="addIDsSettingsCloseBtn" aria-label="Close Add IDs options">Close</button>
+                                            </div>
+                                            <label class="checkline" for="onThisPageOption" title="Creates On this page section">
+                                                <input id="onThisPageOption" type="checkbox"> Create <em>On this page</em>
+                                            </label>
+                                            <div class="form-row">
+                                                <label for="headerDepth">Heading depth</label>
+                                                <select class="form-control" id="headerDepth">
+                                                    <option value="2" selected>2</option>
+                                                    <option value="3">3</option>
+                                                    <option value="4">4</option>
+                                                </select>
+                                            </div>
+                                            <label class="checkline" for="isToC" title="Change heading to Table of contents">
+                                                <input id="isToC" type="checkbox"> Change to Table of contents
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <section id="qaStep" class="panel panel-default" aria-labelledby="qaHeading">
-            <header class="panel-heading">
-                <h2 class="panel-title" id="qaHeading">4. QA</h2>
-            </header>
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="tagList">Count tags</label>
-                        <textarea class="form-control mrgn-bttm-sm" rows="8" style="width: 100%;" name="tagTextarea" id="tagList" title="Enter the tags to be counted from the page (supports CSS selectors such as .classes and #ids)"></textarea>
-                    </div>
-                    <div class="col-md-8">
-                        <label for="presetButtonBar">Presets</label>
-                        <div id="presetButtonBar"></div>
-                        <div class="mrgn-tp-md">
-                            <button type="button" class="btn btn-primary btn-sm" id="qaHelperCountBtn" title="Submit the HTML markup">Count</button>
-                        </div>
-                    </div>
-                </div>
+                                <div class="command-card">
+                                    <strong>Footnotes</strong>
+                                    <p>Convert footnotes to publishing markup.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="footnotesBtn" title="Generate Footnotes">Generate footnotes</button>
+                                </div>
 
-                <div class="wb-inv mrgn-tp-lg" id="qaHelperResults">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h3>Statistics</h3>
-                            <div>
-                                <label>Theme</label>
-                                <div class="radio-inline">
-                                    <label for="lightTheme" class="radio-inline">
-                                        <input id="lightTheme" type="radio" name="optradio" checked>
-                                        Light
-                                    </label>
-                                    <label for="darkTheme" class="radio-inline">
-                                        <input id="darkTheme" type="radio" name="optradio">
-                                        Dark
-                                    </label>
+                                <div class="command-card">
+                                    <strong>Spacing</strong>
+                                    <p>Fix required non-breaking spaces.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="nbspBtn" title="Add missing &amp;nbsp; where needed">Validate &amp;nbsp;</button>
+                                </div>
+
+                                <div class="command-card">
+                                    <strong>Tables</strong>
+                                    <p>Open the table cleanup tool.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="tableCleanupBtn" title="Send HTML to Table Cleanup">Table Cleanup</button>
                                 </div>
                             </div>
-                        </div>
+                        </section>
+
+                        <section class="workflow-section wb-inv" id="qaSection">
+                            <p class="section-kicker">Check</p>
+                            <div class="form-row">
+                                <label for="tagList">Count tags/selectors</label>
+                                <textarea class="form-control" rows="7" name="tagTextarea" id="tagList" title="Enter the tags to be counted from the page (supports CSS selectors such as .classes and #ids)"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label for="presetButtonBar">Presets</label>
+                                <div id="presetButtonBar"></div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-full" id="qaHelperCountBtn" title="Submit the HTML markup">Count</button>
+                            <div class="wb-inv" id="qaHelperResults">
+                                <h3 class="wb-inv">Statistics</h3>
+                                <div class="form-row">
+                                    <span class="section-kicker">Theme</span>
+                                    <label for="lightTheme" class="radio-inline"><input id="lightTheme" type="radio" name="optradio" checked> Light</label>
+                                    <label for="darkTheme" class="radio-inline"><input id="darkTheme" type="radio" name="optradio"> Dark</label>
+                                </div>
+                                <p><button class="btn btn-default btn-xs" id="collapseBtn">Collapse all</button></p>
+                                <div id="qaHelperOutput"></div>
+                                <div class="wb-inv" id="qaHelperCompare"></div>
+                            </div>
+                        </section>
+
+                        <section class="workflow-section wb-inv" id="exportSection">
+                            <p class="section-kicker">Export</p>
+                            <div class="command-card">
+                                <strong>Split by H1</strong>
+                                <p>Create copy buttons for each section.</p>
+                                <button type="button" class="btn btn-primary btn-full" id="splitBtn" title="Split the HTML by H1s">Create H1 splits</button>
+                                <label><span id="splitCopiedLabel" class="wb-inv label label-success">Chapter copied</span></label>
+                                <div id="splits"></div>
+                            </div>
+                        </section>
                     </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <p class="small">Format - <span class="bg-info"><strong>HTML tag</strong>: Number of elements</span></p>
-                            <p><button class="btn btn-default btn-xs" id="collapseBtn">Collapse all</button></p>
-                            <div id="qaHelperOutput"></div>
+                </div>
+            </aside>
+
+            <section class="panel editor-panel" aria-label="HTML editor">
+                <div class="panel-header editor-toolbar">
+                    <div>
+                        <h2>Editor</h2>
+                        <p class="panel-subtitle">Drop a Word document here, edit visually, or edit the HTML.</p>
+                    </div>
+                    <div class="editor-actions">
+                        <div class="wysiwyg-toolbar" id="wysiwygToolbar" aria-label="Live view formatting">
+                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h2" title="Heading 2">H2</button>
+                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h3" title="Heading 3">H3</button>
+                            <button class="btn btn-default" type="button" data-edit-command="bold" title="Bold">B</button>
+                            <button class="btn btn-default" type="button" data-edit-command="italic" title="Italic">I</button>
+                            <button class="btn btn-default" type="button" data-edit-command="insertUnorderedList" title="Bulleted list">• List</button>
+                            <button class="btn btn-default" type="button" data-edit-command="createLink" title="Create link">Link</button>
                         </div>
-                        <div class="col-md-6 wb-inv">
-                            <h2>Comparison</h2>
-                            <div id="qaHelperCompare"></div>
+                        <div class="view-toggle wb-inv" aria-label="Editor view">
+                            <button class="btn btn-default active" type="button" id="liveViewBtn" data-editor-view="live">Live</button>
+                            <button class="btn btn-default" type="button" id="codeViewBtn" data-editor-view="code">Code</button>
+                        </div>
+                        <span id="healthScore" class="label label-default">Not checked</span>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="editor-surface" id="editorDropZone">
+                        <div class="drop-hint">Drop a Word document to convert it</div>
+                        <div id="liveEditor" class="editor-view active split-live-pane" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Upload a Word document, drop one here, or paste HTML in Code view."></div>
+                        <div class="pane-splitter" id="paneSplitter" role="separator" aria-orientation="vertical" aria-label="Resize Live and Code panes"></div>
+                        <div class="code-editor editor-view active split-code-pane" id="codeEditor">
+                            <pre id="codeHighlight" aria-hidden="true"><code></code></pre>
+                            <textarea name="outputTextArea" id="outputText" title="Paste the HTML markup" placeholder="Upload a Word document or paste HTML code here" spellcheck="false"></textarea>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </main>
 
-        <section id="exportStep" class="panel panel-default" aria-labelledby="exportHeading">
-            <header class="panel-heading">
-                <h2 class="panel-title" id="exportHeading">5. Export</h2>
-            </header>
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">Copy final HTML</h3>
-                            <p>Use the copy button under the HTML editor when the page is ready.</p>
-                            <button type="button" class="btn btn-default btn-sm" onclick="document.getElementById('copyBtn').click();">Copy HTML</button>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="well well-sm">
-                            <h3 class="mrgn-tp-0 h4">Split by H1</h3>
-                            <p>Create separate snippets from each H1. Existing split buttons will appear below.</p>
-                            <button type="button" class="btn btn-primary btn-sm" id="splitBtn" title="Split the HTML by H1s">Create H1 splits</button>
-                            <label class="mrgn-lft-md"><span id="splitCopiedLabel" class="wb-inv label label-success">Chapter copied</span></label>
-                            <div id="splits" class="mrgn-tp-md"></div>
-                            <textarea id="splitHTML" class="wb-inv"></textarea>
-                        </div>
-                    </div>
+        <aside class="activity-panel" id="processingLogPanel" aria-label="Activity panel" aria-hidden="true">
+            <div class="activity-panel-header">
+                <h2>Activity</h2>
+                <button class="btn btn-xs" type="button" id="activityCloseBtn" aria-label="Close activity panel">Close</button>
+                <div class="review-tabs bottom-tabs" role="tablist" aria-label="Activity panels">
+                    <button class="review-tab active" type="button" data-review-tab="logPane">Log</button>
+                    <button class="review-tab" type="button" data-review-tab="reportPane">Report</button>
+                    <button class="review-tab" type="button" data-review-tab="issuesPane">Review</button>
                 </div>
             </div>
-        </section>
-
-        <section id="processingLogPanel" class="panel panel-default mrgn-tp-lg" aria-labelledby="processingLogHeading">
-            <header class="panel-heading">
-                <h2 class="panel-title" id="processingLogHeading">Bottom panel: processing log</h2>
-            </header>
-            <div class="panel-body">
-                <ol id="processingLog" class="list-unstyled mrgn-bttm-0">
-                    <li class="text-muted">No processing steps yet.</li>
-                </ol>
+            <div class="activity-panel-body">
+                <section class="review-pane active" id="logPane">
+                    <h3 class="wb-inv">Log</h3>
+                    <ol id="processingLog">
+                        <li class="text-muted">No actions yet. Upload a Word document or paste HTML to begin.</li>
+                    </ol>
+                </section>
+                <section class="review-pane" id="reportPane">
+                    <h3 class="wb-inv">Document report</h3>
+                    <div class="document-report">
+                        <div id="documentHealth"><p class="text-muted">Document counts will appear here after conversion or editing.</p></div>
+                        <div id="documentOutline"><p class="text-muted">No headings found yet.</p></div>
+                    </div>
+                </section>
+                <section class="review-pane" id="issuesPane">
+                    <h3 class="wb-inv">Things to review</h3>
+                    <div id="documentIssues"><p class="text-muted">Items to review will appear here.</p></div>
+                </section>
             </div>
-        </section>
+        </aside>
     </div>
 
+    <div class="toast-region" id="toastRegion" aria-live="polite" aria-label="Recent activity"></div>
+
+    <div id="loader" class="hidden"><div class="inner one"></div><div class="inner two"></div><div class="inner three"></div></div>
+
+    <textarea class="wb-inv" id="copyArea"></textarea>
+    <div id="htmlPreview" class="wb-inv"></div>
+    <textarea id="splitHTML" class="wb-inv"></textarea>
+    <input id="submitBtn" class="wb-inv" type="button" value="Convert">
+    <label class="wb-inv"><input id="budgetOption" type="checkbox">Budget</label>
+    <h2 id="commandsLabel" class="wb-inv">Commands</h2>
     <button id="topBtn" title="Go to top">^</button>
+
+    <script src="src/budget.js"></script>
+    <script src="src/mammoth.browser.js"></script>
+    <script src="src/beautify-html.js"></script>
+    <script src="src/prettify.js"></script>
+    <script src="src/run_prettify.js"></script>
+    <script type="module" src="src/propel.js"></script>
 </body>
-
-<script src="src/budget.js"></script>
-<script src="src/mammoth.browser.js"></script>
-<script src="src/beautify-html.js"></script>
-<script src="src/prettify.js"></script>
-<script src="src/run_prettify.js"></script>
-<script type="module" src="src/propel.js"></script>
-
 </html>
