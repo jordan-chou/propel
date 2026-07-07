@@ -2537,6 +2537,7 @@ exports.transforms = require("./transforms");
 exports.underline = require("./underline");
 exports.embedStyleMap = embedStyleMap;
 exports.readEmbeddedStyleMap = readEmbeddedStyleMap;
+exports._openZip = unzip.openZip;
 
 function convertToHtml(input, options) {
     return convert(input, options);

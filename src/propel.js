@@ -497,10 +497,21 @@ function createListeners() {
  * Toggles the switch and language
  */
 function toggleLanguage() {
-    isEngLang = !isEngLang;
+    setCommandLanguage(isEngLang ? 'fr' : 'en');
+    addProcessingLog(`Language changed to ${langStrings['LANG_BTN']}.`, 'info');
+}
+
+function setCommandLanguage(language) {
+    if (language !== 'en' && language !== 'fr') {
+        return false;
+    }
+
+    const nextIsEngLang = language === 'en';
+    const changed = isEngLang !== nextIsEngLang;
+    isEngLang = nextIsEngLang;
     langStrings = isEngLang ? engStrings : frStrings;
     updateLanguageSwitch();
-    addProcessingLog(`Language changed to ${langStrings['LANG_BTN']}.`, 'info');
+    return changed;
 }
 
 function updateLanguageSwitch() {
@@ -860,7 +871,11 @@ function convertUsingMammoth(file) {
         var arrayBuffer = reader.result;
         clearOutputText();
         if (loading) { loading.classList.remove("hidden"); }
-        mammothLibrary.convertToHtml({ arrayBuffer: arrayBuffer })
+        detectDocxLanguageFromMetadata(arrayBuffer, file.name, mammothLibrary)
+            .then(function(languageResult) {
+                applyDetectedDocumentLanguage(languageResult);
+                return mammothLibrary.convertToHtml({ arrayBuffer: arrayBuffer });
+            })
             .then(function(result) {
                 var html = result.value;
                 var messages = result.messages;
@@ -880,6 +895,90 @@ function convertUsingMammoth(file) {
         addProcessingLog('File reading failed. Check console for details.', 'danger');
     };
     reader.readAsArrayBuffer(file);
+}
+
+function detectDocxLanguageFromMetadata(arrayBuffer, fileName, mammothLibrary) {
+    if (!/\.docx$/i.test(fileName) || !mammothLibrary || typeof mammothLibrary._openZip !== 'function') {
+        return Promise.resolve(null);
+    }
+
+    return mammothLibrary._openZip({ arrayBuffer: arrayBuffer })
+        .then(function(docxFile) {
+            const languageFiles = [
+                'word/document.xml',
+                'word/styles.xml',
+                'word/settings.xml'
+            ];
+
+            return Promise.all(languageFiles.map(function(path) {
+                if (!docxFile.exists(path)) {
+                    return '';
+                }
+
+                return docxFile.read(path, 'utf-8');
+            }));
+        })
+        .then(function(xmlParts) {
+            return getLanguageResultFromDocxXml(xmlParts.join('\n'));
+        })
+        .catch(function(error) {
+            console.warn('Could not read DOCX language metadata:', error);
+            addProcessingLog('Could not read DOCX language metadata.', 'warning');
+            return null;
+        });
+}
+
+function getLanguageResultFromDocxXml(xml) {
+    const counts = {
+        en: 0,
+        fr: 0
+    };
+
+    const languageTagPattern = /<w:lang\b[^>]*>/gi;
+    let tagMatch;
+
+    while ((tagMatch = languageTagPattern.exec(xml)) !== null) {
+        const tag = tagMatch[0];
+        addLanguageMetadataWeight(counts, getXmlAttribute(tag, 'w:val'));
+    }
+
+    if (counts.en === counts.fr) {
+        return null;
+    }
+
+    const language = counts.fr > counts.en ? 'fr' : 'en';
+    return {
+        language,
+        counts
+    };
+}
+
+function getXmlAttribute(tag, attributeName) {
+    const pattern = new RegExp(`\\s${attributeName}="([^"]+)"`, 'i');
+    const match = tag.match(pattern);
+    return match ? match[1] : '';
+}
+
+function addLanguageMetadataWeight(counts, languageCode) {
+    const normalizedLanguageCode = (languageCode || '').toLowerCase();
+
+    if (normalizedLanguageCode === 'en' || normalizedLanguageCode.startsWith('en-')) {
+        counts.en += 1;
+    } else if (normalizedLanguageCode === 'fr' || normalizedLanguageCode.startsWith('fr-')) {
+        counts.fr += 1;
+    }
+}
+
+function applyDetectedDocumentLanguage(languageResult) {
+    if (!languageResult) {
+        addProcessingLog('No English or French DOCX language metadata found.', 'info');
+        return;
+    }
+
+    const changed = setCommandLanguage(languageResult.language);
+    const languageName = languageResult.language === 'en' ? 'English' : 'French';
+    const summary = `EN ${languageResult.counts.en}, FR ${languageResult.counts.fr}`;
+    addProcessingLog(`DOCX language metadata indicates ${languageName} (${summary}).${changed ? ' Updated command language.' : ''}`, 'info');
 }
 
 /**
