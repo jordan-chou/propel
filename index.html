@@ -66,9 +66,9 @@
                             </div> -->
                             <div class="form-row">
                                 <!-- <label for="file">Word document</label> -->
-                                <div class="drop-zone upload-drop-zone" id="fileDropZone">
+                                <div class="drop-zone upload-drop-zone needs-file" id="fileDropZone">
                                     <div>
-                                        <strong>Drop a Word document here</strong>
+                                        <strong>Upload Word document</strong>
                                     </div>
                                     <input type="file" id="file" accept=".doc,.docx" class="file-input">
                                 </div>
@@ -91,28 +91,29 @@
                                     <strong>Add IDs</strong>
                                     <p>Add generic IDs to headings, tables, and figures.</p>
                                     <div class="split-command">
-                                        <button type="button" class="btn btn-primary" id="addIDsBtn" title="Add IDs to headings, tables, and figures">Add IDs</button>
+                                        <button type="button" class="btn btn-primary" id="addIDsBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="otpSettings" title="Add IDs options">Add IDs</button>
                                         <button type="button" class="btn btn-primary command-settings-btn" id="addIDsSettingsBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="otpSettings" title="Add IDs options">...</button>
-                                        <div id="otpSettings" class="settings-box command-dialog" role="dialog" aria-modal="true" aria-labelledby="addIDsSettingsTitle">
-                                            <div class="dialog-header">
-                                                <strong id="addIDsSettingsTitle">Add IDs options</strong>
-                                                <button type="button" class="btn btn-xs" id="addIDsSettingsCloseBtn" aria-label="Close Add IDs options">Close</button>
-                                            </div>
-                                            <label class="checkline" for="onThisPageOption" title="Creates On this page section">
-                                                <input id="onThisPageOption" type="checkbox"> Create <em>On this page</em>
-                                            </label>
-                                            <div class="form-row">
-                                                <label for="headerDepth">Heading depth</label>
-                                                <select class="form-control" id="headerDepth">
-                                                    <option value="2" selected>2</option>
-                                                    <option value="3">3</option>
-                                                    <option value="4">4</option>
-                                                </select>
-                                            </div>
-                                            <label class="checkline" for="isToC" title="Change heading to Table of contents">
-                                                <input id="isToC" type="checkbox"> Change to Table of contents
-                                            </label>
+                                    </div>
+                                    <div id="otpSettings" class="settings-box command-dialog" role="dialog" aria-labelledby="addIDsSettingsTitle">
+                                        <div class="dialog-header">
+                                            <strong id="addIDsSettingsTitle">Add IDs options</strong>
+                                            <button type="button" class="btn btn-xs" id="addIDsSettingsCloseBtn" aria-label="Close Add IDs options">Close</button>
                                         </div>
+                                        <label class="checkline" for="onThisPageOption" title="Creates On this page section">
+                                            <input id="onThisPageOption" type="checkbox"> Create <em>On this page</em>
+                                        </label>
+                                        <div class="form-row">
+                                            <label for="headerDepth">Heading depth</label>
+                                            <select class="form-control" id="headerDepth">
+                                                <option value="2" selected>2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                            </select>
+                                        </div>
+                                        <label class="checkline" for="isToC" title="Change heading to Table of contents">
+                                            <input id="isToC" type="checkbox"> Change to Table of contents
+                                        </label>
+                                        <button type="button" class="btn btn-primary btn-full" id="addIDsApplyBtn">Apply Add IDs</button>
                                     </div>
                                 </div>
 

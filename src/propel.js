@@ -45,6 +45,7 @@ const tableCleanupBtn = document.getElementById('tableCleanupBtn');
 const splitBtn = document.getElementById('splitBtn');
 const addIDsSettingsBtn = document.getElementById('addIDsSettingsBtn');
 const addIDsSettingsCloseBtn = document.getElementById('addIDsSettingsCloseBtn');
+const addIDsApplyBtn = document.getElementById('addIDsApplyBtn');
 const addIDsSettingsBackdrop = document.getElementById('addIDsSettingsBackdrop');
 
 // Phase 1 redesign elements. These are optional so the same JS can still run on the old layout.
@@ -284,6 +285,7 @@ function createListeners() {
     if (file) {
         file.addEventListener('change', handleFileInputChange);
     }
+    updateFileDropZoneState(false);
 
     copyBtn.addEventListener('click', () => {
         syncActiveEditorToInputHTML();
@@ -302,11 +304,25 @@ function createListeners() {
             control.addEventListener('change', updateAddIDsSettingsState);
         }
     });
-    if (addIDsSettingsBtn && otpSettings) {
-        addIDsSettingsBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleAddIDsSettings();
+    if (otpSettings) {
+        [addIDsBtn, addIDsSettingsBtn].forEach((trigger) => {
+            if (!trigger) {
+                return;
+            }
+
+            trigger.addEventListener('click', (event) => {
+                event.stopPropagation();
+                toggleAddIDsSettings();
+            });
         });
+
+        if (addIDsApplyBtn) {
+            addIDsApplyBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                addIDsCommand();
+                closeAddIDsSettings();
+            });
+        }
 
         otpSettings.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -358,7 +374,6 @@ function createListeners() {
     outputText.addEventListener('change', updateInputHTML);
 
     // Command buttons
-    addIDsBtn.addEventListener('click', addIDsCommand);
     footnotesBtn.addEventListener('click', generateFootnotesCommand);
     nbspBtn.addEventListener('click', validateNbspCommand);
     tableCleanupBtn.addEventListener('click', tableCleanupCommand);
@@ -492,12 +507,14 @@ function handleFileDrop(event) {
 
 function processSelectedFile(selectedFile) {
     if (!selectedFile) {
+        updateFileDropZoneState(false);
         addProcessingLog('No file selected.', 'warning');
         return;
     }
 
     const validExtension = /\.docx?$/i.test(selectedFile.name);
     if (!validExtension) {
+        updateFileDropZoneState(false);
         setFileUploadStatus('Unsupported file type. Please use a .docx file.');
         addProcessingLog('Unsupported file type. Please use a .docx file.', 'danger');
         return;
@@ -510,9 +527,19 @@ function processSelectedFile(selectedFile) {
     }
 
     getStartTime();
+    updateFileDropZoneState(true);
     setFileUploadStatus(`Selected: ${selectedFile.name}`);
     addProcessingLog(`Started conversion: ${selectedFile.name}`, 'info');
     convertUsingMammoth(selectedFile);
+}
+
+function updateFileDropZoneState(hasFile) {
+    if (!fileDropZone) {
+        return;
+    }
+
+    fileDropZone.classList.toggle('needs-file', !hasFile);
+    fileDropZone.classList.toggle('has-file', hasFile);
 }
 
 /**
@@ -524,27 +551,35 @@ function handleToggleOnThisPageBox() {
 }
 
 function toggleAddIDsSettings() {
-    if (!otpSettings || !addIDsSettingsBtn) {
+    if (!otpSettings) {
         return;
     }
 
     const isOpen = otpSettings.classList.toggle('open');
-    addIDsSettingsBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    setAddIDsPopoverExpanded(isOpen);
     if (addIDsSettingsBackdrop) {
         addIDsSettingsBackdrop.classList.toggle('open', isOpen);
     }
 }
 
 function closeAddIDsSettings() {
-    if (!otpSettings || !addIDsSettingsBtn) {
+    if (!otpSettings) {
         return;
     }
 
     otpSettings.classList.remove('open');
-    addIDsSettingsBtn.setAttribute('aria-expanded', 'false');
+    setAddIDsPopoverExpanded(false);
     if (addIDsSettingsBackdrop) {
         addIDsSettingsBackdrop.classList.remove('open');
     }
+}
+
+function setAddIDsPopoverExpanded(isOpen) {
+    [addIDsBtn, addIDsSettingsBtn].forEach((trigger) => {
+        if (trigger) {
+            trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+    });
 }
 
 function updateAddIDsSettingsState() {
