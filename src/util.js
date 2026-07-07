@@ -8,21 +8,44 @@
  * Clicking on the input element will copy its contents, present a message
  * and highlight the element.
  * 
- * Ensure that you have the following HTML elements:
- *  - <textarea class='wb-inv' id='copyArea'></textarea>
+ * The optional copiedLabel element is shown after a successful copy:
  *  - <span id="copiedLabel" class='wb-inv label label-success'>Copied</span>
  * 
- * @param {HTMLElement} outputText DOM element containing the innerText to copy
+ * @param {HTMLElement|string} outputText DOM element or string containing the text to copy
  */
-export function copyToClipboard(outputText, copiedLabel) {
-    const copyArea = document.getElementById('copyArea');
+export async function copyToClipboard(outputText, copiedLabel) {
+    const textToCopy = typeof outputText === 'string' ? outputText : outputText.value;
+    const highlightedElement = typeof outputText === 'string' ? null : outputText;
 
-    outputText.style.boxShadow = "0px 0px 5px green";
+    if (highlightedElement) {
+        highlightedElement.style.boxShadow = "0px 0px 5px green";
+    }
 
-    copyArea.value = outputText.value;
+    try {
+        if (!navigator.clipboard || !window.isSecureContext) {
+            throw new Error('Clipboard API unavailable');
+        }
 
-    copyArea.select();
-    document.execCommand('copy');
+        await navigator.clipboard.writeText(textToCopy);
+    } catch (error) {
+        const copyArea = document.createElement('textarea');
+        copyArea.value = textToCopy;
+        copyArea.setAttribute('readonly', '');
+        copyArea.style.position = 'fixed';
+        copyArea.style.top = '0';
+        copyArea.style.left = '0';
+        copyArea.style.opacity = '0';
+        document.body.appendChild(copyArea);
+        copyArea.select();
+
+        try {
+            if (!document.execCommand('copy')) {
+                throw error;
+            }
+        } finally {
+            copyArea.remove();
+        }
+    }
 
     if (copiedLabel) {
         copiedLabel.classList.remove('wb-inv');
@@ -30,7 +53,9 @@ export function copyToClipboard(outputText, copiedLabel) {
 
     // return to default label after 2000ms
     setTimeout(() => {
-        outputText.style.boxShadow = null;
+        if (highlightedElement) {
+            highlightedElement.style.boxShadow = null;
+        }
         if (copiedLabel) {
             copiedLabel.classList.add('wb-inv');
         }

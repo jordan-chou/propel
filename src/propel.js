@@ -20,7 +20,6 @@ import * as Utils from './util.js';
 const file = document.getElementById('file');
 const outputSection = document.getElementById('outputSection');
 const outputText = document.getElementById('outputText');
-const copyArea = document.getElementById('copyArea');
 const copyBtn = document.getElementById('copyBtn');
 const topBtn = document.getElementById('topBtn');
 const langBtn = document.getElementById('langBtn');
@@ -308,11 +307,15 @@ function createListeners() {
     }
     updateFileDropZoneState(false);
 
-    copyBtn.addEventListener('click', () => {
-        syncActiveEditorToInputHTML();
-        updateCodeView();
-        Utils.copyToClipboard(outputText);
-        addProcessingLog('Copied HTML to clipboard.', 'success');
+    copyBtn.addEventListener('click', async () => {
+        try {
+            const html = getHTMLForCopy();
+            await Utils.copyToClipboard(html);
+            addProcessingLog('Copied HTML to clipboard.', 'success');
+        } catch (error) {
+            console.error(error);
+            addProcessingLog('Could not copy HTML to clipboard.', 'error');
+        }
     });
 
     topBtn.addEventListener('click', Utils.goToTop);
@@ -1058,6 +1061,17 @@ function syncActiveEditorToInputHTML() {
     }
 
     syncEditorToInputHTML();
+}
+
+function getHTMLForCopy() {
+    if (activeEditorView === 'live') {
+        syncLiveToInputHTML();
+        updateCodeView();
+    } else {
+        syncEditorToInputHTML();
+    }
+
+    return outputText.value;
 }
 
 function syncEditorToInputHTML() {
