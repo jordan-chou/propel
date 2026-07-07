@@ -62,7 +62,8 @@ const reviewTabs = document.querySelectorAll('[data-review-tab]');
 const workflowTabs = document.querySelectorAll('[data-workflow-tab]');
 const standardCleanupBtn = document.getElementById('standardCleanupBtn');
 const fileDropZone = document.getElementById('fileDropZone');
-const liveEditor = document.getElementById('liveEditor');
+const liveEditorHost = document.getElementById('liveEditor');
+const liveEditor = createWetLiveEditor(liveEditorHost);
 const editorDropZone = document.getElementById('editorDropZone');
 const editorPanel = document.querySelector('.editor-panel');
 const paneSplitter = document.getElementById('paneSplitter');
@@ -108,6 +109,64 @@ refreshReviewPanel();
 updateLanguageSwitch();
 
 /* Functions */
+
+function createWetLiveEditor(host) {
+    if (!host) {
+        return null;
+    }
+
+    const placeholder = host.getAttribute('data-placeholder') || '';
+    host.removeAttribute('contenteditable');
+    host.removeAttribute('role');
+    host.removeAttribute('aria-multiline');
+
+    const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
+    shadow.innerHTML = `
+        <link rel="stylesheet" href="css/wet-boew.min.css">
+        <link rel="stylesheet" href="css/theme.min.css">
+        <style>
+            :host {
+                display: block;
+                height: 100%;
+                min-height: 0;
+                background: #fff;
+                color: #333;
+            }
+
+            .wet-live-editor {
+                min-height: 100%;
+                height: 100%;
+                overflow: auto;
+                padding: 40px 16px 16px;
+                outline: none;
+                background: #fff;
+                color: #333;
+                font-family: "Noto Sans", sans-serif;
+                font-size: 16px;
+                line-height: 1.4375;
+            }
+
+            .wet-live-editor:empty::before {
+                content: attr(data-placeholder);
+                color: #6f6f6f;
+            }
+
+            .wet-live-editor h1:first-child {
+                margin-top: 0;
+            }
+
+            .wet-live-editor img {
+                max-width: 100%;
+                height: auto;
+            }
+        </style>
+        <div id="wetLiveEditor" class="wet-live-editor" contenteditable="true" role="textbox" aria-multiline="true"></div>
+    `;
+
+    const editor = shadow.getElementById('wetLiveEditor');
+    editor.setAttribute('data-placeholder', placeholder);
+    return editor;
+}
 
 
 /**
@@ -476,8 +535,8 @@ function switchEditorView(view) {
         if (codeEditor) {
             codeEditor.classList.add('active');
         }
-        if (liveEditor) {
-            liveEditor.classList.remove('active');
+        if (liveEditorHost) {
+            liveEditorHost.classList.remove('active');
         }
         outputText.focus();
         addProcessingLog('Switched to Code view.', 'info');
@@ -485,8 +544,10 @@ function switchEditorView(view) {
     }
 
     updateLiveView();
+    if (liveEditorHost) {
+        liveEditorHost.classList.add('active');
+    }
     if (liveEditor) {
-        liveEditor.classList.add('active');
         liveEditor.focus();
     }
     if (codeEditor) {

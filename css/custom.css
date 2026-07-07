@@ -1087,6 +1087,7 @@ textarea {
     grid-column: 1;
     grid-row: 2;
     overflow: auto;
+    padding: 0;
     background: #fff;
     color: var(--text);
 }
@@ -1137,8 +1138,7 @@ textarea {
 }
 
 #liveEditor:empty::before {
-    content: attr(data-placeholder);
-    color: var(--muted);
+    content: none;
 }
 
 .editor-panel.drag-active {
@@ -1314,23 +1314,17 @@ textarea {
 #htmlPreview table { width: 100%; border-collapse: collapse; }
 #htmlPreview th, #htmlPreview td { border: 1px solid var(--border); padding: 6px; }
 
-#liveEditor h1,
-#liveEditor h2,
-#liveEditor h3,
 #htmlPreview h1,
 #htmlPreview h2,
 #htmlPreview h3 {
     line-height: 1.2;
 }
 
-#liveEditor table,
 #htmlPreview table {
     width: 100%;
     border-collapse: collapse;
 }
 
-#liveEditor th,
-#liveEditor td,
 #htmlPreview th,
 #htmlPreview td {
     border: 1px solid var(--border);
