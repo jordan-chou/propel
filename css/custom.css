@@ -290,7 +290,42 @@ code {
 .header-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 10px;
+    margin-left: auto;
+}
+
+.language-switch {
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    min-height: 32px;
+    padding: 3px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background: #eef2f6;
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.language-switch-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    line-height: 1.2;
+}
+
+.language-switch-option.active {
+    background: var(--primary);
+    color: #fff;
+}
+
+.language-switch:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .copy-control {
@@ -346,7 +381,7 @@ code {
 }
 
 .left-rail,
-.editor-panel { display: grid; grid-template-rows: auto minmax(0,1fr); }
+.editor-panel { display: grid; grid-template-rows: minmax(0,1fr); }
 
 .left-rail .panel-body {
     padding: 0;
@@ -375,12 +410,26 @@ code {
 }
 
 .left-rail .rail-scroll {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(260px, var(--live-pane-width, 1fr)) 8px minmax(260px, 1fr);
     align-items: center;
     gap: 5px;
     max-height: none;
     overflow: visible;
     scrollbar-width: thin;
+}
+
+.rail-command-group {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.rail-copy-action {
+    grid-column: 3;
+    justify-self: end;
 }
 
 .workflow-section {
@@ -1114,7 +1163,7 @@ textarea {
     display: grid;
 }
 
-.editor-panel { grid-template-rows: auto minmax(0, 1fr); }
+.editor-panel { grid-template-rows: minmax(0, 1fr); }
 .editor-panel .panel-body { padding: 0; overflow: hidden; }
 
 .review-tabs {
@@ -1180,6 +1229,15 @@ textarea {
 .label-warning { background: #fef0c7; color: var(--warning); }
 .label-danger { background: #fee4e2; color: var(--danger); }
 .label-info { background: #d1e9ff; color: var(--info); }
+#healthScore {
+    cursor: pointer;
+}
+
+#healthScore:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 .text-muted { color: var(--muted); }
 
 .document-report {
@@ -1473,7 +1531,7 @@ textarea {
     }
 
     .header-actions {
-        justify-content: flex-start;
+        justify-content: flex-end;
     }
 
     .main-grid {
@@ -1496,7 +1554,16 @@ textarea {
     }
 
     .left-rail .rail-scroll {
+        display: flex;
         max-height: none;
+    }
+
+    .rail-command-group {
+        display: flex;
+    }
+
+    .rail-copy-action {
+        margin-left: auto;
     }
 
     .editor-surface {

@@ -32,10 +32,11 @@
             </nav>
 
             <div class="header-actions">
+                <span id="healthScore" class="label label-default" role="button" tabindex="0" aria-controls="processingLogPanel" title="Open review panel">Not checked</span>
                 <button type="button" class="btn btn-sm" id="activityToggleBtn" aria-expanded="false" aria-controls="processingLogPanel">Activity</button>
-                <button type="button" class="btn btn-sm" id="langBtn" title="Toggle the language">English</button>
-                <button type="button" id="copyBtn" class="btn btn-sm btn-primary">
-                    Copy HTML
+                <button type="button" class="language-switch" id="langBtn" role="switch" aria-checked="true" title="Toggle command language">
+                    <span class="language-switch-option active" data-language-option="en">EN</span>
+                    <span class="language-switch-option" data-language-option="fr">FR</span>
                 </button>
             </div>
         </header>
@@ -50,6 +51,7 @@
                 </div>
                 <div class="panel-body">
                     <div class="rail-scroll">
+                        <div class="rail-command-group">
                         <section class="workflow-section" id="outputSection">
                             <p class="section-kicker">Upload</p>
                             <!-- <div class="pipeline wb-inv" aria-label="Conversion workflow">
@@ -170,26 +172,23 @@
                                 <div id="splits"></div>
                             </div>
                         </section>
+                        </div>
+                        <div class="rail-copy-action">
+                            <button type="button" id="copyBtn" class="btn btn-sm btn-primary">
+                                Copy HTML
+                            </button>
+                        </div>
                     </div>
                 </div>
             </aside>
 
             <section class="panel editor-panel" aria-label="HTML editor">
-                <div class="panel-header editor-toolbar">
-                    <div>
-                        <h2>Editor</h2>
-                        <p class="panel-subtitle">Drop a Word document here, edit visually, or edit the HTML.</p>
-                    </div>
-                    <div class="editor-actions">
+                <div class="panel-body">
+                    <div class="editor-surface" id="editorDropZone">
                         <div class="view-toggle wb-inv" aria-label="Editor view">
                             <button class="btn btn-default active" type="button" id="liveViewBtn" data-editor-view="live">Live</button>
                             <button class="btn btn-default" type="button" id="codeViewBtn" data-editor-view="code">Code</button>
                         </div>
-                        <span id="healthScore" class="label label-default">Not checked</span>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <div class="editor-surface" id="editorDropZone">
                         <div class="wysiwyg-toolbar" id="wysiwygToolbar" aria-label="Live view formatting">
                             <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="p" title="Paragraph" aria-label="Paragraph"><span class="wysiwyg-icon icon-paragraph" aria-hidden="true"></span></button>
                             <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h2" title="Heading 2" aria-label="Heading 2"><span class="wysiwyg-icon icon-heading" data-level="2" aria-hidden="true"></span></button>

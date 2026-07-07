@@ -105,6 +105,7 @@ if (tagText) {
 }
 
 refreshReviewPanel();
+updateLanguageSwitch();
 
 /* Functions */
 
@@ -116,14 +117,7 @@ refreshReviewPanel();
 function createModernDashboardListeners() {
     reviewTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
-            const targetId = tab.getAttribute('data-review-tab');
-            document.querySelectorAll('.review-tab').forEach((item) => item.classList.remove('active'));
-            document.querySelectorAll('.review-pane').forEach((pane) => pane.classList.remove('active'));
-            tab.classList.add('active');
-            const pane = document.getElementById(targetId);
-            if (pane) {
-                pane.classList.add('active');
-            }
+            switchReviewTab(tab.getAttribute('data-review-tab'));
         });
     });
 
@@ -154,6 +148,17 @@ function createModernDashboardListeners() {
     if (activityCloseBtn) {
         activityCloseBtn.addEventListener('click', () => {
             setActivityPanelOpen(false);
+        });
+    }
+
+    if (healthScore) {
+        healthScore.addEventListener('click', openActivityReviewTab);
+        healthScore.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            openActivityReviewTab();
         });
     }
 
@@ -269,6 +274,25 @@ function createModernDashboardListeners() {
             event.preventDefault();
         });
     });
+}
+
+function switchReviewTab(targetId) {
+    if (!targetId) {
+        return;
+    }
+
+    document.querySelectorAll('.review-tab').forEach((item) => {
+        item.classList.toggle('active', item.getAttribute('data-review-tab') === targetId);
+    });
+
+    document.querySelectorAll('.review-pane').forEach((pane) => {
+        pane.classList.toggle('active', pane.id === targetId);
+    });
+}
+
+function openActivityReviewTab() {
+    setActivityPanelOpen(true);
+    switchReviewTab('issuesPane');
 }
 
 function startPaneResize(event) {
@@ -416,8 +440,20 @@ function createListeners() {
 function toggleLanguage() {
     isEngLang = !isEngLang;
     langStrings = isEngLang ? engStrings : frStrings;
-    langBtn.textContent = langStrings['LANG_BTN'];
-    addProcessingLog(`Language changed to ${langBtn.textContent}.`, 'info');
+    updateLanguageSwitch();
+    addProcessingLog(`Language changed to ${langStrings['LANG_BTN']}.`, 'info');
+}
+
+function updateLanguageSwitch() {
+    if (!langBtn) {
+        return;
+    }
+
+    langBtn.setAttribute('aria-checked', isEngLang ? 'true' : 'false');
+    langBtn.setAttribute('aria-label', isEngLang ? 'Command language: English' : 'Command language: French');
+    langBtn.querySelectorAll('[data-language-option]').forEach((option) => {
+        option.classList.toggle('active', option.getAttribute('data-language-option') === (isEngLang ? 'en' : 'fr'));
+    });
 }
 
 function switchEditorView(view) {
