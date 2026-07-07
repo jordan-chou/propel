@@ -1157,7 +1157,7 @@ textarea {
     color: var(--primary-dark);
     font-weight: 800;
     pointer-events: none;
-    z-index: 2;
+    z-index: 1000;
 }
 
 .editor-panel.drag-active .drop-hint {
