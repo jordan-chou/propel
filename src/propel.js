@@ -83,6 +83,7 @@ var headingIDCount, tableIDCount, figureIDCount = 0;
 var logCount = 0;
 var activeEditorView = 'live';
 var elementSyncLineMap = [];
+var lastLiveSelectionRange = null;
 
 // Footnote generator
 var showFullPreview = false;
@@ -164,6 +165,14 @@ function createModernDashboardListeners() {
     });
 
     wysiwygButtons.forEach((button) => {
+        button.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+        });
+
+        button.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+        });
+
         button.addEventListener('click', () => {
             runWysiwygCommand(button);
         });
@@ -172,12 +181,17 @@ function createModernDashboardListeners() {
     if (liveEditor) {
         liveEditor.addEventListener('focus', () => {
             activeEditorView = 'live';
+            rememberLiveSelection();
         });
+
+        liveEditor.addEventListener('mouseup', rememberLiveSelection);
+        liveEditor.addEventListener('keyup', rememberLiveSelection);
 
         liveEditor.addEventListener('input', () => {
             syncLiveToInputHTML();
             updateCodeView();
             refreshReviewPanel();
+            rememberLiveSelection();
         });
 
         liveEditor.addEventListener('click', (event) => {
@@ -189,6 +203,8 @@ function createModernDashboardListeners() {
             updateCodeView();
         });
     }
+
+    document.addEventListener('selectionchange', rememberLiveSelection);
 
     if (editorDropZone && file) {
         ['dragenter', 'dragover'].forEach((eventName) => {
@@ -444,8 +460,6 @@ function runWysiwygCommand(button) {
         switchEditorView('live');
     }
 
-    liveEditor.focus();
-
     const command = button.getAttribute('data-edit-command');
     let value = button.getAttribute('data-edit-value') || null;
 
@@ -456,11 +470,152 @@ function runWysiwygCommand(button) {
         }
     }
 
-    document.execCommand(command, false, value);
+    const selectionRange = getTextSelectionRange(liveEditor) || lastLiveSelectionRange;
+    restoreTextSelectionRange(liveEditor, selectionRange);
+    const handledCommand = command === 'bold' && applyStrongToSelection(liveEditor);
+    if (!handledCommand) {
+        document.execCommand(command, false, value);
+    }
+    normalizeLiveEditorMarkup();
+    restoreTextSelectionRange(liveEditor, selectionRange);
+    rememberLiveSelection();
     syncLiveToInputHTML();
     updateCodeView();
     refreshReviewPanel();
-    addProcessingLog(`Applied Live view edit: ${button.textContent.trim()}.`, 'info');
+    if (command !== 'bold') {
+        addProcessingLog(`Applied Live view edit: ${getWysiwygButtonLabel(button)}.`, 'info');
+    }
+}
+
+function getWysiwygButtonLabel(button) {
+    return button.getAttribute('aria-label') || button.getAttribute('title') || button.textContent.trim();
+}
+
+function normalizeLiveEditorMarkup() {
+    replaceElementTag(liveEditor, 'b', 'strong');
+}
+
+function replaceElementTag(root, sourceTag, targetTag) {
+    if (!root) {
+        return;
+    }
+
+    Array.from(root.querySelectorAll(sourceTag)).forEach((sourceElement) => {
+        const targetElement = document.createElement(targetTag);
+        Array.from(sourceElement.attributes).forEach((attribute) => {
+            targetElement.setAttribute(attribute.name, attribute.value);
+        });
+        while (sourceElement.firstChild) {
+            targetElement.appendChild(sourceElement.firstChild);
+        }
+        sourceElement.replaceWith(targetElement);
+    });
+}
+
+function applyStrongToSelection(root) {
+    const selection = window.getSelection();
+    if (!root || !selection || selection.rangeCount === 0) {
+        return false;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (range.collapsed || !root.contains(range.startContainer) || !root.contains(range.endContainer)) {
+        return false;
+    }
+
+    try {
+        const strong = document.createElement('strong');
+        strong.appendChild(range.extractContents());
+        range.insertNode(strong);
+
+        const selectedRange = document.createRange();
+        selectedRange.selectNodeContents(strong);
+        root.focus({ preventScroll: true });
+        selection.removeAllRanges();
+        selection.addRange(selectedRange);
+        return true;
+    } catch (error) {
+        console.warn('Unable to apply custom bold formatting.', error);
+        return false;
+    }
+}
+
+function getTextSelectionRange(root) {
+    const selection = window.getSelection();
+    if (!root || !selection || selection.rangeCount === 0) {
+        return null;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) {
+        return null;
+    }
+
+    const beforeStart = range.cloneRange();
+    beforeStart.selectNodeContents(root);
+    beforeStart.setEnd(range.startContainer, range.startOffset);
+
+    const beforeEnd = range.cloneRange();
+    beforeEnd.selectNodeContents(root);
+    beforeEnd.setEnd(range.endContainer, range.endOffset);
+
+    return {
+        start: beforeStart.toString().length,
+        end: beforeEnd.toString().length
+    };
+}
+
+function rememberLiveSelection() {
+    const selectionRange = getTextSelectionRange(liveEditor);
+    if (selectionRange) {
+        lastLiveSelectionRange = selectionRange;
+    }
+}
+
+function restoreTextSelectionRange(root, savedRange) {
+    if (!root || !savedRange) {
+        return;
+    }
+
+    const selection = window.getSelection();
+    if (!selection) {
+        return;
+    }
+
+    const range = document.createRange();
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let currentOffset = 0;
+    let startSet = false;
+    let endSet = false;
+
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const nextOffset = currentOffset + node.nodeValue.length;
+
+        if (!startSet && savedRange.start >= currentOffset && savedRange.start <= nextOffset) {
+            range.setStart(node, savedRange.start - currentOffset);
+            startSet = true;
+        }
+
+        if (!endSet && savedRange.end >= currentOffset && savedRange.end <= nextOffset) {
+            range.setEnd(node, savedRange.end - currentOffset);
+            endSet = true;
+            break;
+        }
+
+        currentOffset = nextOffset;
+    }
+
+    if (!startSet) {
+        range.setStart(root, 0);
+    }
+    if (!endSet) {
+        range.setEnd(root, root.childNodes.length);
+    }
+
+    root.focus({ preventScroll: true });
+    selection.removeAllRanges();
+    selection.addRange(range);
 }
 
 /**
@@ -929,6 +1084,7 @@ function syncLiveToInputHTML() {
         return;
     }
 
+    normalizeLiveEditorMarkup();
     inputHTML.innerHTML = liveEditor.innerHTML;
     inputHTML.classList.add("content-area");
 }

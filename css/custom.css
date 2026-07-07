@@ -757,8 +757,7 @@ textarea {
     gap: 8px;
 }
 
-.view-toggle,
-.wysiwyg-toolbar {
+.view-toggle {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -768,12 +767,42 @@ textarea {
     background: #fff;
 }
 
-.view-toggle .btn,
-.wysiwyg-toolbar .btn {
+.wysiwyg-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    min-width: 0;
+    border-bottom: 1px solid var(--border);
+    background: #f7f9fb;
+}
+
+.view-toggle .btn {
     min-height: 28px;
     padding: 4px 8px;
     border-radius: 8px;
     font-size: 0.78rem;
+}
+
+.wysiwyg-toolbar .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 32px;
+    min-width: 32px;
+    height: 30px;
+    padding: 0;
+    border-radius: 4px;
+    color: #1f2933;
+    font-size: 0.82rem;
+}
+
+.wysiwyg-toolbar .btn:hover,
+.wysiwyg-toolbar .btn:focus {
+    border-color: #9eb5ce;
+    background: #e8f1fb;
+    color: #0f3557;
 }
 
 .view-toggle .btn.active {
@@ -795,8 +824,118 @@ textarea {
     position: relative;
     display: grid;
     grid-template-columns: minmax(260px, var(--live-pane-width, 1fr)) 8px minmax(260px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     height: 100%;
     min-height: 0;
+}
+
+.editor-surface .wysiwyg-toolbar {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.wysiwyg-icon {
+    position: relative;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    color: currentColor;
+}
+
+.icon-heading::before {
+    content: "H";
+    position: absolute;
+    left: 1px;
+    top: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.icon-heading::after {
+    content: attr(data-level);
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.icon-paragraph::before {
+    content: "\00B6";
+    position: absolute;
+    inset: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.08rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+
+.icon-bold::before,
+.icon-italic::before {
+    position: absolute;
+    inset: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+
+.icon-bold::before {
+    content: "B";
+}
+
+.icon-italic::before {
+    content: "I";
+    font-style: italic;
+}
+
+.icon-list::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 4px;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
+.icon-list::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 5px;
+    width: 8px;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
+.icon-link::before,
+.icon-link::after {
+    content: "";
+    position: absolute;
+    width: 11px;
+    height: 6px;
+    border: 2px solid currentColor;
+    border-radius: 6px;
+}
+
+.icon-link::before {
+    left: 1px;
+    top: 6px;
+    transform: rotate(-32deg);
+}
+
+.icon-link::after {
+    right: 1px;
+    top: 6px;
+    transform: rotate(-32deg);
 }
 
 .editor-view {
@@ -820,6 +959,8 @@ textarea {
 
 .code-editor {
     position: relative;
+    grid-column: 3;
+    grid-row: 1 / span 2;
     height: 100%;
     overflow: hidden;
     background: #0b1020;
@@ -893,12 +1034,16 @@ textarea {
 }
 
 #liveEditor {
+    grid-column: 1;
+    grid-row: 2;
     overflow: auto;
     background: #fff;
     color: var(--text);
 }
 
 .pane-splitter {
+    grid-column: 2;
+    grid-row: 1 / span 2;
     cursor: col-resize;
     background: linear-gradient(90deg, transparent, var(--border), transparent);
 }
@@ -1356,6 +1501,25 @@ textarea {
 
     .editor-surface {
         grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(520px, auto) minmax(520px, auto);
+    }
+
+    .editor-surface .wysiwyg-toolbar,
+    #liveEditor,
+    .code-editor {
+        grid-column: 1;
+    }
+
+    .editor-surface .wysiwyg-toolbar {
+        grid-row: 1;
+    }
+
+    #liveEditor {
+        grid-row: 2;
+    }
+
+    .code-editor {
+        grid-row: 3;
     }
 
     .pane-splitter {

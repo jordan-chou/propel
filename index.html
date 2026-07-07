@@ -182,14 +182,6 @@
                         <p class="panel-subtitle">Drop a Word document here, edit visually, or edit the HTML.</p>
                     </div>
                     <div class="editor-actions">
-                        <div class="wysiwyg-toolbar" id="wysiwygToolbar" aria-label="Live view formatting">
-                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h2" title="Heading 2">H2</button>
-                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h3" title="Heading 3">H3</button>
-                            <button class="btn btn-default" type="button" data-edit-command="bold" title="Bold">B</button>
-                            <button class="btn btn-default" type="button" data-edit-command="italic" title="Italic">I</button>
-                            <button class="btn btn-default" type="button" data-edit-command="insertUnorderedList" title="Bulleted list">• List</button>
-                            <button class="btn btn-default" type="button" data-edit-command="createLink" title="Create link">Link</button>
-                        </div>
                         <div class="view-toggle wb-inv" aria-label="Editor view">
                             <button class="btn btn-default active" type="button" id="liveViewBtn" data-editor-view="live">Live</button>
                             <button class="btn btn-default" type="button" id="codeViewBtn" data-editor-view="code">Code</button>
@@ -199,6 +191,15 @@
                 </div>
                 <div class="panel-body">
                     <div class="editor-surface" id="editorDropZone">
+                        <div class="wysiwyg-toolbar" id="wysiwygToolbar" aria-label="Live view formatting">
+                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="p" title="Paragraph" aria-label="Paragraph"><span class="wysiwyg-icon icon-paragraph" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h2" title="Heading 2" aria-label="Heading 2"><span class="wysiwyg-icon icon-heading" data-level="2" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h3" title="Heading 3" aria-label="Heading 3"><span class="wysiwyg-icon icon-heading" data-level="3" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="bold" title="Bold" aria-label="Bold"><span class="wysiwyg-icon icon-bold" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="italic" title="Italic" aria-label="Italic"><span class="wysiwyg-icon icon-italic" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="insertUnorderedList" title="Bulleted list" aria-label="Bulleted list"><span class="wysiwyg-icon icon-list" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="createLink" title="Create link" aria-label="Create link"><span class="wysiwyg-icon icon-link" aria-hidden="true"></span></button>
+                        </div>
                         <div class="drop-hint">Drop a Word document to convert it</div>
                         <div id="liveEditor" class="editor-view active split-live-pane" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Upload a Word document, drop one here, or paste HTML in Code view."></div>
                         <div class="pane-splitter" id="paneSplitter" role="separator" aria-orientation="vertical" aria-label="Resize Live and Code panes"></div>
