@@ -10,7 +10,7 @@ import { modifyHeadings, modifyFigures, modifyTables, createOnThisPage } from '.
 import { createBodyFtnTags, replaceFootnoteSection } from './commands/footnote-generator.js';
 import { splitH1s, createSplitButton } from './commands/split-h1s.js';
 import { setInputHTMLForNbsp, fixAllIssues } from './commands/nbsp.js';
-import { saveHTMLToSession } from './commands/send-to-table-cleanup.js';
+import { cleanupTable, cleanupTables, defaultTableCleanupOptions, renameTag } from './commands/table-cleanup.js';
 import { collapseAll, setCodeTheme, countTags, qaHelperTagsDefault, setUpPresetBtns } from './commands/qa-helper.js';
 
 import { engStrings, frStrings } from './strings.js';
@@ -76,6 +76,38 @@ const codeHighlight = document.getElementById('codeHighlight');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
 const wysiwygButtons = document.querySelectorAll('[data-edit-command]');
 const blockFormatSelect = document.getElementById('blockFormatSelect');
+const tableEditorBackdrop = document.getElementById('tableEditorBackdrop');
+const tableEditorDialog = document.getElementById('tableEditorDialog');
+const tableEditorCloseBtn = document.getElementById('tableEditorCloseBtn');
+const tableEditorCancelBtn = document.getElementById('tableEditorCancelBtn');
+const tableEditorApplyBtn = document.getElementById('tableEditorApplyBtn');
+const tableEditorApplyNextBtn = document.getElementById('tableEditorApplyNextBtn');
+const tableEditorPrevBtn = document.getElementById('tableEditorPrevBtn');
+const tableEditorNextBtn = document.getElementById('tableEditorNextBtn');
+const tableEditorPages = document.getElementById('tableEditorPages');
+const tableEditorRecleanBtn = document.getElementById('tableEditorRecleanBtn');
+const tableEditorDeselectBtn = document.getElementById('tableEditorDeselectBtn');
+const tableEditorHeaderBtn = document.getElementById('tableEditorHeaderBtn');
+const tableEditorMergeRowBtn = document.getElementById('tableEditorMergeRowBtn');
+const tableEditorMergeCellsBtn = document.getElementById('tableEditorMergeCellsBtn');
+const tableEditorActiveBtn = document.getElementById('tableEditorActiveBtn');
+const tableEditorTfootBtn = document.getElementById('tableEditorTfootBtn');
+const tableEditorIndentBtn = document.getElementById('tableEditorIndentBtn');
+const tableEditorOutdentBtn = document.getElementById('tableEditorOutdentBtn');
+const tableEditorBoldBtn = document.getElementById('tableEditorBoldBtn');
+const tableEditorLeftBtn = document.getElementById('tableEditorLeftBtn');
+const tableEditorCenterBtn = document.getElementById('tableEditorCenterBtn');
+const tableEditorRightBtn = document.getElementById('tableEditorRightBtn');
+const tableEditorDeleteRowBtn = document.getElementById('tableEditorDeleteRowBtn');
+const tableEditorStatus = document.getElementById('tableEditorStatus');
+const tableEditorCanvas = document.getElementById('tableEditorCanvas');
+const tableEditorNumber = document.getElementById('tableEditorNumber');
+const tableEditorCaption = document.getElementById('tableEditorCaption');
+const tableEditorUnit = document.getElementById('tableEditorUnit');
+const tableEditorFinancial = document.getElementById('tableEditorFinancial');
+const tableEditorScope = document.getElementById('tableEditorScope');
+const tableEditorTfoot = document.getElementById('tableEditorTfoot');
+const tableEditorFrench = document.getElementById('tableEditorFrench');
 
 // Local HTML for input
 const inputHTML = document.createElement('div');
@@ -91,6 +123,11 @@ var elementSyncLineMap = [];
 var lastLiveSelectionRange = null;
 var shortcutHelpPreviousFocus = null;
 var livePaneWidthRatio = null;
+var tableEditorIndex = 0;
+var tableEditorPreviousFocus = null;
+var tableEditorLastSelectedCell = null;
+var tableEditorDragStartCell = null;
+var tableEditorIsDragging = false;
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 
 // Footnote generator
@@ -238,6 +275,8 @@ function createModernDashboardListeners() {
         shortcutHelpDialog.addEventListener('keydown', handleShortcutHelpDialogKeydown);
     }
 
+    createTableEditorListeners();
+
     document.addEventListener('keydown', handleGlobalKeydown);
 
     if (healthScore) {
@@ -311,6 +350,17 @@ function createModernDashboardListeners() {
 
         liveEditor.addEventListener('click', (event) => {
             scrollCodeToLiveElement(event.target);
+        });
+
+        liveEditor.addEventListener('dblclick', (event) => {
+            const table = getClosestElement(event.target, liveEditor, 'table');
+            if (!table) {
+                return;
+            }
+
+            event.preventDefault();
+            syncLiveToInputHTML();
+            openTableEditor(getLiveTableIndex(table));
         });
 
         liveEditor.addEventListener('blur', () => {
@@ -1165,6 +1215,7 @@ function openShortcutHelp() {
 function handleGlobalKeydown(event) {
     if (event.key === 'Escape') {
         closeShortcutHelp();
+        closeTableEditor();
     }
 }
 
@@ -1214,6 +1265,764 @@ function closeShortcutHelp() {
         shortcutHelpPreviousFocus.focus();
     }
     shortcutHelpPreviousFocus = null;
+}
+
+function createTableEditorListeners() {
+    if (!tableEditorDialog) {
+        return;
+    }
+
+    [tableEditorCloseBtn, tableEditorCancelBtn, tableEditorBackdrop].forEach((element) => {
+        if (element) {
+            element.addEventListener('click', closeTableEditor);
+        }
+    });
+
+    if (tableEditorDialog) {
+        tableEditorDialog.addEventListener('keydown', handleTableEditorDialogKeydown);
+    }
+    if (tableEditorCanvas) {
+        tableEditorCanvas.addEventListener('click', handleTableEditorCanvasClick);
+        tableEditorCanvas.addEventListener('mousedown', handleTableEditorCanvasMouseDown);
+        tableEditorCanvas.addEventListener('mouseover', handleTableEditorCanvasMouseOver);
+        document.addEventListener('mouseup', handleTableEditorDocumentMouseUp);
+    }
+    if (tableEditorApplyBtn) {
+        tableEditorApplyBtn.addEventListener('click', () => applyTableEditorChanges(false));
+    }
+    if (tableEditorApplyNextBtn) {
+        tableEditorApplyNextBtn.addEventListener('click', () => applyTableEditorChanges(true));
+    }
+    if (tableEditorPrevBtn) {
+        tableEditorPrevBtn.addEventListener('click', () => renderTableEditor(tableEditorIndex - 1));
+    }
+    if (tableEditorNextBtn) {
+        tableEditorNextBtn.addEventListener('click', () => renderTableEditor(tableEditorIndex + 1));
+    }
+    if (tableEditorRecleanBtn) {
+        tableEditorRecleanBtn.addEventListener('click', recleanTableEditorTable);
+    }
+    if (tableEditorDeselectBtn) {
+        tableEditorDeselectBtn.addEventListener('click', deselectTableEditorCells);
+    }
+    if (tableEditorHeaderBtn) {
+        tableEditorHeaderBtn.addEventListener('click', toggleTableEditorHeaderRows);
+    }
+    if (tableEditorMergeRowBtn) {
+        tableEditorMergeRowBtn.addEventListener('click', mergeTableEditorRows);
+    }
+    if (tableEditorMergeCellsBtn) {
+        tableEditorMergeCellsBtn.addEventListener('click', mergeTableEditorSelectedCells);
+    }
+    if (tableEditorActiveBtn) {
+        tableEditorActiveBtn.addEventListener('click', toggleTableEditorActiveRows);
+    }
+    if (tableEditorTfootBtn) {
+        tableEditorTfootBtn.addEventListener('click', moveTableEditorRowsToTfoot);
+    }
+    if (tableEditorIndentBtn) {
+        tableEditorIndentBtn.addEventListener('click', () => changeTableEditorIndent(1));
+    }
+    if (tableEditorOutdentBtn) {
+        tableEditorOutdentBtn.addEventListener('click', () => changeTableEditorIndent(-1));
+    }
+    if (tableEditorBoldBtn) {
+        tableEditorBoldBtn.addEventListener('click', toggleTableEditorBold);
+    }
+    if (tableEditorLeftBtn) {
+        tableEditorLeftBtn.addEventListener('click', () => alignTableEditorCells('left'));
+    }
+    if (tableEditorCenterBtn) {
+        tableEditorCenterBtn.addEventListener('click', () => alignTableEditorCells('center'));
+    }
+    if (tableEditorRightBtn) {
+        tableEditorRightBtn.addEventListener('click', () => alignTableEditorCells('right'));
+    }
+    if (tableEditorDeleteRowBtn) {
+        tableEditorDeleteRowBtn.addEventListener('click', deleteTableEditorRows);
+    }
+
+    [tableEditorNumber, tableEditorCaption, tableEditorUnit].forEach((field) => {
+        if (field) {
+            field.addEventListener('input', updateTableEditorCaption);
+        }
+    });
+}
+
+function openTableEditor(index = 0) {
+    const items = getTableEditorItems();
+
+    if (!tableEditorDialog || items.length === 0) {
+        addProcessingLog('No tables available to edit.', 'warning');
+        return;
+    }
+
+    tableEditorPreviousFocus = document.activeElement;
+    tableEditorDialog.hidden = false;
+    if (tableEditorBackdrop) {
+        tableEditorBackdrop.classList.add('open');
+    }
+
+    renderTableEditor(index);
+
+    if (tableEditorCaption) {
+        tableEditorCaption.focus();
+    }
+}
+
+function closeTableEditor() {
+    if (!tableEditorDialog || tableEditorDialog.hidden) {
+        return;
+    }
+
+    tableEditorDialog.hidden = true;
+    if (tableEditorBackdrop) {
+        tableEditorBackdrop.classList.remove('open');
+    }
+    if (tableEditorCanvas) {
+        tableEditorCanvas.innerHTML = '';
+    }
+    if (tableEditorPreviousFocus && typeof tableEditorPreviousFocus.focus === 'function') {
+        tableEditorPreviousFocus.focus();
+    }
+    tableEditorPreviousFocus = null;
+}
+
+function handleTableEditorDialogKeydown(event) {
+    if (event.key !== 'Tab' || !tableEditorDialog || tableEditorDialog.hidden) {
+        return;
+    }
+
+    const focusableElements = getFocusableElements(tableEditorDialog);
+    if (focusableElements.length === 0) {
+        return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+        return;
+    }
+
+    if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+    }
+}
+
+function getTableEditorItems() {
+    return Array.from(inputHTML.querySelectorAll('table')).map((table) => {
+        return {
+            table,
+            container: table.closest('div.table-responsive') || table
+        };
+    });
+}
+
+function getLiveTableIndex(liveTable) {
+    if (!liveEditor || !liveTable) {
+        return 0;
+    }
+
+    return Math.max(0, Array.from(liveEditor.querySelectorAll('table')).indexOf(liveTable));
+}
+
+function renderTableEditor(index) {
+    const items = getTableEditorItems();
+
+    if (!tableEditorCanvas || items.length === 0) {
+        return;
+    }
+
+    tableEditorIndex = Math.min(Math.max(index, 0), items.length - 1);
+    const item = items[tableEditorIndex];
+    const clone = item.container.cloneNode(true);
+
+    clone.querySelectorAll('.selected').forEach((element) => element.classList.remove('selected'));
+    tableEditorCanvas.innerHTML = '';
+    tableEditorCanvas.appendChild(clone);
+
+    loadTableEditorCaptionFields();
+    updateTableEditorStatus(items.length);
+}
+
+function updateTableEditorStatus(tableCount = getTableEditorItems().length) {
+    if (tableEditorStatus) {
+        tableEditorStatus.textContent = `Table ${tableEditorIndex + 1} of ${tableCount}. Double-click tables in Live view to edit them here.`;
+    }
+    if (tableEditorPrevBtn) {
+        tableEditorPrevBtn.disabled = tableEditorIndex <= 0;
+    }
+    if (tableEditorNextBtn) {
+        tableEditorNextBtn.disabled = tableEditorIndex >= tableCount - 1;
+    }
+    if (tableEditorApplyNextBtn) {
+        tableEditorApplyNextBtn.disabled = tableEditorIndex >= tableCount - 1;
+    }
+    renderTableEditorPagination(tableCount);
+}
+
+function renderTableEditorPagination(tableCount) {
+    if (!tableEditorPages) {
+        return;
+    }
+
+    tableEditorPages.innerHTML = '';
+
+    for (let index = 0; index < tableCount; index++) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'table-editor-page-btn';
+        button.textContent = String(index + 1);
+        button.setAttribute('aria-label', `Edit table ${index + 1}`);
+
+        if (index === tableEditorIndex) {
+            button.classList.add('active');
+            button.setAttribute('aria-current', 'page');
+        }
+
+        button.addEventListener('click', () => {
+            renderTableEditor(index);
+        });
+
+        tableEditorPages.appendChild(button);
+    }
+}
+
+function getTableEditorTable() {
+    return tableEditorCanvas ? tableEditorCanvas.querySelector('table') : null;
+}
+
+function getTableEditorContainer() {
+    if (!tableEditorCanvas) {
+        return null;
+    }
+
+    return tableEditorCanvas.querySelector('div.table-responsive') || getTableEditorTable();
+}
+
+function loadTableEditorCaptionFields() {
+    const table = getTableEditorTable();
+    const caption = table ? table.querySelector(':scope > caption') : null;
+
+    if (!tableEditorNumber || !tableEditorCaption || !tableEditorUnit) {
+        return;
+    }
+
+    tableEditorNumber.value = '';
+    tableEditorCaption.value = '';
+    tableEditorUnit.value = '';
+
+    if (!caption) {
+        return;
+    }
+
+    const numberText = Array.from(caption.childNodes)
+        .filter((node) => node.nodeType === Node.TEXT_NODE)
+        .map((node) => node.nodeValue)
+        .join(' ')
+        .trim();
+
+    const strong = caption.querySelector('strong');
+    const small = caption.querySelector('small');
+
+    tableEditorNumber.value = numberText;
+    tableEditorCaption.value = strong ? strong.textContent.trim() : '';
+    tableEditorUnit.value = small ? small.textContent.trim() : '';
+}
+
+function updateTableEditorCaption() {
+    const table = getTableEditorTable();
+
+    if (!table) {
+        return;
+    }
+
+    const numberValue = tableEditorNumber ? tableEditorNumber.value.trim() : '';
+    const titleValue = tableEditorCaption ? tableEditorCaption.value.trim() : '';
+    const unitValue = tableEditorUnit ? tableEditorUnit.value.trim() : '';
+    let caption = table.querySelector(':scope > caption');
+
+    if (!numberValue && !titleValue && !unitValue) {
+        if (caption) {
+            caption.remove();
+        }
+        return;
+    }
+
+    if (!caption) {
+        caption = document.createElement('caption');
+        caption.classList.add('text-left', 'fnt-nrml');
+        table.insertBefore(caption, table.firstElementChild);
+    }
+
+    caption.textContent = '';
+
+    if (numberValue) {
+        caption.appendChild(document.createTextNode(numberValue));
+    }
+    if (titleValue) {
+        if (numberValue) {
+            caption.appendChild(document.createElement('br'));
+        }
+        const strong = document.createElement('strong');
+        strong.textContent = titleValue;
+        caption.appendChild(strong);
+    }
+    if (unitValue) {
+        if (numberValue || titleValue) {
+            caption.appendChild(document.createElement('br'));
+        }
+        const small = document.createElement('small');
+        small.textContent = unitValue;
+        caption.appendChild(small);
+    }
+}
+
+function handleTableEditorCanvasClick(event) {
+    const cell = event.target && event.target.closest ? event.target.closest('th, td') : null;
+
+    if (!cell || !tableEditorCanvas.contains(cell)) {
+        return;
+    }
+
+    if (tableEditorIsDragging) {
+        return;
+    }
+
+    if (event.shiftKey && tableEditorLastSelectedCell) {
+        event.preventDefault();
+        selectTableEditorCellRange(tableEditorLastSelectedCell, cell, event.metaKey || event.ctrlKey);
+        tableEditorLastSelectedCell = cell;
+        return;
+    }
+
+    if (!event.metaKey && !event.ctrlKey && !event.shiftKey) {
+        deselectTableEditorCells(cell);
+    }
+
+    cell.classList.toggle('selected');
+    tableEditorLastSelectedCell = cell;
+}
+
+function handleTableEditorCanvasMouseDown(event) {
+    const cell = event.target && event.target.closest ? event.target.closest('th, td') : null;
+
+    if (!cell || !tableEditorCanvas.contains(cell)) {
+        return;
+    }
+
+    tableEditorDragStartCell = cell;
+    tableEditorIsDragging = false;
+}
+
+function handleTableEditorCanvasMouseOver(event) {
+    const cell = event.target && event.target.closest ? event.target.closest('th, td') : null;
+
+    if (!cell || !tableEditorDragStartCell || !tableEditorCanvas.contains(cell)) {
+        return;
+    }
+
+    if (cell === tableEditorDragStartCell && !tableEditorIsDragging) {
+        return;
+    }
+
+    event.preventDefault();
+    tableEditorIsDragging = true;
+    selectTableEditorCellRange(tableEditorDragStartCell, cell, false);
+    tableEditorLastSelectedCell = cell;
+}
+
+function handleTableEditorDocumentMouseUp() {
+    tableEditorDragStartCell = null;
+
+    if (!tableEditorIsDragging) {
+        return;
+    }
+
+    window.setTimeout(() => {
+        tableEditorIsDragging = false;
+    }, 0);
+}
+
+function deselectTableEditorCells(exceptCell = null) {
+    if (!tableEditorCanvas) {
+        return;
+    }
+
+    tableEditorCanvas.querySelectorAll('.selected').forEach((selectedCell) => {
+        if (selectedCell !== exceptCell) {
+            selectedCell.classList.remove('selected');
+        }
+    });
+}
+
+function selectTableEditorCellRange(startCell, endCell, preserveExisting) {
+    const startPosition = getTableEditorCellPosition(startCell);
+    const endPosition = getTableEditorCellPosition(endCell);
+
+    if (!startPosition || !endPosition) {
+        return;
+    }
+
+    if (!preserveExisting) {
+        deselectTableEditorCells();
+    }
+
+    const minRow = Math.min(startPosition.row, endPosition.row);
+    const maxRow = Math.max(startPosition.row, endPosition.row);
+    const minColumn = Math.min(startPosition.column, endPosition.column);
+    const maxColumn = Math.max(startPosition.column, endPosition.column);
+
+    getTableEditorCellGrid().forEach((entry) => {
+        if (
+            entry.row >= minRow &&
+            entry.row <= maxRow &&
+            entry.column >= minColumn &&
+            entry.column <= maxColumn
+        ) {
+            entry.cell.classList.add('selected');
+        }
+    });
+}
+
+function getTableEditorCellPosition(cell) {
+    return getTableEditorCellGrid().find((entry) => entry.cell === cell) || null;
+}
+
+function getTableEditorCellGrid() {
+    const table = getTableEditorTable();
+    const rows = table ? Array.from(table.querySelectorAll('tr')) : [];
+    const grid = [];
+
+    rows.forEach((row, rowIndex) => {
+        Array.from(row.querySelectorAll('th, td')).forEach((cell, columnIndex) => {
+            grid.push({
+                cell,
+                row: rowIndex,
+                column: columnIndex
+            });
+        });
+    });
+
+    return grid;
+}
+
+function getTableEditorSelectedCells() {
+    return tableEditorCanvas ? Array.from(tableEditorCanvas.querySelectorAll('th.selected, td.selected')) : [];
+}
+
+function getTableEditorSelectedRows() {
+    const rows = new Set();
+
+    getTableEditorSelectedCells().forEach((cell) => {
+        const row = cell.closest('tr');
+        if (row) {
+            rows.add(row);
+        }
+    });
+
+    return Array.from(rows);
+}
+
+function getTableEditorOptions() {
+    return {
+        ...defaultTableCleanupOptions,
+        financialTable: tableEditorFinancial ? tableEditorFinancial.checked : defaultTableCleanupOptions.financialTable,
+        addScope: tableEditorScope ? tableEditorScope.checked : defaultTableCleanupOptions.addScope,
+        addTfoot: tableEditorTfoot ? tableEditorTfoot.checked : defaultTableCleanupOptions.addTfoot,
+        frenchNumbers: tableEditorFrench ? tableEditorFrench.checked : defaultTableCleanupOptions.frenchNumbers
+    };
+}
+
+function recleanTableEditorTable() {
+    const table = getTableEditorTable();
+
+    if (!table) {
+        return;
+    }
+
+    updateTableEditorCaption();
+    cleanupTable(table, getTableEditorOptions());
+    loadTableEditorCaptionFields();
+    addProcessingLog('Re-cleaned table in editor.', 'info');
+}
+
+function toggleTableEditorHeaderRows() {
+    const table = getTableEditorTable();
+
+    if (!table) {
+        return;
+    }
+
+    const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
+    let thead = table.querySelector('thead');
+    if (!thead) {
+        thead = document.createElement('thead');
+        table.insertBefore(thead, tbody);
+    }
+
+    getTableEditorSelectedRows().forEach((row) => {
+        if (row.closest('thead')) {
+            row.classList.remove('bg-dark', 'text-white');
+            Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
+                const nextCell = index === 0 ? renameTag(cell, 'th') : renameTag(cell, 'td');
+                if (index === 0 && tableEditorScope && tableEditorScope.checked) {
+                    nextCell.setAttribute('scope', 'row');
+                } else {
+                    nextCell.removeAttribute('scope');
+                }
+            });
+            tbody.insertBefore(row, tbody.firstChild);
+            return;
+        }
+
+        row.classList.add('bg-dark', 'text-white');
+        row.classList.remove('active');
+        Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
+            const nextCell = renameTag(cell, 'th');
+            if (tableEditorScope && tableEditorScope.checked) {
+                nextCell.setAttribute('scope', 'col');
+            }
+            if (tableEditorFinancial && tableEditorFinancial.checked && index > 0) {
+                nextCell.classList.add('text-right');
+            }
+        });
+        thead.appendChild(row);
+    });
+}
+
+function toggleTableEditorActiveRows() {
+    getTableEditorSelectedRows().forEach((row) => {
+        if (row.closest('thead')) {
+            return;
+        }
+
+        row.classList.toggle('active');
+        const firstCell = row.querySelector('th, td');
+
+        if (firstCell && tableEditorScope && tableEditorScope.checked) {
+            firstCell.setAttribute('scope', row.classList.contains('active') ? 'colgroup' : 'row');
+        }
+    });
+}
+
+function mergeTableEditorRows() {
+    getTableEditorSelectedRows().forEach((row) => {
+        Array.from(row.querySelectorAll('th, td')).forEach((cell) => cell.classList.add('selected'));
+        mergeTableEditorCellsInRow(row);
+    });
+}
+
+function mergeTableEditorSelectedCells() {
+    getTableEditorSelectedRows().forEach(mergeTableEditorCellsInRow);
+}
+
+function mergeTableEditorCellsInRow(row) {
+    const selectedCells = Array.from(row.querySelectorAll('th.selected, td.selected'));
+
+    if (selectedCells.length <= 1) {
+        return;
+    }
+
+    const firstCell = selectedCells[0];
+    const mergedContent = document.createDocumentFragment();
+    let colspan = Number(firstCell.getAttribute('colspan') || 1);
+
+    selectedCells.slice(1).forEach((cell) => {
+        if (mergedContent.childNodes.length > 0 || firstCell.childNodes.length > 0) {
+            mergedContent.appendChild(document.createElement('br'));
+        }
+
+        while (cell.firstChild) {
+            mergedContent.appendChild(cell.firstChild);
+        }
+
+        colspan += Number(cell.getAttribute('colspan') || 1);
+        cell.remove();
+    });
+
+    firstCell.appendChild(mergedContent);
+    firstCell.setAttribute('colspan', String(colspan));
+    firstCell.classList.add('selected');
+}
+
+function moveTableEditorRowsToTfoot() {
+    const table = getTableEditorTable();
+
+    if (!table) {
+        return;
+    }
+
+    let tfoot = table.querySelector('tfoot');
+
+    if (!tfoot) {
+        tfoot = document.createElement('tfoot');
+        table.appendChild(tfoot);
+    }
+
+    let footerRow = tfoot.querySelector('tr');
+    let footerCell = footerRow ? footerRow.querySelector('td, th') : null;
+
+    if (!footerRow || !footerCell) {
+        footerRow = document.createElement('tr');
+        footerRow.classList.add('small');
+        footerCell = document.createElement('td');
+        footerCell.setAttribute('colspan', String(getTableEditorWidth(table)));
+        footerRow.appendChild(footerCell);
+        tfoot.appendChild(footerRow);
+    }
+
+    getTableEditorSelectedRows().forEach((row) => {
+        const text = row.textContent.trim();
+
+        if (text) {
+            const p = document.createElement('p');
+            p.innerHTML = Array.from(row.querySelectorAll('th, td'))
+                .map((cell) => cell.innerHTML.trim())
+                .filter(Boolean)
+                .join(' ');
+            footerCell.appendChild(p);
+        }
+
+        row.remove();
+    });
+
+    footerCell.setAttribute('colspan', String(getTableEditorWidth(table)));
+}
+
+function changeTableEditorIndent(direction) {
+    const levels = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
+
+    getTableEditorSelectedCells().forEach((cell) => {
+        if (cell.tagName.toLowerCase() !== 'th' || !cell.closest('tbody')) {
+            return;
+        }
+
+        let wrapper = getTableEditorIndentWrapper(cell, levels);
+        let currentIndex = wrapper ? levels.findIndex((className) => wrapper.classList.contains(className)) : -1;
+        const nextIndex = Math.min(Math.max(currentIndex + direction, -1), levels.length - 1);
+
+        if (nextIndex === -1) {
+            if (wrapper) {
+                unwrapTableEditorIndentWrapper(wrapper);
+            }
+            return;
+        }
+
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.classList.add('text-left', 'fnt-nrml');
+            while (cell.firstChild) {
+                wrapper.appendChild(cell.firstChild);
+            }
+            cell.appendChild(wrapper);
+        }
+
+        wrapper.classList.remove(...levels);
+        wrapper.classList.add(levels[nextIndex], 'text-left', 'fnt-nrml');
+    });
+}
+
+function getTableEditorIndentWrapper(cell, levels) {
+    return Array.from(cell.children).find((child) => {
+        return levels.some((className) => child.classList.contains(className));
+    }) || null;
+}
+
+function unwrapTableEditorIndentWrapper(wrapper) {
+    const parent = wrapper.parentNode;
+
+    while (wrapper.firstChild) {
+        parent.insertBefore(wrapper.firstChild, wrapper);
+    }
+
+    wrapper.remove();
+}
+
+function getTableEditorWidth(table) {
+    return Array.from(table.querySelectorAll('tr')).reduce((width, row) => {
+        const rowWidth = Array.from(row.querySelectorAll('th, td')).reduce((total, cell) => {
+            return total + Number(cell.getAttribute('colspan') || 1);
+        }, 0);
+
+        return Math.max(width, rowWidth);
+    }, 1);
+}
+
+function toggleTableEditorBold() {
+    getTableEditorSelectedCells().forEach((cell) => {
+        const strong = cell.children.length === 1 && cell.firstElementChild && cell.firstElementChild.tagName.toLowerCase() === 'strong'
+            ? cell.firstElementChild
+            : null;
+
+        if (strong) {
+            while (strong.firstChild) {
+                cell.insertBefore(strong.firstChild, strong);
+            }
+            strong.remove();
+            cell.classList.add('fnt-nrml');
+            return;
+        }
+
+        const wrapper = document.createElement('strong');
+        while (cell.firstChild) {
+            wrapper.appendChild(cell.firstChild);
+        }
+        cell.appendChild(wrapper);
+        cell.classList.remove('fnt-nrml');
+    });
+}
+
+function alignTableEditorCells(alignment) {
+    getTableEditorSelectedCells().forEach((cell) => {
+        cell.classList.remove('text-center', 'text-right');
+
+        if (alignment === 'center') {
+            cell.classList.add('text-center');
+        }
+        if (alignment === 'right') {
+            cell.classList.add('text-right');
+        }
+    });
+}
+
+function deleteTableEditorRows() {
+    getTableEditorSelectedRows().forEach((row) => row.remove());
+}
+
+function applyTableEditorChanges(moveNext) {
+    const items = getTableEditorItems();
+    const item = items[tableEditorIndex];
+    const editedContainer = getTableEditorContainer();
+
+    if (!item || !editedContainer) {
+        return;
+    }
+
+    updateTableEditorCaption();
+
+    const cleanClone = editedContainer.cloneNode(true);
+    cleanClone.querySelectorAll('.selected').forEach((element) => {
+        element.classList.remove('selected');
+        if (element.classList.length === 0) {
+            element.removeAttribute('class');
+        }
+    });
+
+    item.container.replaceWith(cleanClone);
+    updateOutputText();
+    addProcessingLog(`Applied edits to table ${tableEditorIndex + 1}.`, 'success');
+
+    if (moveNext && tableEditorIndex < getTableEditorItems().length - 1) {
+        renderTableEditor(tableEditorIndex + 1);
+        return;
+    }
+
+    closeTableEditor();
 }
 
 function updateAddIDsSettingsState() {
@@ -1610,17 +2419,25 @@ function tableCleanupCommand() {
     const debug = document.getElementById('debug');
     try {
         syncActiveEditorToInputHTML();
-        updateCodeView();
-        if (outputText.value.trim() === "") {
+        if (!hasInput()) {
             throw new Error('Input is empty');
         }
-        var token = saveHTMLToSession(inputHTML.outerHTML);
-        window.open(`../table-cleanup/?s=${token}`, '_blank');
-        setDebugMessage(debug, 'Redirecting to Table Cleanup', false);
-        addProcessingLog('Redirecting to Table Cleanup.', 'info');
+
+        const result = cleanupTables(inputHTML);
+
+        if (result.tableCount === 0) {
+            setDebugMessage(debug, 'No tables found', false);
+            addProcessingLog('No tables found for Table Cleanup.', 'warning');
+            return;
+        }
+
+        updateOutputText();
+        setDebugMessage(debug, 'Table Cleanup successful', false);
+        addProcessingLog(`Table Cleanup successful. Cleaned ${result.changedCount} table(s).`, 'success');
+        openTableEditor(0);
     } catch (e) {
-        setDebugMessage(debug, 'Error for Table Cleanup. Input is empty', true);
-        addProcessingLog('Error for Table Cleanup. Input is empty.', 'danger');
+        setDebugMessage(debug, 'Error for Table Cleanup. Input is empty or invalid.', true);
+        addProcessingLog('Error for Table Cleanup. Input is empty or invalid.', 'danger');
         console.error(e);
     }
 }

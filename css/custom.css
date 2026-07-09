@@ -847,6 +847,497 @@ textarea {
     text-transform: uppercase;
 }
 
+.table-editor-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 70;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    width: min(1120px, calc(100vw - 32px));
+    height: min(760px, calc(100vh - 32px));
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--shadow);
+    transform: translate(-50%, -50%);
+}
+
+.table-editor-dialog[hidden] {
+    display: none;
+}
+
+.table-editor-dialog h2 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.table-editor-status {
+    margin: 4px 0 0;
+    font-size: 0.86rem;
+}
+
+.table-editor-layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 14px;
+    min-height: 0;
+}
+
+.table-editor-panel {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    min-height: 0;
+    padding-right: 14px;
+    border-right: 1px solid var(--border);
+    overflow: auto;
+}
+
+.table-editor-nav,
+.table-editor-toolbar,
+.table-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-editor-pages {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.table-editor-page-btn {
+    min-width: 32px;
+    min-height: 30px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.table-editor-page-btn:hover,
+.table-editor-page-btn:focus {
+    border-color: rgba(37,87,214,0.42);
+    background: #eef4ff;
+    color: var(--primary-dark);
+}
+
+.table-editor-page-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+}
+
+.table-editor-options {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+}
+
+.table-editor-workspace {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+}
+
+.table-editor-toolbar {
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: 0;
+    padding: 6px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #fff 0%, var(--surface-2) 100%);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.table-toolbar-group {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 1px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: #fff;
+}
+
+.table-tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #475467;
+    box-shadow: none;
+}
+
+.table-tool-btn:hover,
+.table-tool-btn:focus {
+    border-color: rgba(37,87,214,0.28);
+    background: #eef4ff;
+    color: #0f3557;
+    outline: 0;
+}
+
+.table-tool-btn:focus {
+    box-shadow: 0 0 0 2px rgba(37,87,214,0.24);
+}
+
+.table-tool-btn:active {
+    border-color: rgba(37,87,214,0.42);
+    background: #e4ecff;
+}
+
+.table-tool-danger:hover,
+.table-tool-danger:focus {
+    border-color: rgba(180,35,24,0.28);
+    background: #fff1f0;
+    color: #b42318;
+}
+
+.table-tool-icon {
+    position: relative;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    color: currentColor;
+}
+
+.table-tool-icon::before,
+.table-tool-icon::after {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.icon-tool-deselect::before {
+    content: "X";
+    inset: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+
+.icon-tool-header::before {
+    content: "H";
+    inset: 0;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 18px;
+    text-align: center;
+}
+
+.icon-tool-merge-row::before,
+.icon-tool-merge-cells::before,
+.icon-tool-active::before,
+.icon-tool-footer::before {
+    content: "";
+    left: 2px;
+    top: 3px;
+    width: 14px;
+    height: 12px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    background:
+        linear-gradient(currentColor, currentColor) 0 50% / 100% 1px no-repeat,
+        linear-gradient(currentColor, currentColor) 50% 0 / 1px 100% no-repeat;
+}
+
+.icon-tool-merge-row::after {
+    content: "";
+    left: 4px;
+    top: 8px;
+    width: 10px;
+    height: 2px;
+    background: currentColor;
+}
+
+.icon-tool-merge-cells::after {
+    content: "";
+    left: 8px;
+    top: 5px;
+    width: 2px;
+    height: 8px;
+    background: #fff;
+}
+
+.icon-tool-active::after {
+    content: "";
+    left: 3px;
+    top: 4px;
+    width: 12px;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.35;
+}
+
+.icon-tool-footer::after {
+    content: "";
+    left: 3px;
+    top: 11px;
+    width: 12px;
+    height: 3px;
+    background: currentColor;
+}
+
+.icon-tool-indent::before,
+.icon-tool-outdent::before {
+    content: "";
+    left: 7px;
+    top: 3px;
+    width: 9px;
+    height: 12px;
+    background:
+        linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 5px / 100% 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 10px / 100% 2px no-repeat;
+}
+
+.icon-tool-indent::after,
+.icon-tool-outdent::after {
+    content: "";
+    top: 5px;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+}
+
+.icon-tool-indent::after {
+    left: 1px;
+    border-left: 6px solid currentColor;
+}
+
+.icon-tool-outdent::after {
+    left: 1px;
+    border-right: 6px solid currentColor;
+}
+
+.icon-tool-bold::before {
+    content: "B";
+    inset: 0;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 18px;
+    text-align: center;
+}
+
+.icon-tool-align-left::before,
+.icon-tool-align-center::before,
+.icon-tool-align-right::before {
+    content: "";
+    top: 3px;
+    width: 14px;
+    height: 12px;
+    background:
+        linear-gradient(currentColor, currentColor) 0 0 / 14px 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 5px / 10px 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 10px / 14px 2px no-repeat;
+}
+
+.icon-tool-align-left::before {
+    left: 2px;
+}
+
+.icon-tool-align-center::before {
+    left: 2px;
+    background:
+        linear-gradient(currentColor, currentColor) 0 0 / 14px 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 2px 5px / 10px 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 10px / 14px 2px no-repeat;
+}
+
+.icon-tool-align-right::before {
+    right: 2px;
+    background:
+        linear-gradient(currentColor, currentColor) 0 0 / 14px 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 4px 5px / 10px 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 10px / 14px 2px no-repeat;
+}
+
+.icon-tool-delete::before {
+    content: "";
+    left: 5px;
+    top: 6px;
+    width: 9px;
+    height: 10px;
+    border: 1px solid currentColor;
+    border-top: 0;
+    border-radius: 0 0 2px 2px;
+}
+
+.icon-tool-delete::after {
+    content: "";
+    left: 4px;
+    top: 3px;
+    width: 11px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+}
+
+.table-editor-canvas {
+    min-height: 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    overflow: auto;
+}
+
+.table-editor-canvas .table-responsive {
+    width: 100%;
+    margin: 0;
+    overflow-x: auto;
+}
+
+.table-editor-canvas table,
+.table-editor-canvas .table {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 22px;
+    border-spacing: 0;
+    border-collapse: collapse;
+    background-color: transparent;
+}
+
+.table-editor-canvas caption {
+    padding: 8px 0;
+    color: #333;
+    text-align: left;
+}
+
+.table-editor-canvas caption strong {
+    font-weight: 700;
+}
+
+.table-editor-canvas caption small {
+    color: #555;
+}
+
+.table-editor-canvas .table-bordered,
+.table-editor-canvas .table-bordered th,
+.table-editor-canvas .table-bordered td,
+.table-editor-canvas table th,
+.table-editor-canvas table td {
+    border: 1px solid #ddd;
+}
+
+.table-editor-canvas th,
+.table-editor-canvas td {
+    padding: 8px;
+    line-height: 1.4375;
+    vertical-align: top;
+    cursor: text;
+}
+
+.table-editor-canvas th {
+    font-weight: 700;
+    text-align: left;
+}
+
+.table-editor-canvas thead th {
+    vertical-align: bottom;
+}
+
+.table-editor-canvas .bg-dark,
+.table-editor-canvas tr.bg-dark > th,
+.table-editor-canvas tr.bg-dark > td {
+    background-color: #333;
+}
+
+.table-editor-canvas .text-white,
+.table-editor-canvas tr.text-white > th,
+.table-editor-canvas tr.text-white > td {
+    color: #fff;
+}
+
+.table-editor-canvas .active > th,
+.table-editor-canvas .active > td,
+.table-editor-canvas th.active,
+.table-editor-canvas td.active {
+    background-color: #f5f5f5;
+}
+
+.table-editor-canvas .text-left {
+    text-align: left;
+}
+
+.table-editor-canvas tr.text-left > th,
+.table-editor-canvas tr.text-left > td {
+    text-align: left;
+}
+
+.table-editor-canvas .text-center {
+    text-align: center;
+}
+
+.table-editor-canvas tr.text-center > th,
+.table-editor-canvas tr.text-center > td {
+    text-align: center;
+}
+
+.table-editor-canvas .text-right {
+    text-align: right;
+}
+
+.table-editor-canvas tr.text-right > th,
+.table-editor-canvas tr.text-right > td {
+    text-align: right;
+}
+
+.table-editor-canvas .fnt-nrml {
+    font-weight: 400;
+}
+
+.table-editor-canvas .mrgn-lft-md {
+    margin-left: 15px;
+}
+
+.table-editor-canvas .mrgn-lft-lg {
+    margin-left: 30px;
+}
+
+.table-editor-canvas .mrgn-lft-xl {
+    margin-left: 45px;
+}
+
+.table-editor-canvas tfoot {
+    font-size: 0.875em;
+}
+
+.table-editor-canvas .selected {
+    outline: 3px solid rgba(37, 87, 214, 0.45);
+    outline-offset: -3px;
+}
+
+.table-editor-actions {
+    justify-content: flex-end;
+    padding-top: 2px;
+    border-top: 1px solid var(--border);
+}
+
 .shortcut-groups {
     display: grid;
     gap: 16px;

@@ -138,8 +138,8 @@
 
                                 <div class="command-card">
                                     <strong>Tables</strong>
-                                    <p>Open the table cleanup tool.</p>
-                                    <button type="button" hidden class="btn btn-disabled btn-full" id="tableCleanupBtn" title="Send HTML to Table Cleanup">Table Cleanup</button>
+                                    <p>Convert tables to Canada.ca/WET markup.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="tableCleanupBtn" title="Clean tables">Clean tables</button>
                                 </div>
                             </div>
                         </section>
@@ -292,6 +292,84 @@
                     <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-outdent" aria-hidden="true"></span></span>Decrease indent</span></dt><dd><kbd>Shift</kbd><kbd>Tab</kbd><span>or</span><kbd>Ctrl</kbd><kbd>[</kbd><span>or</span><kbd>Cmd</kbd><kbd>[</kbd></dd></div>
                 </dl>
             </section>
+        </div>
+    </section>
+
+    <div class="modal-backdrop" id="tableEditorBackdrop"></div>
+    <section class="table-editor-dialog" id="tableEditorDialog" role="dialog" aria-modal="true" aria-labelledby="tableEditorTitle" hidden>
+        <div class="dialog-header">
+            <div>
+                <h2 id="tableEditorTitle">Table cleanup</h2>
+                <p id="tableEditorStatus" class="table-editor-status text-muted">No table selected.</p>
+            </div>
+            <button type="button" class="btn btn-xs" id="tableEditorCloseBtn">Close</button>
+        </div>
+
+        <div class="table-editor-layout">
+            <aside class="table-editor-panel" aria-label="Table details">
+                <div class="table-editor-nav" aria-label="Table navigation">
+                    <button type="button" class="btn btn-default btn-sm" id="tableEditorPrevBtn">Previous</button>
+                    <div class="table-editor-pages" id="tableEditorPages" aria-label="Jump to table"></div>
+                    <button type="button" class="btn btn-default btn-sm" id="tableEditorNextBtn">Next</button>
+                </div>
+
+                <div class="form-row">
+                    <label for="tableEditorNumber">Table number</label>
+                    <input type="text" class="form-control" id="tableEditorNumber">
+                </div>
+                <div class="form-row">
+                    <label for="tableEditorCaption">Title</label>
+                    <input type="text" class="form-control" id="tableEditorCaption">
+                </div>
+                <div class="form-row">
+                    <label for="tableEditorUnit">Unit</label>
+                    <input type="text" class="form-control" id="tableEditorUnit">
+                </div>
+
+                <div class="table-editor-options">
+                    <label class="checkline" for="tableEditorFinancial"><input type="checkbox" id="tableEditorFinancial" checked> Financial table</label>
+                    <label class="checkline" for="tableEditorScope"><input type="checkbox" id="tableEditorScope" checked> Scope attributes</label>
+                    <label class="checkline" for="tableEditorTfoot"><input type="checkbox" id="tableEditorTfoot"> Add footer row</label>
+                    <label class="checkline" for="tableEditorFrench"><input type="checkbox" id="tableEditorFrench"> French number format</label>
+                </div>
+
+                <button type="button" class="btn btn-default btn-full" id="tableEditorRecleanBtn">Re-clean table</button>
+            </aside>
+
+            <div class="table-editor-workspace">
+                <div class="table-editor-toolbar" aria-label="Table editing">
+                    <div class="table-toolbar-group" aria-label="Selection">
+                        <button type="button" class="table-tool-btn" id="tableEditorDeselectBtn" title="Deselect cells" aria-label="Deselect cells"><span class="table-tool-icon icon-tool-deselect" aria-hidden="true"></span></button>
+                    </div>
+                    <div class="table-toolbar-group" aria-label="Structure">
+                        <button type="button" class="table-tool-btn" id="tableEditorHeaderBtn" title="Header row" aria-label="Header row"><span class="table-tool-icon icon-tool-header" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorMergeRowBtn" title="Merge row" aria-label="Merge row"><span class="table-tool-icon icon-tool-merge-row" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorMergeCellsBtn" title="Merge cells" aria-label="Merge cells"><span class="table-tool-icon icon-tool-merge-cells" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorActiveBtn" title="Active row" aria-label="Active row"><span class="table-tool-icon icon-tool-active" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorTfootBtn" title="Move to footer" aria-label="Move to footer"><span class="table-tool-icon icon-tool-footer" aria-hidden="true"></span></button>
+                    </div>
+                    <div class="table-toolbar-group" aria-label="Indent">
+                        <button type="button" class="table-tool-btn" id="tableEditorOutdentBtn" title="Outdent" aria-label="Outdent"><span class="table-tool-icon icon-tool-outdent" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorIndentBtn" title="Indent" aria-label="Indent"><span class="table-tool-icon icon-tool-indent" aria-hidden="true"></span></button>
+                    </div>
+                    <div class="table-toolbar-group" aria-label="Text formatting">
+                        <button type="button" class="table-tool-btn" id="tableEditorBoldBtn" title="Bold" aria-label="Bold"><span class="table-tool-icon icon-tool-bold" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorLeftBtn" title="Align left" aria-label="Align left"><span class="table-tool-icon icon-tool-align-left" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorCenterBtn" title="Align center" aria-label="Align center"><span class="table-tool-icon icon-tool-align-center" aria-hidden="true"></span></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorRightBtn" title="Align right" aria-label="Align right"><span class="table-tool-icon icon-tool-align-right" aria-hidden="true"></span></button>
+                    </div>
+                    <div class="table-toolbar-group" aria-label="Remove">
+                        <button type="button" class="table-tool-btn table-tool-danger" id="tableEditorDeleteRowBtn" title="Delete row" aria-label="Delete row"><span class="table-tool-icon icon-tool-delete" aria-hidden="true"></span></button>
+                    </div>
+                </div>
+                <div class="table-editor-canvas" id="tableEditorCanvas" contenteditable="true" aria-label="Editable table"></div>
+            </div>
+        </div>
+
+        <div class="table-editor-actions">
+            <button type="button" class="btn btn-default" id="tableEditorCancelBtn">Cancel</button>
+            <button type="button" class="btn btn-default" id="tableEditorApplyNextBtn">Apply and next</button>
+            <button type="button" class="btn btn-primary" id="tableEditorApplyBtn">Apply</button>
         </div>
     </section>
 
