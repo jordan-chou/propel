@@ -849,20 +849,21 @@ textarea {
 
 .table-editor-dialog {
     position: fixed;
-    top: 50%;
-    left: 50%;
+    top: var(--header-height);
+    right: 0;
+    bottom: 0;
     z-index: 70;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     gap: 14px;
-    width: min(1120px, calc(100vw - 32px));
-    height: min(760px, calc(100vh - 32px));
+    width: min(980px, calc(100vw - 24px));
+    height: auto;
     padding: 16px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-right: 0;
+    border-radius: 12px 0 0 12px;
     background: #fff;
     box-shadow: var(--shadow);
-    transform: translate(-50%, -50%);
 }
 
 .table-editor-dialog[hidden] {
@@ -881,7 +882,7 @@ textarea {
 
 .table-editor-layout {
     display: grid;
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
     gap: 14px;
     min-height: 0;
 }
@@ -1348,6 +1349,27 @@ textarea {
     justify-content: flex-end;
     padding-top: 2px;
     border-top: 1px solid var(--border);
+}
+
+@media (max-width: 860px) {
+    .table-editor-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .table-editor-panel {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: end;
+        padding-right: 0;
+        padding-bottom: 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .table-editor-nav,
+    .table-editor-options {
+        grid-column: 1 / -1;
+    }
 }
 
 .shortcut-groups {
@@ -2390,6 +2412,22 @@ textarea {
     }
 
     .activity-panel { top: 0; }
+
+    .table-editor-dialog {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: auto;
+        height: min(72vh, 760px);
+        border-right: 1px solid var(--border);
+        border-bottom: 0;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .table-editor-layout {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    }
 
     .document-report {
         grid-template-columns: 1fr;

@@ -77,7 +77,6 @@ const editorViewButtons = document.querySelectorAll('[data-editor-view]');
 const wysiwygButtons = document.querySelectorAll('[data-edit-command]');
 const blockFormatSelect = document.getElementById('blockFormatSelect');
 const liveTableEditPopover = liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null;
-const tableEditorBackdrop = document.getElementById('tableEditorBackdrop');
 const tableEditorDialog = document.getElementById('tableEditorDialog');
 const tableEditorCloseBtn = document.getElementById('tableEditorCloseBtn');
 const tableEditorCancelBtn = document.getElementById('tableEditorCancelBtn');
@@ -130,6 +129,7 @@ var tableEditorDragStartCell = null;
 var tableEditorIsDragging = false;
 var tableEditorPreviewCleanup = false;
 var liveTableEditTarget = null;
+var liveEditorIsSelectingText = false;
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 
 // Footnote generator
@@ -196,6 +196,8 @@ function createWetLiveEditor(host) {
                 font-family: "Noto Sans", sans-serif;
                 font-size: 16px;
                 line-height: 1.4375;
+                -webkit-user-select: text;
+                user-select: text;
             }
 
             .wet-live-editor:empty::before {
@@ -239,6 +241,8 @@ function createWetLiveEditor(host) {
                 font: 700 0.82rem/1.2 "Noto Sans", sans-serif;
                 box-shadow: 0 10px 26px rgba(16, 24, 40, 0.18);
                 cursor: pointer;
+                -webkit-user-select: none;
+                user-select: none;
             }
 
             .table-edit-popover.visible {
@@ -267,7 +271,7 @@ function createWetLiveEditor(host) {
                     linear-gradient(currentColor, currentColor) 66% 0 / 1px 100% no-repeat;
             }
         </style>
-        <div id="wetLiveEditor" class="wet-live-editor" contenteditable="true" role="textbox" aria-multiline="true"></div>
+        <div id="wetLiveEditor" class="wet-live-editor" contenteditable="true" role="textbox" aria-multiline="true" tabindex="0"></div>
         <button type="button" id="tableEditPopover" class="table-edit-popover" aria-label="Edit table">
             <span class="table-edit-popover-icon" aria-hidden="true"></span>
             <span>Edit table</span>
@@ -276,6 +280,7 @@ function createWetLiveEditor(host) {
 
     const editor = shadow.getElementById('wetLiveEditor');
     editor.setAttribute('data-placeholder', placeholder);
+    host.setAttribute('tabindex', '0');
     return editor;
 }
 
@@ -386,6 +391,12 @@ function createModernDashboardListeners() {
     }
 
     if (liveEditor) {
+        if (liveEditorHost) {
+            liveEditorHost.addEventListener('focus', () => {
+                liveEditor.focus();
+            });
+        }
+
         liveEditor.addEventListener('focus', () => {
             activeEditorView = 'live';
             rememberLiveSelection();
@@ -414,6 +425,15 @@ function createModernDashboardListeners() {
             scrollCodeToLiveElement(event.target);
         });
 
+        liveEditor.addEventListener('mousedown', () => {
+            liveEditorIsSelectingText = true;
+            hideLiveTableEditPopover();
+        });
+        liveEditor.addEventListener('mouseup', () => {
+            window.setTimeout(() => {
+                liveEditorIsSelectingText = false;
+            }, 0);
+        });
         liveEditor.addEventListener('mousemove', handleLiveEditorTableHover);
         liveEditor.addEventListener('scroll', positionLiveTableEditPopover);
         liveEditor.addEventListener('mouseleave', (event) => {
@@ -434,6 +454,10 @@ function createModernDashboardListeners() {
         }
 
         liveEditor.addEventListener('dblclick', (event) => {
+            if (tableEditorDialog && !tableEditorDialog.hidden) {
+                return;
+            }
+
             const table = getClosestElement(event.target, liveEditor, 'table');
             if (!table) {
                 return;
@@ -1353,7 +1377,7 @@ function createTableEditorListeners() {
         return;
     }
 
-    [tableEditorCloseBtn, tableEditorCancelBtn, tableEditorBackdrop].forEach((element) => {
+    [tableEditorCloseBtn, tableEditorCancelBtn].forEach((element) => {
         if (element) {
             element.addEventListener('click', closeTableEditor);
         }
@@ -1441,12 +1465,9 @@ function openTableEditor(index = 0, options = {}) {
         return;
     }
 
-    tableEditorPreviewCleanup = Boolean(options.previewCleanup);
+    tableEditorPreviewCleanup = options.previewCleanup !== false;
     tableEditorPreviousFocus = document.activeElement;
     tableEditorDialog.hidden = false;
-    if (tableEditorBackdrop) {
-        tableEditorBackdrop.classList.add('open');
-    }
 
     renderTableEditor(index);
 
@@ -1461,9 +1482,6 @@ function closeTableEditor() {
     }
 
     tableEditorDialog.hidden = true;
-    if (tableEditorBackdrop) {
-        tableEditorBackdrop.classList.remove('open');
-    }
     if (tableEditorCanvas) {
         tableEditorCanvas.innerHTML = '';
     }
@@ -1541,6 +1559,11 @@ function getLiveTableIndex(liveTable) {
 }
 
 function handleLiveEditorTableHover(event) {
+    if (liveEditorIsSelectingText || hasLiveEditorTextSelection()) {
+        hideLiveTableEditPopover();
+        return;
+    }
+
     const table = getClosestElement(event.target, liveEditor, 'table');
 
     if (!table) {
@@ -1550,6 +1573,16 @@ function handleLiveEditorTableHover(event) {
 
     liveTableEditTarget = table;
     positionLiveTableEditPopover();
+}
+
+function hasLiveEditorTextSelection() {
+    const selection = getEditorSelection(liveEditor);
+
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        return false;
+    }
+
+    return liveEditor.contains(selection.anchorNode) || liveEditor.contains(selection.focusNode);
 }
 
 function positionLiveTableEditPopover() {
@@ -1619,7 +1652,7 @@ function renderTableEditor(index) {
 
 function updateTableEditorStatus(tableCount = getTableEditorItems().length) {
     if (tableEditorStatus) {
-        tableEditorStatus.textContent = `Table ${tableEditorIndex + 1} of ${tableCount}. Double-click tables in Live view to edit them here.`;
+        tableEditorStatus.textContent = `Table ${tableEditorIndex + 1} of ${tableCount}. Use the Live view Edit table button or double-click a table to edit it here.`;
     }
     if (tableEditorPrevBtn) {
         tableEditorPrevBtn.disabled = tableEditorIndex <= 0;
@@ -2690,7 +2723,7 @@ function tableCleanupCommand() {
 
         setDebugMessage(debug, 'Table cleanup opened', false);
         addProcessingLog(`Table cleanup opened. Previewing ${tableCount} table(s); changes apply only after pressing Apply.`, 'info');
-        openTableEditor(0, { previewCleanup: true });
+        openTableEditor(0);
     } catch (e) {
         setDebugMessage(debug, 'Error for Table Cleanup. Input is empty or invalid.', true);
         addProcessingLog('Error for Table Cleanup. Input is empty or invalid.', 'danger');
