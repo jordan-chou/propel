@@ -1051,6 +1051,7 @@ textarea {
 .icon-tool-merge-row::before,
 .icon-tool-merge-cells::before,
 .icon-tool-active::before,
+.icon-tool-add-footer::before,
 .icon-tool-footer::before {
     content: "";
     left: 2px;
@@ -1090,6 +1091,17 @@ textarea {
     height: 4px;
     background: currentColor;
     opacity: 0.35;
+}
+
+.icon-tool-add-footer::after {
+    content: "+";
+    left: 0;
+    top: 1px;
+    width: 18px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 18px;
+    text-align: center;
 }
 
 .icon-tool-footer::after {

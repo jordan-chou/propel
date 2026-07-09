@@ -76,6 +76,7 @@ const codeHighlight = document.getElementById('codeHighlight');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
 const wysiwygButtons = document.querySelectorAll('[data-edit-command]');
 const blockFormatSelect = document.getElementById('blockFormatSelect');
+const liveTableEditPopover = liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null;
 const tableEditorBackdrop = document.getElementById('tableEditorBackdrop');
 const tableEditorDialog = document.getElementById('tableEditorDialog');
 const tableEditorCloseBtn = document.getElementById('tableEditorCloseBtn');
@@ -91,6 +92,7 @@ const tableEditorHeaderBtn = document.getElementById('tableEditorHeaderBtn');
 const tableEditorMergeRowBtn = document.getElementById('tableEditorMergeRowBtn');
 const tableEditorMergeCellsBtn = document.getElementById('tableEditorMergeCellsBtn');
 const tableEditorActiveBtn = document.getElementById('tableEditorActiveBtn');
+const tableEditorAddFooterBtn = document.getElementById('tableEditorAddFooterBtn');
 const tableEditorTfootBtn = document.getElementById('tableEditorTfootBtn');
 const tableEditorIndentBtn = document.getElementById('tableEditorIndentBtn');
 const tableEditorOutdentBtn = document.getElementById('tableEditorOutdentBtn');
@@ -106,7 +108,6 @@ const tableEditorCaption = document.getElementById('tableEditorCaption');
 const tableEditorUnit = document.getElementById('tableEditorUnit');
 const tableEditorFinancial = document.getElementById('tableEditorFinancial');
 const tableEditorScope = document.getElementById('tableEditorScope');
-const tableEditorTfoot = document.getElementById('tableEditorTfoot');
 const tableEditorFrench = document.getElementById('tableEditorFrench');
 
 // Local HTML for input
@@ -128,6 +129,7 @@ var tableEditorPreviousFocus = null;
 var tableEditorLastSelectedCell = null;
 var tableEditorDragStartCell = null;
 var tableEditorIsDragging = false;
+var liveTableEditTarget = null;
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 
 // Footnote generator
@@ -176,6 +178,7 @@ function createWetLiveEditor(host) {
 
             :host {
                 display: block;
+                position: relative;
                 height: 100%;
                 min-height: 0;
                 background: #fff;
@@ -208,8 +211,67 @@ function createWetLiveEditor(host) {
                 max-width: 100%;
                 height: auto;
             }
+
+            .wet-live-editor table,
+            .wet-live-editor .table-responsive {
+                transition: outline-color 0.15s ease, box-shadow 0.15s ease;
+            }
+
+            .wet-live-editor table:hover,
+            .wet-live-editor .table-responsive:hover {
+                outline: 2px solid rgba(37,87,214,0.58);
+                outline-offset: 3px;
+                box-shadow: 0 0 0 6px rgba(37,87,214,0.08);
+            }
+
+            .table-edit-popover {
+                position: absolute;
+                z-index: 20;
+                display: none;
+                align-items: center;
+                gap: 6px;
+                min-height: 32px;
+                padding: 5px 10px;
+                border: 1px solid rgba(37,87,214,0.36);
+                border-radius: 999px;
+                background: #fff;
+                color: #0f3557;
+                font: 700 0.82rem/1.2 "Noto Sans", sans-serif;
+                box-shadow: 0 10px 26px rgba(16, 24, 40, 0.18);
+                cursor: pointer;
+            }
+
+            .table-edit-popover.visible {
+                display: inline-flex;
+            }
+
+            .table-edit-popover:hover,
+            .table-edit-popover:focus {
+                border-color: rgba(37,87,214,0.68);
+                background: #eef4ff;
+                outline: 2px solid rgba(37,87,214,0.24);
+                outline-offset: 1px;
+            }
+
+            .table-edit-popover-icon {
+                position: relative;
+                display: inline-block;
+                width: 15px;
+                height: 15px;
+                border: 1px solid currentColor;
+                border-radius: 2px;
+                background:
+                    linear-gradient(currentColor, currentColor) 0 33% / 100% 1px no-repeat,
+                    linear-gradient(currentColor, currentColor) 0 66% / 100% 1px no-repeat,
+                    linear-gradient(currentColor, currentColor) 33% 0 / 1px 100% no-repeat,
+                    linear-gradient(currentColor, currentColor) 66% 0 / 1px 100% no-repeat;
+            }
         </style>
         <div id="wetLiveEditor" class="wet-live-editor" contenteditable="true" role="textbox" aria-multiline="true"></div>
+        <button type="button" id="tableEditPopover" class="table-edit-popover" aria-label="Edit table">
+            <span class="table-edit-popover-icon" aria-hidden="true"></span>
+            <span>Edit table</span>
+        </button>
     `;
 
     const editor = shadow.getElementById('wetLiveEditor');
@@ -351,6 +413,25 @@ function createModernDashboardListeners() {
         liveEditor.addEventListener('click', (event) => {
             scrollCodeToLiveElement(event.target);
         });
+
+        liveEditor.addEventListener('mousemove', handleLiveEditorTableHover);
+        liveEditor.addEventListener('scroll', positionLiveTableEditPopover);
+        liveEditor.addEventListener('mouseleave', (event) => {
+            if (liveTableEditPopover && event.relatedTarget === liveTableEditPopover) {
+                return;
+            }
+            hideLiveTableEditPopover();
+        });
+
+        if (liveTableEditPopover) {
+            liveTableEditPopover.addEventListener('click', openHoveredLiveTableEditor);
+            liveTableEditPopover.addEventListener('mouseleave', (event) => {
+                if (liveEditor.contains(event.relatedTarget)) {
+                    return;
+                }
+                hideLiveTableEditPopover();
+            });
+        }
 
         liveEditor.addEventListener('dblclick', (event) => {
             const table = getClosestElement(event.target, liveEditor, 'table');
@@ -1317,8 +1398,11 @@ function createTableEditorListeners() {
     if (tableEditorActiveBtn) {
         tableEditorActiveBtn.addEventListener('click', toggleTableEditorActiveRows);
     }
+    if (tableEditorAddFooterBtn) {
+        tableEditorAddFooterBtn.addEventListener('click', addEmptyTableEditorFooter);
+    }
     if (tableEditorTfootBtn) {
-        tableEditorTfootBtn.addEventListener('click', moveTableEditorRowsToTfoot);
+        tableEditorTfootBtn.addEventListener('click', toggleTableEditorRowsInTfoot);
     }
     if (tableEditorIndentBtn) {
         tableEditorIndentBtn.addEventListener('click', () => changeTableEditorIndent(1));
@@ -1428,6 +1512,57 @@ function getLiveTableIndex(liveTable) {
     }
 
     return Math.max(0, Array.from(liveEditor.querySelectorAll('table')).indexOf(liveTable));
+}
+
+function handleLiveEditorTableHover(event) {
+    const table = getClosestElement(event.target, liveEditor, 'table');
+
+    if (!table) {
+        hideLiveTableEditPopover();
+        return;
+    }
+
+    liveTableEditTarget = table;
+    positionLiveTableEditPopover();
+}
+
+function positionLiveTableEditPopover() {
+    if (!liveEditor || !liveTableEditPopover || !liveTableEditTarget || !liveEditor.contains(liveTableEditTarget)) {
+        return;
+    }
+
+    const hostRect = liveEditorHost.getBoundingClientRect();
+    const tableRect = liveTableEditTarget.getBoundingClientRect();
+    liveTableEditPopover.classList.add('visible');
+
+    const top = Math.max(8, tableRect.top - hostRect.top + 8);
+    const left = Math.max(8, tableRect.right - hostRect.left - liveTableEditPopover.offsetWidth - 8);
+
+    liveTableEditPopover.style.top = `${top}px`;
+    liveTableEditPopover.style.left = `${left}px`;
+}
+
+function hideLiveTableEditPopover() {
+    liveTableEditTarget = null;
+
+    if (!liveTableEditPopover) {
+        return;
+    }
+
+    liveTableEditPopover.classList.remove('visible');
+}
+
+function openHoveredLiveTableEditor(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!liveTableEditTarget) {
+        return;
+    }
+
+    syncLiveToInputHTML();
+    openTableEditor(getLiveTableIndex(liveTableEditTarget));
+    hideLiveTableEditPopover();
 }
 
 function renderTableEditor(index) {
@@ -1733,7 +1868,7 @@ function getTableEditorOptions() {
         ...defaultTableCleanupOptions,
         financialTable: tableEditorFinancial ? tableEditorFinancial.checked : defaultTableCleanupOptions.financialTable,
         addScope: tableEditorScope ? tableEditorScope.checked : defaultTableCleanupOptions.addScope,
-        addTfoot: tableEditorTfoot ? tableEditorTfoot.checked : defaultTableCleanupOptions.addTfoot,
+        addTfoot: false,
         frenchNumbers: tableEditorFrench ? tableEditorFrench.checked : defaultTableCleanupOptions.frenchNumbers
     };
 }
@@ -1829,34 +1964,82 @@ function mergeTableEditorCellsInRow(row) {
     }
 
     const firstCell = selectedCells[0];
-    const mergedContent = document.createDocumentFragment();
     let colspan = Number(firstCell.getAttribute('colspan') || 1);
+    let hasMergedContent = Boolean(firstCell.textContent.trim() || firstCell.querySelector('img, table, ul, ol, dl'));
 
     selectedCells.slice(1).forEach((cell) => {
-        if (mergedContent.childNodes.length > 0 || firstCell.childNodes.length > 0) {
-            mergedContent.appendChild(document.createElement('br'));
-        }
+        const hasCellContent = Boolean(cell.textContent.trim() || cell.querySelector('img, table, ul, ol, dl'));
+        const mergedContent = document.createDocumentFragment();
 
-        while (cell.firstChild) {
-            mergedContent.appendChild(cell.firstChild);
+        if (hasCellContent) {
+            if (hasMergedContent) {
+                mergedContent.appendChild(document.createElement('br'));
+            }
+
+            while (cell.firstChild) {
+                mergedContent.appendChild(cell.firstChild);
+            }
+
+            firstCell.appendChild(mergedContent);
+            hasMergedContent = true;
         }
 
         colspan += Number(cell.getAttribute('colspan') || 1);
         cell.remove();
     });
 
-    firstCell.appendChild(mergedContent);
     firstCell.setAttribute('colspan', String(colspan));
     firstCell.classList.add('selected');
 }
 
-function moveTableEditorRowsToTfoot() {
+function addEmptyTableEditorFooter() {
     const table = getTableEditorTable();
 
     if (!table) {
         return;
     }
 
+    const tfoot = ensureTableEditorTfoot(table);
+    const footerRow = document.createElement('tr');
+    const footerCell = document.createElement('td');
+
+    footerRow.classList.add('small');
+    footerCell.setAttribute('colspan', String(getTableEditorWidth(table)));
+    footerCell.appendChild(document.createElement('p'));
+    footerRow.appendChild(footerCell);
+    tfoot.appendChild(footerRow);
+}
+
+function toggleTableEditorRowsInTfoot() {
+    const table = getTableEditorTable();
+    const selectedRows = getTableEditorSelectedRows();
+
+    if (!table || selectedRows.length === 0) {
+        return;
+    }
+
+    const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
+    const tfoot = ensureTableEditorTfoot(table);
+
+    selectedRows.forEach((row) => {
+        if (row.closest('tfoot')) {
+            row.classList.remove('small');
+            tbody.appendChild(row);
+            return;
+        }
+
+        if (row.closest('thead')) {
+            return;
+        }
+
+        row.classList.add('small');
+        tfoot.appendChild(row);
+    });
+
+    refreshTableEditorFooterColspans(table);
+}
+
+function ensureTableEditorTfoot(table) {
     let tfoot = table.querySelector('tfoot');
 
     if (!tfoot) {
@@ -1864,34 +2047,19 @@ function moveTableEditorRowsToTfoot() {
         table.appendChild(tfoot);
     }
 
-    let footerRow = tfoot.querySelector('tr');
-    let footerCell = footerRow ? footerRow.querySelector('td, th') : null;
+    return tfoot;
+}
 
-    if (!footerRow || !footerCell) {
-        footerRow = document.createElement('tr');
-        footerRow.classList.add('small');
-        footerCell = document.createElement('td');
-        footerCell.setAttribute('colspan', String(getTableEditorWidth(table)));
-        footerRow.appendChild(footerCell);
-        tfoot.appendChild(footerRow);
-    }
+function refreshTableEditorFooterColspans(table) {
+    const width = getTableEditorWidth(table);
 
-    getTableEditorSelectedRows().forEach((row) => {
-        const text = row.textContent.trim();
+    table.querySelectorAll('tfoot tr').forEach((row) => {
+        const cells = Array.from(row.querySelectorAll('th, td'));
 
-        if (text) {
-            const p = document.createElement('p');
-            p.innerHTML = Array.from(row.querySelectorAll('th, td'))
-                .map((cell) => cell.innerHTML.trim())
-                .filter(Boolean)
-                .join(' ');
-            footerCell.appendChild(p);
+        if (cells.length === 1) {
+            cells[0].setAttribute('colspan', String(width));
         }
-
-        row.remove();
     });
-
-    footerCell.setAttribute('colspan', String(getTableEditorWidth(table)));
 }
 
 function changeTableEditorIndent(direction) {
