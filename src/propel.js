@@ -2007,6 +2007,8 @@ function toggleTableEditorHeaderRows() {
             nextCell.setAttribute('scope', 'col');
             if (tableEditorFinancial && tableEditorFinancial.checked && index > 0) {
                 nextCell.classList.add('text-right');
+            } else if (index > 0) {
+                nextCell.classList.remove('text-right');
             }
         });
         thead.appendChild(row);

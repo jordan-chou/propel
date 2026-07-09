@@ -1967,6 +1967,22 @@ textarea {
     .code-editor {
         grid-row: 5;
     }
+
+    .table-editor-dialog {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: auto;
+        height: min(72vh, 760px);
+        border-right: 1px solid var(--border);
+        border-bottom: 0;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .table-editor-layout {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    }
 }
 
 .review-tabs {

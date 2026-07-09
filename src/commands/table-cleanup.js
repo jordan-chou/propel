@@ -260,8 +260,10 @@ function formatThead(thead, options) {
                 headerCell.setAttribute('scope', 'col');
             }
 
-            if (options.financialTable && index > 0) {
+            if (index > 0 && options.financialTable) {
                 headerCell.classList.add('text-right');
+            } else if (index > 0) {
+                headerCell.classList.remove('text-right');
             }
         });
     });
@@ -269,6 +271,10 @@ function formatThead(thead, options) {
 
 function formatTbody(tbody, options) {
     Array.from(tbody.querySelectorAll('tr')).forEach((row) => {
+        if (!options.financialTable) {
+            row.classList.remove('text-right');
+        }
+
         const firstCell = row.querySelector('th, td');
 
         if (!firstCell) {
@@ -296,6 +302,10 @@ function formatTbody(tbody, options) {
         if (options.financialTable) {
             Array.from(row.querySelectorAll('td')).forEach((cell) => {
                 cell.classList.add('text-right');
+            });
+        } else {
+            Array.from(row.querySelectorAll('td')).forEach((cell) => {
+                cell.classList.remove('text-right');
             });
         }
     });
