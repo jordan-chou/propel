@@ -1297,7 +1297,11 @@ function detectDocxLanguageFromMetadata(arrayBuffer, fileName, mammothLibrary) {
             }));
         })
         .then(function(xmlParts) {
-            return getLanguageResultFromDocxXml(xmlParts.join('\n'));
+            return getLanguageResultFromDocxXml({
+                documentXml: xmlParts[0],
+                stylesXml: xmlParts[1],
+                settingsXml: xmlParts[2]
+            });
         })
         .catch(function(error) {
             console.warn('Could not read DOCX language metadata:', error);
@@ -1306,7 +1310,79 @@ function detectDocxLanguageFromMetadata(arrayBuffer, fileName, mammothLibrary) {
         });
 }
 
-function getLanguageResultFromDocxXml(xml) {
+function getLanguageResultFromDocxXml(xmlParts) {
+    const documentCounts = getLanguageCountsFromXml(xmlParts.documentXml || '');
+    const defaultLanguage = getDefaultDocxLanguage(xmlParts.stylesXml || '') ||
+        getDefaultDocxLanguage(xmlParts.settingsXml || '');
+    const explicitLanguage = getExplicitDocumentLanguage(documentCounts, defaultLanguage);
+    const language = explicitLanguage || defaultLanguage;
+
+    if (!language) {
+        return null;
+    }
+
+    return {
+        language,
+        counts: documentCounts,
+        defaultLanguage,
+        explicitLanguage
+    };
+}
+
+function getExplicitDocumentLanguage(counts, defaultLanguage) {
+    const total = counts.en + counts.fr;
+
+    if (total === 0) {
+        return null;
+    }
+
+    const language = counts.fr > counts.en ? 'fr' : 'en';
+    const winningCount = counts[language];
+    const winningShare = winningCount / total;
+
+    if (!defaultLanguage) {
+        return total >= 5 && winningShare >= 0.8 ? language : null;
+    }
+
+    if (language === defaultLanguage) {
+        return language;
+    }
+
+    return winningCount >= 10 && winningShare >= 0.8 ? language : null;
+}
+
+function getDefaultDocxLanguage(xml) {
+    const docDefaultsMatch = xml.match(/<w:docDefaults\b[\s\S]*?<\/w:docDefaults>/i);
+    const docDefaults = docDefaultsMatch ? docDefaultsMatch[0] : '';
+    const defaultLanguage = getFirstPrimaryLanguageFromXml(docDefaults);
+
+    if (defaultLanguage) {
+        return defaultLanguage;
+    }
+
+    const themeLanguageMatch = xml.match(/<w:themeFontLang\b[^>]*>/i);
+    if (themeLanguageMatch) {
+        return getSupportedLanguageCode(getXmlAttribute(themeLanguageMatch[0], 'w:val'));
+    }
+
+    return null;
+}
+
+function getFirstPrimaryLanguageFromXml(xml) {
+    const languageTagPattern = /<w:lang\b[^>]*>/gi;
+    let tagMatch;
+
+    while ((tagMatch = languageTagPattern.exec(xml)) !== null) {
+        const language = getSupportedLanguageCode(getXmlAttribute(tagMatch[0], 'w:val'));
+        if (language) {
+            return language;
+        }
+    }
+
+    return null;
+}
+
+function getLanguageCountsFromXml(xml) {
     const counts = {
         en: 0,
         fr: 0
@@ -1317,18 +1393,13 @@ function getLanguageResultFromDocxXml(xml) {
 
     while ((tagMatch = languageTagPattern.exec(xml)) !== null) {
         const tag = tagMatch[0];
-        addLanguageMetadataWeight(counts, getXmlAttribute(tag, 'w:val'));
+        const language = getSupportedLanguageCode(getXmlAttribute(tag, 'w:val'));
+        if (language) {
+            counts[language] += 1;
+        }
     }
 
-    if (counts.en === counts.fr) {
-        return null;
-    }
-
-    const language = counts.fr > counts.en ? 'fr' : 'en';
-    return {
-        language,
-        counts
-    };
+    return counts;
 }
 
 function getXmlAttribute(tag, attributeName) {
@@ -1337,14 +1408,18 @@ function getXmlAttribute(tag, attributeName) {
     return match ? match[1] : '';
 }
 
-function addLanguageMetadataWeight(counts, languageCode) {
+function getSupportedLanguageCode(languageCode) {
     const normalizedLanguageCode = (languageCode || '').toLowerCase();
 
     if (normalizedLanguageCode === 'en' || normalizedLanguageCode.startsWith('en-')) {
-        counts.en += 1;
-    } else if (normalizedLanguageCode === 'fr' || normalizedLanguageCode.startsWith('fr-')) {
-        counts.fr += 1;
+        return 'en';
     }
+
+    if (normalizedLanguageCode === 'fr' || normalizedLanguageCode.startsWith('fr-')) {
+        return 'fr';
+    }
+
+    return null;
 }
 
 function applyDetectedDocumentLanguage(languageResult) {
@@ -1355,7 +1430,8 @@ function applyDetectedDocumentLanguage(languageResult) {
 
     const changed = setCommandLanguage(languageResult.language);
     const languageName = languageResult.language === 'en' ? 'English' : 'French';
-    const summary = `EN ${languageResult.counts.en}, FR ${languageResult.counts.fr}`;
+    const defaultSummary = languageResult.defaultLanguage ? `default ${languageResult.defaultLanguage.toUpperCase()}, ` : '';
+    const summary = `${defaultSummary}explicit EN ${languageResult.counts.en}, FR ${languageResult.counts.fr}`;
     addProcessingLog(`DOCX language metadata indicates ${languageName} (${summary}).${changed ? ' Updated command language.' : ''}`, 'info');
 }
 
