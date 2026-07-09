@@ -820,11 +820,14 @@ textarea {
 .wysiwyg-toolbar {
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 6px 8px;
+    gap: 3px;
+    min-height: 46px;
     min-width: 0;
+    padding: 6px 8px;
     border-bottom: 1px solid var(--border);
-    background: #f7f9fb;
+    background: linear-gradient(180deg, #fff 0%, var(--surface-2) 100%);
+    overflow-x: auto;
+    scrollbar-width: thin;
 }
 
 .view-toggle .btn {
@@ -835,24 +838,65 @@ textarea {
 }
 
 .wysiwyg-toolbar .btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    width: 32px;
-    min-width: 32px;
-    height: 30px;
+    flex: 0 0 auto;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
     padding: 0;
-    border-radius: 4px;
-    color: #1f2933;
+    border-color: transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #475467;
     font-size: 0.82rem;
+    box-shadow: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    --toolbar-button-bg: #fff;
 }
 
 .wysiwyg-toolbar .btn:hover,
 .wysiwyg-toolbar .btn:focus {
-    border-color: #9eb5ce;
-    background: #e8f1fb;
+    border-color: rgba(37,87,214,0.28);
+    background: #eef4ff;
     color: #0f3557;
+    --toolbar-button-bg: #eef4ff;
+}
+
+.wysiwyg-toolbar .btn:focus {
+    outline: 2px solid rgba(37,87,214,0.34);
+    outline-offset: 1px;
+}
+
+.wysiwyg-toolbar .btn:active,
+.wysiwyg-toolbar .btn.active,
+.wysiwyg-toolbar .btn[aria-pressed="true"] {
+    border-color: rgba(37,87,214,0.42);
+    background: #e4ecff;
+    color: var(--primary-dark);
+    box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.08);
+    --toolbar-button-bg: #e4ecff;
+}
+
+.wysiwyg-toolbar .btn:nth-child(4),
+.wysiwyg-toolbar .btn:nth-child(6),
+.wysiwyg-toolbar .btn:nth-child(9) {
+    margin-left: 8px;
+}
+
+.wysiwyg-toolbar .btn:nth-child(4)::before,
+.wysiwyg-toolbar .btn:nth-child(6)::before,
+.wysiwyg-toolbar .btn:nth-child(9)::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 7px;
+    width: 1px;
+    height: 20px;
+    background: var(--border);
 }
 
 .view-toggle .btn.active {
@@ -998,26 +1042,32 @@ textarea {
     border-right: 5px solid currentColor;
 }
 
-.icon-link::before,
-.icon-link::after {
+.icon-link::before {
     content: "";
     position: absolute;
-    width: 11px;
-    height: 6px;
-    border: 2px solid currentColor;
-    border-radius: 6px;
-}
-
-.icon-link::before {
     left: 1px;
-    top: 6px;
-    transform: rotate(-32deg);
+    top: 3px;
+    width: 12px;
+    height: 12px;
+    border: 1.8px solid currentColor;
+    border-radius: 50%;
+    background:
+        linear-gradient(currentColor, currentColor) center / 1.6px 12px no-repeat,
+        linear-gradient(currentColor, currentColor) center / 12px 1.6px no-repeat;
 }
 
 .icon-link::after {
-    right: 1px;
-    top: 6px;
-    transform: rotate(-32deg);
+    content: "\2197";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 9px;
+    height: 9px;
+    font-family: Arial, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 9px;
+    text-align: center;
 }
 
 .editor-view {
