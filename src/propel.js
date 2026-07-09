@@ -1329,26 +1329,26 @@ function getLanguageResultFromDocxXml(xmlParts) {
     };
 }
 
-function getExplicitDocumentLanguage(counts, defaultLanguage) {
-    const total = counts.en + counts.fr;
+function getExplicitDocumentLanguage(languageText, defaultLanguage) {
+    const total = languageText.en + languageText.fr;
 
     if (total === 0) {
         return null;
     }
 
-    const language = counts.fr > counts.en ? 'fr' : 'en';
-    const winningCount = counts[language];
+    const language = languageText.fr > languageText.en ? 'fr' : 'en';
+    const winningCount = languageText[language];
     const winningShare = winningCount / total;
 
     if (!defaultLanguage) {
-        return total >= 5 && winningShare >= 0.8 ? language : null;
+        return total >= 200 && winningShare >= 0.75 ? language : null;
     }
 
     if (language === defaultLanguage) {
         return language;
     }
 
-    return winningCount >= 10 && winningShare >= 0.8 ? language : null;
+    return winningCount >= 200 && winningShare >= 0.75 ? language : null;
 }
 
 function getDefaultDocxLanguage(xml) {
@@ -1388,18 +1388,63 @@ function getLanguageCountsFromXml(xml) {
         fr: 0
     };
 
-    const languageTagPattern = /<w:lang\b[^>]*>/gi;
-    let tagMatch;
+    const documentXml = stripNonBodyLanguageXml(xml);
+    const paragraphPattern = /<w:p\b[\s\S]*?<\/w:p>/gi;
+    let paragraphMatch;
 
-    while ((tagMatch = languageTagPattern.exec(xml)) !== null) {
-        const tag = tagMatch[0];
-        const language = getSupportedLanguageCode(getXmlAttribute(tag, 'w:val'));
-        if (language) {
-            counts[language] += 1;
+    while ((paragraphMatch = paragraphPattern.exec(documentXml)) !== null) {
+        const paragraphXml = paragraphMatch[0];
+        const paragraphProperties = getFirstXmlBlock(paragraphXml, 'w:pPr');
+        const paragraphLanguage = getFirstPrimaryLanguageFromXml(paragraphProperties);
+        const runPattern = /<w:r\b[\s\S]*?<\/w:r>/gi;
+        let runMatch;
+
+        while ((runMatch = runPattern.exec(paragraphXml)) !== null) {
+            const runXml = runMatch[0];
+            const runProperties = getFirstXmlBlock(runXml, 'w:rPr');
+            const runLanguage = getFirstPrimaryLanguageFromXml(runProperties) || paragraphLanguage;
+
+            if (!runLanguage) {
+                continue;
+            }
+
+            counts[runLanguage] += getWordTextLength(runXml);
         }
     }
 
     return counts;
+}
+
+function stripNonBodyLanguageXml(xml) {
+    return xml
+        .replace(/<w:drawing\b[\s\S]*?<\/w:drawing>/gi, '')
+        .replace(/<w:pict\b[\s\S]*?<\/w:pict>/gi, '')
+        .replace(/<mc:AlternateContent\b[\s\S]*?<\/mc:AlternateContent>/gi, '')
+        .replace(/<w:object\b[\s\S]*?<\/w:object>/gi, '');
+}
+
+function getFirstXmlBlock(xml, tagName) {
+    const pattern = new RegExp(`<${tagName}\\b[\\s\\S]*?<\\/${tagName}>`, 'i');
+    const match = xml.match(pattern);
+    return match ? match[0] : '';
+}
+
+function getWordTextLength(xml) {
+    let textLength = 0;
+    const textPattern = /<w:t\b[^>]*>([\s\S]*?)<\/w:t>/gi;
+    let textMatch;
+
+    while ((textMatch = textPattern.exec(xml)) !== null) {
+        textLength += decodeXmlText(textMatch[1]).trim().length;
+    }
+
+    return textLength;
+}
+
+function decodeXmlText(text) {
+    const parser = document.createElement('textarea');
+    parser.innerHTML = text;
+    return parser.value;
 }
 
 function getXmlAttribute(tag, attributeName) {
@@ -1431,7 +1476,7 @@ function applyDetectedDocumentLanguage(languageResult) {
     const changed = setCommandLanguage(languageResult.language);
     const languageName = languageResult.language === 'en' ? 'English' : 'French';
     const defaultSummary = languageResult.defaultLanguage ? `default ${languageResult.defaultLanguage.toUpperCase()}, ` : '';
-    const summary = `${defaultSummary}explicit EN ${languageResult.counts.en}, FR ${languageResult.counts.fr}`;
+    const summary = `${defaultSummary}explicit text EN ${languageResult.counts.en}, FR ${languageResult.counts.fr}`;
     addProcessingLog(`DOCX language metadata indicates ${languageName} (${summary}).${changed ? ' Updated command language.' : ''}`, 'info');
 }
 
