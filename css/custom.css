@@ -1675,7 +1675,7 @@ textarea {
 
 .toast-region {
     position: fixed;
-    top: calc(var(--header-height) + 12px);
+    bottom: 14px;
     right: 14px;
     z-index: 40;
     display: grid;
@@ -1706,7 +1706,7 @@ textarea {
 @keyframes toastIn {
     from {
         opacity: 0;
-        transform: translateY(-6px);
+        transform: translateY(6px);
     }
     to {
         opacity: 1;
