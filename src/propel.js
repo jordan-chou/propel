@@ -90,6 +90,8 @@ var activeEditorView = 'live';
 var elementSyncLineMap = [];
 var lastLiveSelectionRange = null;
 var shortcutHelpPreviousFocus = null;
+var livePaneWidthRatio = null;
+const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 
 // Footnote generator
 var showFullPreview = false;
@@ -347,7 +349,9 @@ function createModernDashboardListeners() {
     }
 
     if (paneSplitter && editorDropZone) {
+        applySavedPaneSplitterLocation();
         paneSplitter.addEventListener('pointerdown', startPaneResize);
+        window.addEventListener('resize', applyCurrentPaneSplitterLocation);
     }
 
     if (fileDropZone && file) {
@@ -402,6 +406,72 @@ function openActivityReviewTab() {
     switchReviewTab('issuesPane');
 }
 
+function getPaneResizeMetrics() {
+    const rect = editorDropZone.getBoundingClientRect();
+    const minPaneWidth = 260;
+    const splitterWidth = paneSplitter.offsetWidth || 8;
+    const availableWidth = rect.width - splitterWidth;
+
+    return {
+        minPaneWidth,
+        availableWidth,
+        minRatio: minPaneWidth / availableWidth,
+        maxRatio: (availableWidth - minPaneWidth) / availableWidth
+    };
+}
+
+function clampPaneWidthRatio(ratio) {
+    const metrics = getPaneResizeMetrics();
+
+    if (!Number.isFinite(ratio) || metrics.availableWidth <= 0 || metrics.availableWidth <= metrics.minPaneWidth * 2) {
+        return null;
+    }
+
+    return Math.min(Math.max(ratio, metrics.minRatio), metrics.maxRatio);
+}
+
+function setLivePaneWidthFromRatio(ratio) {
+    const nextRatio = clampPaneWidthRatio(ratio);
+
+    if (nextRatio === null) {
+        return;
+    }
+
+    livePaneWidthRatio = nextRatio;
+    const width = getPaneResizeMetrics().availableWidth * nextRatio;
+    editorDropZone.style.setProperty('--live-pane-width', `${width}px`);
+}
+
+function applySavedPaneSplitterLocation() {
+    try {
+        const savedRatio = localStorage.getItem(paneSplitterStorageKey);
+
+        if (savedRatio !== null) {
+            setLivePaneWidthFromRatio(Number(savedRatio));
+        }
+    } catch (error) {
+        console.warn('Could not restore pane splitter location.', error);
+    }
+}
+
+function applyCurrentPaneSplitterLocation() {
+    if (livePaneWidthRatio !== null) {
+        setLivePaneWidthFromRatio(livePaneWidthRatio);
+    }
+}
+
+function savePaneSplitterLocation() {
+    if (livePaneWidthRatio === null) {
+        return;
+    }
+
+    try {
+        localStorage.setItem(paneSplitterStorageKey, String(livePaneWidthRatio));
+    } catch (error) {
+        console.warn('Could not save pane splitter location.', error);
+    }
+}
+
 function startPaneResize(event) {
     event.preventDefault();
     paneSplitter.setPointerCapture(event.pointerId);
@@ -409,16 +479,15 @@ function startPaneResize(event) {
 
     const handleMove = (moveEvent) => {
         const rect = editorDropZone.getBoundingClientRect();
-        const minPaneWidth = 260;
-        const splitterWidth = paneSplitter.offsetWidth || 8;
-        const availableWidth = rect.width - splitterWidth;
+        const metrics = getPaneResizeMetrics();
         const rawWidth = moveEvent.clientX - rect.left;
-        const nextWidth = Math.min(Math.max(rawWidth, minPaneWidth), availableWidth - minPaneWidth);
-        editorDropZone.style.setProperty('--live-pane-width', `${nextWidth}px`);
+        const nextWidth = Math.min(Math.max(rawWidth, metrics.minPaneWidth), metrics.availableWidth - metrics.minPaneWidth);
+        setLivePaneWidthFromRatio(nextWidth / metrics.availableWidth);
     };
 
     const stopResize = () => {
         paneSplitter.classList.remove('drag-active');
+        savePaneSplitterLocation();
         paneSplitter.removeEventListener('pointermove', handleMove);
         paneSplitter.removeEventListener('pointerup', stopResize);
         paneSplitter.removeEventListener('pointercancel', stopResize);
