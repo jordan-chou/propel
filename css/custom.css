@@ -212,8 +212,6 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-body { min-width: 1180px; }
-
 button, input, select, textarea { font: inherit; }
 
 button { cursor: pointer; }
@@ -227,8 +225,10 @@ code {
 
 .app-shell {
     display: grid;
-    grid-template-rows: var(--header-height) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     height: 100vh;
+    height: 100dvh;
+    min-height: 0;
 }
 
 .app-header {
@@ -1742,26 +1742,16 @@ textarea {
     box-shadow: var(--shadow);
 }
 
-@media (max-width: 1179px) {
+@media (max-width: 767px) {
     html,
     body {
-        height: auto;
-        min-height: 100%;
-        overflow: auto;
-    }
-
-    body { min-width: 0; }
-
-    .app-shell {
-        display: block;
-        min-height: 100vh;
+        height: 100%;
+        overflow: hidden;
     }
 
     .app-header {
         grid-template-columns: 1fr;
         gap: 12px;
-        position: sticky;
-        top: 0;
     }
 
     .workflow-tabs,
@@ -1780,8 +1770,8 @@ textarea {
 
     .main-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto;
-        min-height: auto;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-height: 0;
     }
 
     .left-rail {
@@ -1789,12 +1779,12 @@ textarea {
     }
 
     .editor-panel {
-        min-height: 420px;
+        min-height: 0;
     }
 
     #outputText,
     #liveEditor {
-        min-height: 520px;
+        min-height: 0;
     }
 
     .left-rail .rail-scroll {
@@ -1812,7 +1802,7 @@ textarea {
 
     .editor-surface {
         grid-template-columns: 1fr;
-        grid-template-rows: auto minmax(520px, auto) auto minmax(520px, auto);
+        grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr);
     }
 
     .editor-surface .wysiwyg-toolbar,
