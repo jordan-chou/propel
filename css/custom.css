@@ -966,6 +966,38 @@ textarea {
     box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
 }
 
+.icon-indent::before,
+.icon-outdent::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    width: 8px;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
+.icon-indent::after,
+.icon-outdent::after {
+    content: "";
+    position: absolute;
+    left: 1px;
+    top: 6px;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+}
+
+.icon-indent::after {
+    border-left: 5px solid currentColor;
+}
+
+.icon-outdent::after {
+    border-right: 5px solid currentColor;
+}
+
 .icon-link::before,
 .icon-link::after {
     content: "";

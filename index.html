@@ -133,7 +133,7 @@
                                 <div class="command-card">
                                     <strong>Tables</strong>
                                     <p>Open the table cleanup tool.</p>
-                                    <button type="button" class="btn btn-primary btn-full" id="tableCleanupBtn" title="Send HTML to Table Cleanup">Table Cleanup</button>
+                                    <button type="button" hidden class="btn btn-disabled btn-full" id="tableCleanupBtn" title="Send HTML to Table Cleanup">Table Cleanup</button>
                                 </div>
                             </div>
                         </section>
@@ -196,6 +196,8 @@
                             <button class="btn btn-default" type="button" data-edit-command="bold" title="Bold" aria-label="Bold"><span class="wysiwyg-icon icon-bold" aria-hidden="true"></span></button>
                             <button class="btn btn-default" type="button" data-edit-command="italic" title="Italic" aria-label="Italic"><span class="wysiwyg-icon icon-italic" aria-hidden="true"></span></button>
                             <button class="btn btn-default" type="button" data-edit-command="insertUnorderedList" title="Bulleted list" aria-label="Bulleted list"><span class="wysiwyg-icon icon-list" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="outdent" title="Decrease list indent (Shift+Tab)" aria-label="Decrease list indent"><span class="wysiwyg-icon icon-outdent" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="indent" title="Increase list indent (Tab)" aria-label="Increase list indent"><span class="wysiwyg-icon icon-indent" aria-hidden="true"></span></button>
                             <button class="btn btn-default" type="button" data-edit-command="createLink" title="Create link" aria-label="Create link"><span class="wysiwyg-icon icon-link" aria-hidden="true"></span></button>
                         </div>
                         <div class="drop-hint">Drop a Word document to convert it</div>

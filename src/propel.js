@@ -253,6 +253,7 @@ function createModernDashboardListeners() {
         });
 
         liveEditor.addEventListener('mouseup', rememberLiveSelection);
+        liveEditor.addEventListener('keydown', handleLiveEditorKeydown);
         liveEditor.addEventListener('keyup', rememberLiveSelection);
 
         liveEditor.addEventListener('input', () => {
@@ -588,6 +589,12 @@ function runWysiwygCommand(button) {
 
     const selectionRange = getTextSelectionRange(liveEditor) || lastLiveSelectionRange;
     restoreTextSelectionRange(liveEditor, selectionRange);
+
+    if ((command === 'indent' || command === 'outdent') && !getSelectedListItem(liveEditor)) {
+        addProcessingLog('Place the cursor in a list item to change list indent.', 'warning');
+        return;
+    }
+
     document.execCommand(command, false, value);
     restoreTextSelectionRange(liveEditor, selectionRange);
     syncLiveToInputHTML();
@@ -610,6 +617,62 @@ function runWysiwygCommand(button) {
 
 function getWysiwygButtonLabel(button) {
     return button.getAttribute('aria-label') || button.getAttribute('title') || button.textContent.trim();
+}
+
+function handleLiveEditorKeydown(event) {
+    if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+    }
+
+    const selection = getEditorSelection(liveEditor);
+    if (!getSelectedListItem(liveEditor, selection)) {
+        return;
+    }
+
+    event.preventDefault();
+    document.execCommand(event.shiftKey ? 'outdent' : 'indent', false, null);
+    syncLiveToInputHTML();
+    updateCodeView();
+    refreshReviewPanel();
+    liveEditor.focus({ preventScroll: true });
+    rememberLiveSelection();
+}
+
+function getSelectedListItem(root, selection = getEditorSelection(root)) {
+    if (!root || !selection || selection.rangeCount === 0) {
+        return null;
+    }
+
+    return getClosestElement(selection.anchorNode, root, 'li');
+}
+
+function getEditorSelection(root) {
+    if (!root) {
+        return null;
+    }
+
+    const rootNode = root.getRootNode ? root.getRootNode() : document;
+    if (rootNode && typeof rootNode.getSelection === 'function') {
+        const selection = rootNode.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            return selection;
+        }
+    }
+
+    return window.getSelection ? window.getSelection() : null;
+}
+
+function getClosestElement(node, root, selector) {
+    let element = node && node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+
+    while (element && element !== root) {
+        if (element.matches(selector)) {
+            return element;
+        }
+        element = element.parentElement;
+    }
+
+    return null;
 }
 
 function replaceElementTag(root, sourceTag, targetTag) {
@@ -642,7 +705,7 @@ function removeEmptyStyleAttributes(root) {
 }
 
 function getTextSelectionRange(root) {
-    const selection = window.getSelection();
+    const selection = getEditorSelection(root);
     if (!root || !selection || selection.rangeCount === 0) {
         return null;
     }
@@ -678,7 +741,7 @@ function restoreTextSelectionRange(root, savedRange) {
         return;
     }
 
-    const selection = window.getSelection();
+    const selection = getEditorSelection(root);
     if (!selection) {
         return;
     }
