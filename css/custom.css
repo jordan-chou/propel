@@ -1394,6 +1394,56 @@ textarea {
 .editor-panel { grid-template-rows: minmax(0, 1fr); }
 .editor-panel .panel-body { padding: 0; overflow: hidden; }
 
+@media (orientation: portrait) and (min-width: 768px) {
+    .left-rail .rail-scroll {
+        display: flex;
+        overflow: auto;
+    }
+
+    .rail-command-group {
+        display: flex;
+    }
+
+    .rail-copy-action {
+        margin-left: auto;
+    }
+
+    .editor-surface {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(260px, var(--live-pane-width, 1fr)) 8px auto minmax(260px, 1fr);
+    }
+
+    .editor-surface .wysiwyg-toolbar,
+    .editor-surface .code-toolbar,
+    #liveEditor,
+    .pane-splitter,
+    .code-editor {
+        grid-column: 1;
+    }
+
+    .editor-surface .wysiwyg-toolbar {
+        grid-row: 1;
+    }
+
+    #liveEditor {
+        grid-row: 2;
+    }
+
+    .pane-splitter {
+        grid-row: 3;
+        cursor: row-resize;
+        background: linear-gradient(180deg, transparent, var(--border), transparent);
+    }
+
+    .editor-surface .code-toolbar {
+        grid-row: 4;
+    }
+
+    .code-editor {
+        grid-row: 5;
+    }
+}
+
 .review-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

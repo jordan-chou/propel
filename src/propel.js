@@ -350,8 +350,12 @@ function createModernDashboardListeners() {
 
     if (paneSplitter && editorDropZone) {
         applySavedPaneSplitterLocation();
+        updatePaneSplitterOrientation();
         paneSplitter.addEventListener('pointerdown', startPaneResize);
-        window.addEventListener('resize', applyCurrentPaneSplitterLocation);
+        window.addEventListener('resize', () => {
+            updatePaneSplitterOrientation();
+            applyCurrentPaneSplitterLocation();
+        });
     }
 
     if (fileDropZone && file) {
@@ -408,22 +412,32 @@ function openActivityReviewTab() {
 
 function getPaneResizeMetrics() {
     const rect = editorDropZone.getBoundingClientRect();
-    const minPaneWidth = 260;
-    const splitterWidth = paneSplitter.offsetWidth || 8;
-    const availableWidth = rect.width - splitterWidth;
+    const isStacked = isPaneSplitterStacked();
+    const minPaneSize = 260;
+    const splitterSize = isStacked ? paneSplitter.offsetHeight || 8 : paneSplitter.offsetWidth || 8;
+    const availableSize = (isStacked ? rect.height : rect.width) - splitterSize;
 
     return {
-        minPaneWidth,
-        availableWidth,
-        minRatio: minPaneWidth / availableWidth,
-        maxRatio: (availableWidth - minPaneWidth) / availableWidth
+        isStacked,
+        minPaneSize,
+        availableSize,
+        minRatio: minPaneSize / availableSize,
+        maxRatio: (availableSize - minPaneSize) / availableSize
     };
+}
+
+function isPaneSplitterStacked() {
+    return window.matchMedia('(orientation: portrait) and (min-width: 768px)').matches;
+}
+
+function updatePaneSplitterOrientation() {
+    paneSplitter.setAttribute('aria-orientation', isPaneSplitterStacked() ? 'horizontal' : 'vertical');
 }
 
 function clampPaneWidthRatio(ratio) {
     const metrics = getPaneResizeMetrics();
 
-    if (!Number.isFinite(ratio) || metrics.availableWidth <= 0 || metrics.availableWidth <= metrics.minPaneWidth * 2) {
+    if (!Number.isFinite(ratio) || metrics.availableSize <= 0 || metrics.availableSize <= metrics.minPaneSize * 2) {
         return null;
     }
 
@@ -438,8 +452,8 @@ function setLivePaneWidthFromRatio(ratio) {
     }
 
     livePaneWidthRatio = nextRatio;
-    const width = getPaneResizeMetrics().availableWidth * nextRatio;
-    editorDropZone.style.setProperty('--live-pane-width', `${width}px`);
+    const size = getPaneResizeMetrics().availableSize * nextRatio;
+    editorDropZone.style.setProperty('--live-pane-width', `${size}px`);
 }
 
 function applySavedPaneSplitterLocation() {
@@ -480,9 +494,9 @@ function startPaneResize(event) {
     const handleMove = (moveEvent) => {
         const rect = editorDropZone.getBoundingClientRect();
         const metrics = getPaneResizeMetrics();
-        const rawWidth = moveEvent.clientX - rect.left;
-        const nextWidth = Math.min(Math.max(rawWidth, metrics.minPaneWidth), metrics.availableWidth - metrics.minPaneWidth);
-        setLivePaneWidthFromRatio(nextWidth / metrics.availableWidth);
+        const rawSize = metrics.isStacked ? moveEvent.clientY - rect.top : moveEvent.clientX - rect.left;
+        const nextSize = Math.min(Math.max(rawSize, metrics.minPaneSize), metrics.availableSize - metrics.minPaneSize);
+        setLivePaneWidthFromRatio(nextSize / metrics.availableSize);
     };
 
     const stopResize = () => {
