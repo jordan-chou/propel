@@ -29,7 +29,7 @@ var inputHTML;
  * @param {HTMLElement} inputHTML input HTML
  */
 export function modifyHeadings(inputHTML, headingIDCount, modifiedComponents) {
-    const headings = inputHTML.querySelectorAll('h1, h2, h3, h4');
+    const headings = inputHTML.querySelectorAll('h1, h2, h3, h4, h5, h6');
     var counter = {num: headingIDCount}; // create object to pass by reference
 
     for (var heading of headings) {
@@ -92,7 +92,7 @@ export function createOnThisPage(input, isEngLang) {
     const isToCChecked = document.getElementById('isToC').checked;
     
     const MIN_HEADING_LEVEL = headerDepthInput.value;
-    var headingTags;
+    var headingTags = "";
 
     // get all headings in this html up to set heading level
     for (var i = 1; i <= MIN_HEADING_LEVEL; i++) {
@@ -306,7 +306,7 @@ function displayModifiedComponents() {
         preview.appendChild(otp);
     }
 
-    const headings = inputHTML.querySelectorAll('h2, h3, h4');
+    const headings = inputHTML.querySelectorAll('h2, h3, h4, h5, h6');
     for (var component of headings) {
         if (component.tagName == 'CAPTION') {
             var newComp = document.createElement('h3');

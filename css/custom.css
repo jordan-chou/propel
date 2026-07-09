@@ -296,6 +296,42 @@ code {
     margin-left: auto;
 }
 
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 8px;
+}
+
+#shortcutHelpBtn {
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+    box-shadow: none;
+}
+
+#shortcutHelpBtn:hover,
+#shortcutHelpBtn:focus {
+    border-color: var(--border);
+    background: var(--surface-2);
+    color: var(--primary-dark);
+}
+
+.question-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
 .language-switch {
     display: inline-grid;
     grid-template-columns: 1fr 1fr;
@@ -774,6 +810,110 @@ textarea {
     display: block;
 }
 
+.shortcut-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 70;
+    display: grid;
+    gap: 14px;
+    width: min(620px, calc(100vw - 32px));
+    max-height: min(720px, calc(100vh - 32px));
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--shadow);
+    transform: translate(-50%, -50%);
+    overflow: auto;
+}
+
+.shortcut-dialog[hidden] {
+    display: none;
+}
+
+.shortcut-dialog h2,
+.shortcut-dialog h3 {
+    margin: 0;
+}
+
+.shortcut-dialog h2 {
+    font-size: 1.1rem;
+}
+
+.shortcut-dialog h3 {
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+}
+
+.shortcut-groups {
+    display: grid;
+    gap: 16px;
+}
+
+.shortcut-list {
+    display: grid;
+    gap: 8px;
+    margin: 8px 0 0;
+}
+
+.shortcut-list div {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.4fr);
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.shortcut-list dt {
+    font-weight: 700;
+}
+
+.shortcut-command {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shortcut-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: #475467;
+}
+
+.shortcut-list dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    color: var(--muted);
+}
+
+.shortcut-list kbd {
+    min-width: 24px;
+    padding: 2px 6px;
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.35;
+    text-align: center;
+}
+
 .dialog-header {
     display: flex;
     align-items: center;
@@ -858,15 +998,34 @@ textarea {
     --toolbar-button-bg: #fff;
 }
 
+.toolbar-format-select {
+    flex: 0 0 auto;
+    width: 132px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 30px 0 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #475467;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 34px;
+    box-shadow: none;
+}
+
 .wysiwyg-toolbar .btn:hover,
-.wysiwyg-toolbar .btn:focus {
+.wysiwyg-toolbar .btn:focus,
+.toolbar-format-select:hover,
+.toolbar-format-select:focus {
     border-color: rgba(37,87,214,0.28);
     background: #eef4ff;
     color: #0f3557;
     --toolbar-button-bg: #eef4ff;
 }
 
-.wysiwyg-toolbar .btn:focus {
+.wysiwyg-toolbar .btn:focus,
+.toolbar-format-select:focus {
     outline: 2px solid rgba(37,87,214,0.34);
     outline-offset: 1px;
 }
@@ -881,15 +1040,11 @@ textarea {
     --toolbar-button-bg: #e4ecff;
 }
 
-.wysiwyg-toolbar .btn:nth-child(4),
-.wysiwyg-toolbar .btn:nth-child(6),
-.wysiwyg-toolbar .btn:nth-child(9) {
+.wysiwyg-toolbar .toolbar-divider {
     margin-left: 8px;
 }
 
-.wysiwyg-toolbar .btn:nth-child(4)::before,
-.wysiwyg-toolbar .btn:nth-child(6)::before,
-.wysiwyg-toolbar .btn:nth-child(9)::before {
+.wysiwyg-toolbar .toolbar-divider::before {
     content: "";
     position: absolute;
     left: -6px;
@@ -1626,6 +1781,11 @@ textarea {
 
     .header-actions {
         justify-content: flex-end;
+    }
+
+    .shortcut-list div {
+        grid-template-columns: 1fr;
+        gap: 4px;
     }
 
     .main-grid {

@@ -34,6 +34,10 @@
             <div class="header-actions">
                 <span id="healthScore" class="label label-default" role="button" tabindex="0" aria-controls="processingLogPanel" title="Open review panel">Not checked</span>
                 <button type="button" class="btn btn-sm" id="activityToggleBtn" aria-expanded="false" aria-controls="processingLogPanel">Activity</button>
+                <button type="button" class="btn btn-sm icon-btn" id="shortcutHelpBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="shortcutHelpDialog" title="Keyboard shortcuts">
+                    <span class="question-icon" aria-hidden="true">?</span>
+                    <span class="wb-inv">Keyboard shortcuts</span>
+                </button>
                 <button type="button" class="language-switch" id="langBtn" role="switch" aria-checked="true" title="Toggle command language">
                     <span class="language-switch-option active" data-language-option="en">EN</span>
                     <span class="language-switch-option" data-language-option="fr">FR</span>
@@ -109,6 +113,8 @@
                                                 <option value="2" selected>2</option>
                                                 <option value="3">3</option>
                                                 <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
                                             </select>
                                         </div>
                                         <label class="checkline" for="isToC" title="Change heading to Table of contents">
@@ -190,15 +196,22 @@
                             <button class="btn btn-default" type="button" id="codeViewBtn" data-editor-view="code">Code</button>
                         </div>
                         <div class="wysiwyg-toolbar" id="wysiwygToolbar" aria-label="Live view formatting">
-                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="p" title="Paragraph" aria-label="Paragraph"><span class="wysiwyg-icon icon-paragraph" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h2" title="Heading 2" aria-label="Heading 2"><span class="wysiwyg-icon icon-heading" data-level="2" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="formatBlock" data-edit-value="h3" title="Heading 3" aria-label="Heading 3"><span class="wysiwyg-icon icon-heading" data-level="3" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="bold" title="Bold" aria-label="Bold"><span class="wysiwyg-icon icon-bold" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="italic" title="Italic" aria-label="Italic"><span class="wysiwyg-icon icon-italic" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="insertUnorderedList" title="Bulleted list" aria-label="Bulleted list"><span class="wysiwyg-icon icon-list" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="outdent" title="Decrease list indent (Shift+Tab)" aria-label="Decrease list indent"><span class="wysiwyg-icon icon-outdent" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="indent" title="Increase list indent (Tab)" aria-label="Increase list indent"><span class="wysiwyg-icon icon-indent" aria-hidden="true"></span></button>
-                            <button class="btn btn-default" type="button" data-edit-command="createLink" title="Create link" aria-label="Create link"><span class="wysiwyg-icon icon-link" aria-hidden="true"></span></button>
+                            <label class="wb-inv" for="blockFormatSelect">Block format</label>
+                            <select class="toolbar-format-select" id="blockFormatSelect" title="Block format (Ctrl+Alt+0-6 or Cmd+Option+0-6)" aria-label="Block format" aria-keyshortcuts="Control+Alt+0 Meta+Alt+0 Control+Alt+1 Meta+Alt+1 Control+Alt+2 Meta+Alt+2 Control+Alt+3 Meta+Alt+3 Control+Alt+4 Meta+Alt+4 Control+Alt+5 Meta+Alt+5 Control+Alt+6 Meta+Alt+6">
+                                <option value="p">Paragraph</option>
+                                <option value="h1">Heading 1</option>
+                                <option value="h2">Heading 2</option>
+                                <option value="h3">Heading 3</option>
+                                <option value="h4">Heading 4</option>
+                                <option value="h5">Heading 5</option>
+                                <option value="h6">Heading 6</option>
+                            </select>
+                            <button class="btn btn-default toolbar-divider" type="button" data-edit-command="bold" title="Bold (Ctrl+B or Cmd+B)" aria-label="Bold" aria-keyshortcuts="Control+B Meta+B"><span class="wysiwyg-icon icon-bold" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="italic" title="Italic (Ctrl+I or Cmd+I)" aria-label="Italic" aria-keyshortcuts="Control+I Meta+I"><span class="wysiwyg-icon icon-italic" aria-hidden="true"></span></button>
+                            <button class="btn btn-default toolbar-divider" type="button" data-edit-command="insertUnorderedList" title="Bulleted list (Ctrl+Shift+8 or Cmd+Shift+8)" aria-label="Bulleted list" aria-keyshortcuts="Control+Shift+8 Meta+Shift+8"><span class="wysiwyg-icon icon-list" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="outdent" title="Decrease list indent (Shift+Tab, Ctrl+[ or Cmd+[)" aria-label="Decrease list indent" aria-keyshortcuts="Shift+Tab Control+[ Meta+["><span class="wysiwyg-icon icon-outdent" aria-hidden="true"></span></button>
+                            <button class="btn btn-default" type="button" data-edit-command="indent" title="Increase list indent (Tab, Ctrl+] or Cmd+])" aria-label="Increase list indent" aria-keyshortcuts="Tab Control+] Meta+]"><span class="wysiwyg-icon icon-indent" aria-hidden="true"></span></button>
+                            <button class="btn btn-default toolbar-divider" type="button" data-edit-command="createLink" title="Create link (Ctrl+K or Cmd+K)" aria-label="Create link" aria-keyshortcuts="Control+K Meta+K"><span class="wysiwyg-icon icon-link" aria-hidden="true"></span></button>
                         </div>
                         <div class="drop-hint">Drop a Word document to convert it</div>
                         <div id="liveEditor" class="editor-view active split-live-pane" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Upload a Word document, drop one here, or paste HTML in Code view."></div>
@@ -245,6 +258,39 @@
     </div>
 
     <div class="toast-region" id="toastRegion" aria-live="polite" aria-label="Recent activity"></div>
+
+    <div class="modal-backdrop" id="shortcutHelpBackdrop"></div>
+    <section class="shortcut-dialog" id="shortcutHelpDialog" role="dialog" aria-modal="true" aria-labelledby="shortcutHelpTitle" hidden>
+        <div class="dialog-header">
+            <h2 id="shortcutHelpTitle">Keyboard shortcuts</h2>
+            <button type="button" class="btn btn-xs" id="shortcutHelpCloseBtn">Close</button>
+        </div>
+        <div class="shortcut-groups">
+            <section>
+                <h3>Format</h3>
+                <dl class="shortcut-list">
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-paragraph" aria-hidden="true"></span></span>Paragraph</span></dt><dd><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>0</kbd><span>or</span><kbd>Cmd</kbd><kbd>Option</kbd><kbd>0</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-heading" data-level="1" aria-hidden="true"></span></span>Heading 1-6</span></dt><dd><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>1-6</kbd><span>or</span><kbd>Cmd</kbd><kbd>Option</kbd><kbd>1-6</kbd></dd></div>
+                </dl>
+            </section>
+            <section>
+                <h3>Inline</h3>
+                <dl class="shortcut-list">
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-bold" aria-hidden="true"></span></span>Bold</span></dt><dd><kbd>Ctrl</kbd><kbd>B</kbd><span>or</span><kbd>Cmd</kbd><kbd>B</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-italic" aria-hidden="true"></span></span>Italic</span></dt><dd><kbd>Ctrl</kbd><kbd>I</kbd><span>or</span><kbd>Cmd</kbd><kbd>I</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-link" aria-hidden="true"></span></span>Create link</span></dt><dd><kbd>Ctrl</kbd><kbd>K</kbd><span>or</span><kbd>Cmd</kbd><kbd>K</kbd></dd></div>
+                </dl>
+            </section>
+            <section>
+                <h3>Lists</h3>
+                <dl class="shortcut-list">
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-list" aria-hidden="true"></span></span>Bulleted list</span></dt><dd><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>8</kbd><span>or</span><kbd>Cmd</kbd><kbd>Shift</kbd><kbd>8</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-indent" aria-hidden="true"></span></span>Increase indent</span></dt><dd><kbd>Tab</kbd><span>or</span><kbd>Ctrl</kbd><kbd>]</kbd><span>or</span><kbd>Cmd</kbd><kbd>]</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><span class="wysiwyg-icon icon-outdent" aria-hidden="true"></span></span>Decrease indent</span></dt><dd><kbd>Shift</kbd><kbd>Tab</kbd><span>or</span><kbd>Ctrl</kbd><kbd>[</kbd><span>or</span><kbd>Cmd</kbd><kbd>[</kbd></dd></div>
+                </dl>
+            </section>
+        </div>
+    </section>
 
     <div id="loader" class="hidden"><div class="inner one"></div><div class="inner two"></div><div class="inner three"></div></div>
 

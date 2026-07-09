@@ -52,6 +52,10 @@ const processingLog = document.getElementById('processingLog');
 const processingLogPanel = document.getElementById('processingLogPanel');
 const activityToggleBtn = document.getElementById('activityToggleBtn');
 const activityCloseBtn = document.getElementById('activityCloseBtn');
+const shortcutHelpBtn = document.getElementById('shortcutHelpBtn');
+const shortcutHelpDialog = document.getElementById('shortcutHelpDialog');
+const shortcutHelpCloseBtn = document.getElementById('shortcutHelpCloseBtn');
+const shortcutHelpBackdrop = document.getElementById('shortcutHelpBackdrop');
 const toastRegion = document.getElementById('toastRegion');
 const documentHealth = document.getElementById('documentHealth');
 const documentOutline = document.getElementById('documentOutline');
@@ -71,6 +75,7 @@ const codeEditor = document.getElementById('codeEditor');
 const codeHighlight = document.getElementById('codeHighlight');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
 const wysiwygButtons = document.querySelectorAll('[data-edit-command]');
+const blockFormatSelect = document.getElementById('blockFormatSelect');
 
 // Local HTML for input
 const inputHTML = document.createElement('div');
@@ -84,6 +89,7 @@ var logCount = 0;
 var activeEditorView = 'live';
 var elementSyncLineMap = [];
 var lastLiveSelectionRange = null;
+var shortcutHelpPreviousFocus = null;
 
 // Footnote generator
 var showFullPreview = false;
@@ -210,6 +216,24 @@ function createModernDashboardListeners() {
         });
     }
 
+    if (shortcutHelpBtn) {
+        shortcutHelpBtn.addEventListener('click', openShortcutHelp);
+    }
+
+    if (shortcutHelpCloseBtn) {
+        shortcutHelpCloseBtn.addEventListener('click', closeShortcutHelp);
+    }
+
+    if (shortcutHelpBackdrop) {
+        shortcutHelpBackdrop.addEventListener('click', closeShortcutHelp);
+    }
+
+    if (shortcutHelpDialog) {
+        shortcutHelpDialog.addEventListener('keydown', handleShortcutHelpDialogKeydown);
+    }
+
+    document.addEventListener('keydown', handleGlobalKeydown);
+
     if (healthScore) {
         healthScore.addEventListener('click', openActivityReviewTab);
         healthScore.addEventListener('keydown', (event) => {
@@ -246,21 +270,37 @@ function createModernDashboardListeners() {
         });
     });
 
+    if (blockFormatSelect) {
+        blockFormatSelect.addEventListener('pointerdown', rememberLiveSelection);
+        blockFormatSelect.addEventListener('focus', rememberLiveSelection);
+        blockFormatSelect.addEventListener('change', () => {
+            runBlockFormatCommand(blockFormatSelect.value);
+        });
+    }
+
     if (liveEditor) {
         liveEditor.addEventListener('focus', () => {
             activeEditorView = 'live';
             rememberLiveSelection();
+            updateBlockFormatSelect();
         });
 
-        liveEditor.addEventListener('mouseup', rememberLiveSelection);
+        liveEditor.addEventListener('mouseup', () => {
+            rememberLiveSelection();
+            updateBlockFormatSelect();
+        });
         liveEditor.addEventListener('keydown', handleLiveEditorKeydown);
-        liveEditor.addEventListener('keyup', rememberLiveSelection);
+        liveEditor.addEventListener('keyup', () => {
+            rememberLiveSelection();
+            updateBlockFormatSelect();
+        });
 
         liveEditor.addEventListener('input', () => {
             syncLiveToInputHTML();
             updateCodeView();
             refreshReviewPanel();
             rememberLiveSelection();
+            updateBlockFormatSelect();
         });
 
         liveEditor.addEventListener('click', (event) => {
@@ -273,7 +313,10 @@ function createModernDashboardListeners() {
         });
     }
 
-    document.addEventListener('selectionchange', rememberLiveSelection);
+    document.addEventListener('selectionchange', () => {
+        rememberLiveSelection();
+        updateBlockFormatSelect();
+    });
 
     if (editorDropZone && file) {
         ['dragenter', 'dragover'].forEach((eventName) => {
@@ -569,12 +612,8 @@ function switchEditorView(view) {
 }
 
 function runWysiwygCommand(button) {
-    if (!liveEditor) {
+    if (!button) {
         return;
-    }
-
-    if (activeEditorView !== 'live') {
-        switchEditorView('live');
     }
 
     const command = button.getAttribute('data-edit-command');
@@ -585,6 +624,18 @@ function runWysiwygCommand(button) {
         if (!value) {
             return;
         }
+    }
+
+    runLiveEditCommand(command, value, getWysiwygButtonLabel(button));
+}
+
+function runLiveEditCommand(command, value = null, label = '') {
+    if (!liveEditor || !command) {
+        return;
+    }
+
+    if (activeEditorView !== 'live') {
+        switchEditorView('live');
     }
 
     const selectionRange = getTextSelectionRange(liveEditor) || lastLiveSelectionRange;
@@ -600,6 +651,7 @@ function runWysiwygCommand(button) {
     syncLiveToInputHTML();
     updateCodeView();
     refreshReviewPanel();
+    updateBlockFormatSelect();
     if (command === 'bold') {
         restoreTextSelectionRange(liveEditor, selectionRange);
         requestAnimationFrame(() => {
@@ -610,9 +662,47 @@ function runWysiwygCommand(button) {
         }, 0);
     }
     rememberLiveSelection();
-    if (command !== 'bold') {
-        addProcessingLog(`Applied Live view edit: ${getWysiwygButtonLabel(button)}.`, 'info');
+    if (label && command !== 'bold') {
+        addProcessingLog(`Applied Live view edit: ${label}.`, 'info');
     }
+}
+
+function runBlockFormatCommand(value) {
+    if (!liveEditor || !value) {
+        return;
+    }
+
+    if (activeEditorView !== 'live') {
+        switchEditorView('live');
+    }
+
+    runLiveEditCommand('formatBlock', value, getBlockFormatLabel(value));
+}
+
+function updateBlockFormatSelect() {
+    if (!blockFormatSelect || !liveEditor) {
+        return;
+    }
+
+    const selection = getEditorSelection(liveEditor);
+    if (!selection || selection.rangeCount === 0 || !liveEditor.contains(selection.anchorNode)) {
+        return;
+    }
+
+    blockFormatSelect.value = getCurrentBlockFormat(selection.anchorNode);
+}
+
+function getCurrentBlockFormat(node) {
+    const block = getClosestElement(node, liveEditor, 'h1, h2, h3, h4, h5, h6, p');
+    return block ? block.tagName.toLowerCase() : 'p';
+}
+
+function getBlockFormatLabel(value) {
+    if (value === 'p') {
+        return 'Paragraph';
+    }
+
+    return `Heading ${value.substring(1)}`;
 }
 
 function getWysiwygButtonLabel(button) {
@@ -620,22 +710,88 @@ function getWysiwygButtonLabel(button) {
 }
 
 function handleLiveEditorKeydown(event) {
-    if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) {
-        return;
-    }
-
-    const selection = getEditorSelection(liveEditor);
-    if (!getSelectedListItem(liveEditor, selection)) {
+    const shortcut = getLiveEditorShortcut(event);
+    if (!shortcut) {
         return;
     }
 
     event.preventDefault();
-    document.execCommand(event.shiftKey ? 'outdent' : 'indent', false, null);
-    syncLiveToInputHTML();
-    updateCodeView();
-    refreshReviewPanel();
-    liveEditor.focus({ preventScroll: true });
-    rememberLiveSelection();
+    event.stopPropagation();
+
+    if (shortcut.type === 'formatBlock') {
+        runBlockFormatCommand(shortcut.value);
+        return;
+    }
+
+    if (shortcut.command === 'createLink') {
+        const value = prompt('Link URL');
+        if (!value) {
+            return;
+        }
+        runLiveEditCommand(shortcut.command, value, shortcut.label);
+        return;
+    }
+
+    runLiveEditCommand(shortcut.command, null, shortcut.label);
+}
+
+function getLiveEditorShortcut(event) {
+    const key = event.key ? event.key.toLowerCase() : '';
+    const primaryKey = event.ctrlKey !== event.metaKey;
+    const digit = getShortcutDigit(event);
+
+    if (primaryKey && event.altKey && !event.shiftKey && digit !== null) {
+        if (digit === '0') {
+            return { type: 'formatBlock', value: 'p' };
+        }
+        return { type: 'formatBlock', value: `h${digit}` };
+    }
+
+    if (primaryKey && !event.altKey && !event.shiftKey && key === 'b') {
+        return { command: 'bold', label: 'Bold' };
+    }
+
+    if (primaryKey && !event.altKey && !event.shiftKey && key === 'i') {
+        return { command: 'italic', label: 'Italic' };
+    }
+
+    if (primaryKey && !event.altKey && !event.shiftKey && key === 'k') {
+        return { command: 'createLink', label: 'Create link' };
+    }
+
+    if (primaryKey && !event.altKey && event.shiftKey && isShortcutDigit(event, '8')) {
+        return { command: 'insertUnorderedList', label: 'Bulleted list' };
+    }
+
+    if (primaryKey && !event.altKey && !event.shiftKey && key === '[') {
+        return { command: 'outdent', label: 'Decrease list indent' };
+    }
+
+    if (primaryKey && !event.altKey && !event.shiftKey && key === ']') {
+        return { command: 'indent', label: 'Increase list indent' };
+    }
+
+    if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        return {
+            command: event.shiftKey ? 'outdent' : 'indent',
+            label: event.shiftKey ? 'Decrease list indent' : 'Increase list indent'
+        };
+    }
+
+    return null;
+}
+
+function getShortcutDigit(event) {
+    if (/^[0-6]$/.test(event.key)) {
+        return event.key;
+    }
+
+    const match = /^Digit([0-6])$/.exec(event.code || '');
+    return match ? match[1] : null;
+}
+
+function isShortcutDigit(event, digit) {
+    return event.key === digit || event.code === `Digit${digit}`;
 }
 
 function getSelectedListItem(root, selection = getEditorSelection(root)) {
@@ -899,6 +1055,78 @@ function setAddIDsPopoverExpanded(isOpen) {
             trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
     });
+}
+
+function openShortcutHelp() {
+    if (!shortcutHelpDialog) {
+        return;
+    }
+
+    shortcutHelpPreviousFocus = document.activeElement;
+    shortcutHelpDialog.hidden = false;
+    if (shortcutHelpBackdrop) {
+        shortcutHelpBackdrop.classList.add('open');
+    }
+    if (shortcutHelpBtn) {
+        shortcutHelpBtn.setAttribute('aria-expanded', 'true');
+    }
+    if (shortcutHelpCloseBtn) {
+        shortcutHelpCloseBtn.focus();
+    }
+}
+
+function handleGlobalKeydown(event) {
+    if (event.key === 'Escape') {
+        closeShortcutHelp();
+    }
+}
+
+function handleShortcutHelpDialogKeydown(event) {
+    if (event.key !== 'Tab' || !shortcutHelpDialog || shortcutHelpDialog.hidden) {
+        return;
+    }
+
+    const focusableElements = getFocusableElements(shortcutHelpDialog);
+    if (focusableElements.length === 0) {
+        return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+        return;
+    }
+
+    if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+    }
+}
+
+function getFocusableElements(root) {
+    return Array.from(root.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+        .filter((element) => element.offsetParent !== null);
+}
+
+function closeShortcutHelp() {
+    if (!shortcutHelpDialog || shortcutHelpDialog.hidden) {
+        return;
+    }
+
+    shortcutHelpDialog.hidden = true;
+    if (shortcutHelpBackdrop) {
+        shortcutHelpBackdrop.classList.remove('open');
+    }
+    if (shortcutHelpBtn) {
+        shortcutHelpBtn.setAttribute('aria-expanded', 'false');
+    }
+    if (shortcutHelpPreviousFocus && typeof shortcutHelpPreviousFocus.focus === 'function') {
+        shortcutHelpPreviousFocus.focus();
+    }
+    shortcutHelpPreviousFocus = null;
 }
 
 function updateAddIDsSettingsState() {
