@@ -131,6 +131,10 @@ function createWetLiveEditor(host) {
         <link rel="stylesheet" href="css/wet-boew.min.css">
         <link rel="stylesheet" href="css/theme.min.css">
         <style>
+            * {
+                box-sizing: border-box;
+            }
+
             :host {
                 display: block;
                 height: 100%;
@@ -143,7 +147,7 @@ function createWetLiveEditor(host) {
                 min-height: 100%;
                 height: 100%;
                 overflow: auto;
-                padding: 40px 16px 16px;
+                padding: 16px;
                 outline: none;
                 background: #fff;
                 color: #333;

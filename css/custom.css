@@ -1083,6 +1083,25 @@ textarea {
     grid-row: 1;
 }
 
+.editor-surface .code-toolbar {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.code-toolbar {
+    display: flex;
+    align-items: center;
+    min-height: 46px;
+    padding: 6px 12px;
+    border-bottom: 1px solid #283044;
+    background: #151923;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .wysiwyg-icon {
     position: relative;
     display: inline-block;
@@ -1240,14 +1259,13 @@ textarea {
     height: 100%;
     border: 0;
     border-radius: 0;
-    padding: 40px 16px 16px;
     outline: none;
 }
 
 .code-editor {
     position: relative;
     grid-column: 3;
-    grid-row: 1 / span 2;
+    grid-row: 2;
     height: 100%;
     overflow: hidden;
     background: #0b1020;
@@ -1258,7 +1276,7 @@ textarea {
     position: absolute;
     inset: 0;
     margin: 0;
-    padding: 40px 16px 16px;
+    padding: 16px;
     overflow: auto;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -1344,34 +1362,6 @@ textarea {
 .split-live-pane,
 .split-code-pane {
     position: relative;
-}
-
-.split-live-pane::after,
-.split-code-pane::after {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 3;
-    display: block;
-    padding: 5px 10px;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    pointer-events: none;
-}
-
-.split-live-pane::after {
-    content: "Live";
-    background: #f8fafc;
-    color: var(--muted);
-}
-
-.split-code-pane::after {
-    content: "Code";
-    background: #151923;
-    color: #94a3b8;
 }
 
 #liveEditor:empty::before {
@@ -1822,10 +1812,11 @@ textarea {
 
     .editor-surface {
         grid-template-columns: 1fr;
-        grid-template-rows: auto minmax(520px, auto) minmax(520px, auto);
+        grid-template-rows: auto minmax(520px, auto) auto minmax(520px, auto);
     }
 
     .editor-surface .wysiwyg-toolbar,
+    .editor-surface .code-toolbar,
     #liveEditor,
     .code-editor {
         grid-column: 1;
@@ -1839,8 +1830,12 @@ textarea {
         grid-row: 2;
     }
 
-    .code-editor {
+    .editor-surface .code-toolbar {
         grid-row: 3;
+    }
+
+    .code-editor {
+        grid-row: 4;
     }
 
     .pane-splitter {
