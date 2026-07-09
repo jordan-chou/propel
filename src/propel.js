@@ -10,7 +10,7 @@ import { modifyHeadings, modifyFigures, modifyTables, createOnThisPage } from '.
 import { createBodyFtnTags, replaceFootnoteSection } from './commands/footnote-generator.js';
 import { splitH1s, createSplitButton } from './commands/split-h1s.js';
 import { setInputHTMLForNbsp, fixAllIssues } from './commands/nbsp.js';
-import { cleanupTable, cleanupTables, defaultTableCleanupOptions, renameTag } from './commands/table-cleanup.js';
+import { cleanupTable, defaultTableCleanupOptions, renameTag } from './commands/table-cleanup.js';
 import { collapseAll, setCodeTheme, countTags, qaHelperTagsDefault, setUpPresetBtns } from './commands/qa-helper.js';
 
 import { engStrings, frStrings } from './strings.js';
@@ -128,6 +128,7 @@ var tableEditorPreviousFocus = null;
 var tableEditorLastSelectedCell = null;
 var tableEditorDragStartCell = null;
 var tableEditorIsDragging = false;
+var tableEditorPreviewCleanup = false;
 var liveTableEditTarget = null;
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 
@@ -1432,7 +1433,7 @@ function createTableEditorListeners() {
     });
 }
 
-function openTableEditor(index = 0) {
+function openTableEditor(index = 0, options = {}) {
     const items = getTableEditorItems();
 
     if (!tableEditorDialog || items.length === 0) {
@@ -1440,6 +1441,7 @@ function openTableEditor(index = 0) {
         return;
     }
 
+    tableEditorPreviewCleanup = Boolean(options.previewCleanup);
     tableEditorPreviousFocus = document.activeElement;
     tableEditorDialog.hidden = false;
     if (tableEditorBackdrop) {
@@ -1465,6 +1467,7 @@ function closeTableEditor() {
     if (tableEditorCanvas) {
         tableEditorCanvas.innerHTML = '';
     }
+    tableEditorPreviewCleanup = false;
     if (tableEditorPreviousFocus && typeof tableEditorPreviousFocus.focus === 'function') {
         tableEditorPreviousFocus.focus();
     }
@@ -1603,6 +1606,13 @@ function renderTableEditor(index) {
     tableEditorCanvas.innerHTML = '';
     tableEditorCanvas.appendChild(clone);
 
+    if (tableEditorPreviewCleanup) {
+        const table = getTableEditorTable();
+        if (table) {
+            cleanupTable(table, getTableEditorOptions());
+        }
+    }
+
     loadTableEditorCaptionFields();
     updateTableEditorStatus(items.length);
 }
@@ -1619,6 +1629,7 @@ function updateTableEditorStatus(tableCount = getTableEditorItems().length) {
     }
     if (tableEditorApplyNextBtn) {
         tableEditorApplyNextBtn.disabled = tableEditorIndex >= tableCount - 1;
+        tableEditorApplyNextBtn.hidden = tableEditorIndex >= tableCount - 1;
     }
     renderTableEditorPagination(tableCount);
 }
@@ -2669,18 +2680,17 @@ function tableCleanupCommand() {
             throw new Error('Input is empty');
         }
 
-        const result = cleanupTables(inputHTML);
+        const tableCount = inputHTML.querySelectorAll('table').length;
 
-        if (result.tableCount === 0) {
+        if (tableCount === 0) {
             setDebugMessage(debug, 'No tables found', false);
             addProcessingLog('No tables found for Table Cleanup.', 'warning');
             return;
         }
 
-        updateOutputText();
-        setDebugMessage(debug, 'Table Cleanup successful', false);
-        addProcessingLog(`Table Cleanup successful. Cleaned ${result.changedCount} table(s).`, 'success');
-        openTableEditor(0);
+        setDebugMessage(debug, 'Table cleanup opened', false);
+        addProcessingLog(`Table cleanup opened. Previewing ${tableCount} table(s); changes apply only after pressing Apply.`, 'info');
+        openTableEditor(0, { previewCleanup: true });
     } catch (e) {
         setDebugMessage(debug, 'Error for Table Cleanup. Input is empty or invalid.', true);
         addProcessingLog('Error for Table Cleanup. Input is empty or invalid.', 'danger');
