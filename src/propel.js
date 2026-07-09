@@ -107,7 +107,6 @@ const tableEditorNumber = document.getElementById('tableEditorNumber');
 const tableEditorCaption = document.getElementById('tableEditorCaption');
 const tableEditorUnit = document.getElementById('tableEditorUnit');
 const tableEditorFinancial = document.getElementById('tableEditorFinancial');
-const tableEditorScope = document.getElementById('tableEditorScope');
 const tableEditorFrench = document.getElementById('tableEditorFrench');
 
 // Local HTML for input
@@ -1296,7 +1295,7 @@ function openShortcutHelp() {
 function handleGlobalKeydown(event) {
     if (event.key === 'Escape') {
         closeShortcutHelp();
-        closeTableEditor();
+        handleTableEditorEscape();
     }
 }
 
@@ -1473,7 +1472,18 @@ function closeTableEditor() {
 }
 
 function handleTableEditorDialogKeydown(event) {
-    if (event.key !== 'Tab' || !tableEditorDialog || tableEditorDialog.hidden) {
+    if (!tableEditorDialog || tableEditorDialog.hidden) {
+        return;
+    }
+
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleTableEditorEscape();
+        return;
+    }
+
+    if (event.key !== 'Tab') {
         return;
     }
 
@@ -1495,6 +1505,19 @@ function handleTableEditorDialogKeydown(event) {
         event.preventDefault();
         firstElement.focus();
     }
+}
+
+function handleTableEditorEscape() {
+    if (!tableEditorDialog || tableEditorDialog.hidden) {
+        return;
+    }
+
+    if (getTableEditorSelectedCells().length > 0) {
+        deselectTableEditorCells();
+        return;
+    }
+
+    closeTableEditor();
 }
 
 function getTableEditorItems() {
@@ -1732,6 +1755,7 @@ function handleTableEditorCanvasClick(event) {
         event.preventDefault();
         selectTableEditorCellRange(tableEditorLastSelectedCell, cell, event.metaKey || event.ctrlKey);
         tableEditorLastSelectedCell = cell;
+        clearTableEditorTextSelectionForMultiCellSelection();
         return;
     }
 
@@ -1741,6 +1765,7 @@ function handleTableEditorCanvasClick(event) {
 
     cell.classList.toggle('selected');
     tableEditorLastSelectedCell = cell;
+    clearTableEditorTextSelectionForMultiCellSelection();
 }
 
 function handleTableEditorCanvasMouseDown(event) {
@@ -1769,6 +1794,7 @@ function handleTableEditorCanvasMouseOver(event) {
     tableEditorIsDragging = true;
     selectTableEditorCellRange(tableEditorDragStartCell, cell, false);
     tableEditorLastSelectedCell = cell;
+    clearTableEditorTextSelectionForMultiCellSelection();
 }
 
 function handleTableEditorDocumentMouseUp() {
@@ -1780,6 +1806,7 @@ function handleTableEditorDocumentMouseUp() {
 
     window.setTimeout(() => {
         tableEditorIsDragging = false;
+        clearTableEditorTextSelectionForMultiCellSelection();
     }, 0);
 }
 
@@ -1793,6 +1820,7 @@ function deselectTableEditorCells(exceptCell = null) {
             selectedCell.classList.remove('selected');
         }
     });
+    clearTableEditorTextSelectionForMultiCellSelection();
 }
 
 function selectTableEditorCellRange(startCell, endCell, preserveExisting) {
@@ -1822,6 +1850,19 @@ function selectTableEditorCellRange(startCell, endCell, preserveExisting) {
             entry.cell.classList.add('selected');
         }
     });
+    clearTableEditorTextSelectionForMultiCellSelection();
+}
+
+function clearTableEditorTextSelectionForMultiCellSelection() {
+    if (getTableEditorSelectedCells().length <= 1) {
+        return;
+    }
+
+    const selection = window.getSelection ? window.getSelection() : null;
+
+    if (selection && selection.rangeCount > 0) {
+        selection.removeAllRanges();
+    }
 }
 
 function getTableEditorCellPosition(cell) {
@@ -1867,7 +1908,7 @@ function getTableEditorOptions() {
     return {
         ...defaultTableCleanupOptions,
         financialTable: tableEditorFinancial ? tableEditorFinancial.checked : defaultTableCleanupOptions.financialTable,
-        addScope: tableEditorScope ? tableEditorScope.checked : defaultTableCleanupOptions.addScope,
+        addScope: true,
         addTfoot: false,
         frenchNumbers: tableEditorFrench ? tableEditorFrench.checked : defaultTableCleanupOptions.frenchNumbers
     };
@@ -1905,7 +1946,7 @@ function toggleTableEditorHeaderRows() {
             row.classList.remove('bg-dark', 'text-white');
             Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
                 const nextCell = index === 0 ? renameTag(cell, 'th') : renameTag(cell, 'td');
-                if (index === 0 && tableEditorScope && tableEditorScope.checked) {
+                if (index === 0) {
                     nextCell.setAttribute('scope', 'row');
                 } else {
                     nextCell.removeAttribute('scope');
@@ -1919,9 +1960,7 @@ function toggleTableEditorHeaderRows() {
         row.classList.remove('active');
         Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
             const nextCell = renameTag(cell, 'th');
-            if (tableEditorScope && tableEditorScope.checked) {
-                nextCell.setAttribute('scope', 'col');
-            }
+            nextCell.setAttribute('scope', 'col');
             if (tableEditorFinancial && tableEditorFinancial.checked && index > 0) {
                 nextCell.classList.add('text-right');
             }
@@ -1939,7 +1978,7 @@ function toggleTableEditorActiveRows() {
         row.classList.toggle('active');
         const firstCell = row.querySelector('th, td');
 
-        if (firstCell && tableEditorScope && tableEditorScope.checked) {
+        if (firstCell) {
             firstCell.setAttribute('scope', row.classList.contains('active') ? 'colgroup' : 'row');
         }
     });
@@ -2162,6 +2201,44 @@ function deleteTableEditorRows() {
     getTableEditorSelectedRows().forEach((row) => row.remove());
 }
 
+function applyTableEditorScopes(table) {
+    if (!table) {
+        return;
+    }
+
+    table.querySelectorAll('thead tr').forEach((row) => {
+        row.classList.add('bg-dark', 'text-white');
+        row.classList.remove('active');
+
+        Array.from(row.querySelectorAll('th, td')).forEach((cell) => {
+            const headerCell = renameTag(cell, 'th');
+            headerCell.setAttribute('scope', 'col');
+        });
+    });
+
+    table.querySelectorAll('tbody tr').forEach((row) => {
+        const firstCell = row.querySelector('th, td');
+
+        if (!firstCell) {
+            return;
+        }
+
+        const rowHeader = renameTag(firstCell, 'th');
+
+        if (rowHeader.hasAttribute('colspan') || row.classList.contains('active')) {
+            rowHeader.setAttribute('scope', 'colgroup');
+            return;
+        }
+
+        if (rowHeader.hasAttribute('rowspan')) {
+            rowHeader.setAttribute('scope', 'rowgroup');
+            return;
+        }
+
+        rowHeader.setAttribute('scope', 'row');
+    });
+}
+
 function applyTableEditorChanges(moveNext) {
     const items = getTableEditorItems();
     const item = items[tableEditorIndex];
@@ -2172,6 +2249,7 @@ function applyTableEditorChanges(moveNext) {
     }
 
     updateTableEditorCaption();
+    applyTableEditorScopes(getTableEditorTable());
 
     const cleanClone = editedContainer.cloneNode(true);
     cleanClone.querySelectorAll('.selected').forEach((element) => {
