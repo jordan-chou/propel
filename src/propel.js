@@ -3266,12 +3266,41 @@ function getHTMLForCopy() {
 }
 
 function syncEditorToInputHTML() {
+    Array.from(inputHTML.attributes).forEach(attribute => inputHTML.removeAttribute(attribute.name));
     inputHTML.innerHTML = outputText.value;
-    const contentArea = inputHTML.querySelector("div.content-area");
-    if (contentArea) {
-        Utils.stripTag(contentArea);
-    }
+    adoptSingleOuterDiv();
+    inputHTML.querySelectorAll('.content-area').forEach(element => {
+        element.classList.remove('content-area');
+        if (element.classList.length === 0) {
+            element.removeAttribute('class');
+        }
+    });
     inputHTML.classList.add("content-area");
+}
+
+/**
+ * Treat a sole top-level div in the code editor as the document root instead of
+ * nesting it inside the internal root div. This preserves its attributes and
+ * lets the content-area class be restored directly on that element.
+ */
+function adoptSingleOuterDiv() {
+    const outerDiv = inputHTML.children.length === 1 &&
+        inputHTML.firstElementChild.tagName === 'DIV' &&
+        Array.from(inputHTML.childNodes).every(node =>
+            node === inputHTML.firstElementChild ||
+            (node.nodeType === Node.TEXT_NODE && node.textContent.trim() === '')
+        )
+        ? inputHTML.firstElementChild
+        : null;
+
+    if (!outerDiv) {
+        return;
+    }
+
+    const attributes = Array.from(outerDiv.attributes, attribute => [attribute.name, attribute.value]);
+    inputHTML.replaceChildren(...outerDiv.childNodes);
+    Array.from(inputHTML.attributes).forEach(attribute => inputHTML.removeAttribute(attribute.name));
+    attributes.forEach(([name, value]) => inputHTML.setAttribute(name, value));
 }
 
 function syncLiveToInputHTML() {
