@@ -73,6 +73,7 @@ const liveEditor = createWetLiveEditor(liveEditorHost);
 const editorDropZone = document.getElementById('editorDropZone');
 const editorPanel = document.querySelector('.editor-panel');
 const paneSplitter = document.getElementById('paneSplitter');
+const paneSnapGuides = document.querySelectorAll('.pane-snap-guide');
 const codeEditor = document.getElementById('codeEditor');
 const codeHighlight = document.getElementById('codeHighlight');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
@@ -133,6 +134,8 @@ var tableEditorPreviewCleanup = false;
 var liveTableEditTarget = null;
 var liveEditorIsSelectingText = false;
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
+const paneSplitterSnapRatios = [1 / 2, 2 / 3];
+const paneSplitterSnapZone = 24;
 
 // Footnote generator
 var showFullPreview = false;
@@ -590,12 +593,17 @@ function getPaneResizeMetrics() {
     const isStacked = isPaneSplitterStacked();
     const minPaneSize = 260;
     const splitterSize = isStacked ? paneSplitter.offsetHeight || 8 : paneSplitter.offsetWidth || 8;
-    const availableSize = (isStacked ? rect.height : rect.width) - splitterSize;
+    const liveToolbar = editorDropZone.querySelector('.wysiwyg-toolbar');
+    const codeToolbar = editorDropZone.querySelector('.code-toolbar');
+    const axisStart = isStacked ? liveToolbar.offsetHeight : 0;
+    const toolbarSize = isStacked ? liveToolbar.offsetHeight + codeToolbar.offsetHeight : 0;
+    const availableSize = (isStacked ? rect.height : rect.width) - splitterSize - toolbarSize;
 
     return {
         isStacked,
         minPaneSize,
         availableSize,
+        axisStart,
         minRatio: minPaneSize / availableSize,
         maxRatio: (availableSize - minPaneSize) / availableSize
     };
@@ -607,6 +615,26 @@ function isPaneSplitterStacked() {
 
 function updatePaneSplitterOrientation() {
     paneSplitter.setAttribute('aria-orientation', isPaneSplitterStacked() ? 'horizontal' : 'vertical');
+    updatePaneSnapGuides();
+}
+
+function updatePaneSnapGuides() {
+    const metrics = getPaneResizeMetrics();
+
+    paneSnapGuides.forEach((guide) => {
+        const ratio = Number(guide.dataset.snapRatio);
+        const isAvailable = metrics.availableSize > 0 && ratio >= metrics.minRatio && ratio <= metrics.maxRatio;
+        const position = metrics.axisStart + metrics.availableSize * ratio;
+        guide.hidden = !isAvailable;
+        guide.style.setProperty('--pane-snap-position', `${position}px`);
+    });
+}
+
+function showActivePaneSnap(ratio) {
+    paneSnapGuides.forEach((guide) => {
+        const guideRatio = Number(guide.dataset.snapRatio);
+        guide.classList.toggle('active', paneSplitterSnapRatios.includes(ratio) && Math.abs(guideRatio - ratio) < 0.0001);
+    });
 }
 
 function clampPaneWidthRatio(ratio) {
@@ -617,6 +645,19 @@ function clampPaneWidthRatio(ratio) {
     }
 
     return Math.min(Math.max(ratio, metrics.minRatio), metrics.maxRatio);
+}
+
+function snapPaneWidthRatio(ratio, metrics) {
+    if (!Number.isFinite(ratio) || metrics.availableSize <= 0) {
+        return ratio;
+    }
+
+    const snapRatio = paneSplitterSnapRatios.find((targetRatio) => {
+        const targetIsAvailable = targetRatio >= metrics.minRatio && targetRatio <= metrics.maxRatio;
+        return targetIsAvailable && Math.abs(ratio - targetRatio) * metrics.availableSize <= paneSplitterSnapZone;
+    });
+
+    return snapRatio === undefined ? ratio : snapRatio;
 }
 
 function setLivePaneWidthFromRatio(ratio) {
@@ -665,26 +706,35 @@ function startPaneResize(event) {
     event.preventDefault();
     paneSplitter.setPointerCapture(event.pointerId);
     paneSplitter.classList.add('drag-active');
+    editorDropZone.classList.add('pane-resizing');
+    updatePaneSnapGuides();
 
     const handleMove = (moveEvent) => {
         const rect = editorDropZone.getBoundingClientRect();
         const metrics = getPaneResizeMetrics();
-        const rawSize = metrics.isStacked ? moveEvent.clientY - rect.top : moveEvent.clientX - rect.left;
+        const pointerPosition = metrics.isStacked ? moveEvent.clientY - rect.top : moveEvent.clientX - rect.left;
+        const rawSize = pointerPosition - metrics.axisStart;
         const nextSize = Math.min(Math.max(rawSize, metrics.minPaneSize), metrics.availableSize - metrics.minPaneSize);
-        setLivePaneWidthFromRatio(nextSize / metrics.availableSize);
+        const nextRatio = snapPaneWidthRatio(nextSize / metrics.availableSize, metrics);
+        setLivePaneWidthFromRatio(nextRatio);
+        showActivePaneSnap(nextRatio);
     };
 
     const stopResize = () => {
         paneSplitter.classList.remove('drag-active');
+        editorDropZone.classList.remove('pane-resizing');
+        showActivePaneSnap(null);
         savePaneSplitterLocation();
         paneSplitter.removeEventListener('pointermove', handleMove);
         paneSplitter.removeEventListener('pointerup', stopResize);
         paneSplitter.removeEventListener('pointercancel', stopResize);
+        paneSplitter.removeEventListener('lostpointercapture', stopResize);
     };
 
     paneSplitter.addEventListener('pointermove', handleMove);
     paneSplitter.addEventListener('pointerup', stopResize);
     paneSplitter.addEventListener('pointercancel', stopResize);
+    paneSplitter.addEventListener('lostpointercapture', stopResize);
 }
 
 /**

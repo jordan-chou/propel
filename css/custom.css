@@ -1908,6 +1908,50 @@ textarea {
     background: var(--primary);
 }
 
+.pane-snap-guide {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    bottom: 0;
+    left: var(--pane-snap-position);
+    width: 1px;
+    border-left: 1px dashed rgba(37, 87, 214, 0.16);
+    opacity: 0;
+    pointer-events: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.pane-snap-guide::after {
+    content: attr(data-label);
+    position: absolute;
+    top: 6px;
+    left: 4px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.78);
+    color: rgba(37, 87, 214, 0.45);
+    font-size: 0.62rem;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.editor-surface.pane-resizing .pane-snap-guide {
+    border-color: rgba(37, 87, 214, 0.38);
+    opacity: 1;
+}
+
+.editor-surface.pane-resizing .pane-snap-guide::after,
+.pane-snap-guide.active::after {
+    opacity: 1;
+}
+
+.pane-snap-guide.active {
+    border-color: rgba(37, 87, 214, 0.8);
+    box-shadow: 0 0 5px rgba(37, 87, 214, 0.35);
+}
+
 .split-live-pane,
 .split-code-pane {
     position: relative;
@@ -1982,6 +2026,31 @@ textarea {
         grid-row: 3;
         cursor: row-resize;
         background: linear-gradient(180deg, transparent, var(--border), transparent);
+    }
+
+    .pane-snap-guide {
+        top: var(--pane-snap-position);
+        right: 0;
+        bottom: auto;
+        left: 0;
+        width: auto;
+        height: 1px;
+        border-top: 1px dashed rgba(37, 87, 214, 0.16);
+        border-left: 0;
+    }
+
+    .pane-snap-guide::after {
+        top: 4px;
+        right: 6px;
+        left: auto;
+    }
+
+    .editor-surface.pane-resizing .pane-snap-guide {
+        border-top-color: rgba(37, 87, 214, 0.38);
+    }
+
+    .pane-snap-guide.active {
+        border-top-color: rgba(37, 87, 214, 0.8);
     }
 
     .editor-surface .code-toolbar {
@@ -2444,6 +2513,10 @@ textarea {
     }
 
     .pane-splitter {
+        display: none;
+    }
+
+    .pane-snap-guide {
         display: none;
     }
 
