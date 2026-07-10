@@ -781,17 +781,19 @@ textarea {
 }
 
 .settings-box.command-dialog {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 3px;
+    position: fixed;
+    top: 0;
+    left: 0;
     z-index: 60;
     display: none;
     width: min(320px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
     margin: 0;
     border-style: solid;
     background: #fff;
     transform: none;
     box-shadow: var(--shadow);
+    overflow: auto;
 }
 
 .settings-box.command-dialog.open {

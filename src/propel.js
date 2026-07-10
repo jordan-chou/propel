@@ -760,6 +760,9 @@ function createListeners() {
                 closeAddIDsSettings();
             }
         });
+
+        window.addEventListener('resize', positionAddIDsSettings);
+        document.addEventListener('scroll', positionAddIDsSettings, true);
     }
 
     updateAddIDsSettingsState();
@@ -1514,6 +1517,34 @@ function toggleAddIDsSettings() {
     if (addIDsSettingsBackdrop) {
         addIDsSettingsBackdrop.classList.toggle('open', isOpen);
     }
+    if (isOpen) {
+        positionAddIDsSettings();
+    }
+}
+
+function positionAddIDsSettings() {
+    if (!otpSettings || !otpSettings.classList.contains('open')) {
+        return;
+    }
+
+    const trigger = addIDsSettingsBtn || addIDsBtn;
+    if (!trigger) {
+        return;
+    }
+
+    const gap = 8;
+    const viewportPadding = 16;
+    const triggerRect = trigger.getBoundingClientRect();
+    const dialogRect = otpSettings.getBoundingClientRect();
+    const maxLeft = Math.max(viewportPadding, window.innerWidth - dialogRect.width - viewportPadding);
+    const left = Math.min(Math.max(triggerRect.right - dialogRect.width, viewportPadding), maxLeft);
+    const spaceBelow = window.innerHeight - triggerRect.bottom - viewportPadding;
+    const top = spaceBelow >= dialogRect.height
+        ? triggerRect.bottom + gap
+        : Math.max(viewportPadding, triggerRect.top - dialogRect.height - gap);
+
+    otpSettings.style.left = `${left}px`;
+    otpSettings.style.top = `${top}px`;
 }
 
 function closeAddIDsSettings() {
