@@ -46,6 +46,8 @@ const addIDsSettingsBtn = document.getElementById('addIDsSettingsBtn');
 const addIDsSettingsCloseBtn = document.getElementById('addIDsSettingsCloseBtn');
 const addIDsApplyBtn = document.getElementById('addIDsApplyBtn');
 const addIDsSettingsBackdrop = document.getElementById('addIDsSettingsBackdrop');
+const addIDsSettingsParent = otpSettings ? otpSettings.parentNode : null;
+const addIDsSettingsNextSibling = otpSettings ? otpSettings.nextSibling : null;
 
 // Phase 1 redesign elements. These are optional so the same JS can still run on the old layout.
 const processingLog = document.getElementById('processingLog');
@@ -1512,7 +1514,15 @@ function toggleAddIDsSettings() {
         return;
     }
 
-    const isOpen = otpSettings.classList.toggle('open');
+    const isOpen = !otpSettings.classList.contains('open');
+    if (isOpen) {
+        // Render outside the command rail so its overflow cannot clip the popover.
+        document.body.appendChild(otpSettings);
+        otpSettings.classList.add('open');
+    } else {
+        closeAddIDsSettings();
+        return;
+    }
     setAddIDsPopoverExpanded(isOpen);
     if (addIDsSettingsBackdrop) {
         addIDsSettingsBackdrop.classList.toggle('open', isOpen);
@@ -1556,6 +1566,9 @@ function closeAddIDsSettings() {
     setAddIDsPopoverExpanded(false);
     if (addIDsSettingsBackdrop) {
         addIDsSettingsBackdrop.classList.remove('open');
+    }
+    if (addIDsSettingsParent && otpSettings.parentNode !== addIDsSettingsParent) {
+        addIDsSettingsParent.insertBefore(otpSettings, addIDsSettingsNextSibling);
     }
 }
 
