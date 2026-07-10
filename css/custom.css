@@ -2137,8 +2137,7 @@ textarea {
 }
 
 .report-outline {
-    max-height: 118px;
-    overflow: auto;
+    max-width: 100%;
 }
 
 .report-outline-button {
@@ -2150,6 +2149,7 @@ textarea {
     color: inherit;
     font: inherit;
     text-align: left;
+    overflow-wrap: anywhere;
 }
 
 .report-outline-button:hover,
