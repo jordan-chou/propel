@@ -1709,6 +1709,28 @@ textarea {
     box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
 }
 
+.icon-numbered-list::before {
+    content: "1\A 2\A 3";
+    position: absolute;
+    left: 0;
+    top: 1px;
+    white-space: pre;
+    font-size: 0.48rem;
+    font-weight: 800;
+    line-height: 5px;
+}
+
+.icon-numbered-list::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 5px;
+    width: 8px;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
 .icon-indent::before,
 .icon-outdent::before {
     content: "";

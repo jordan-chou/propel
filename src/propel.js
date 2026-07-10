@@ -1106,6 +1106,10 @@ function getLiveEditorShortcut(event) {
         return { command: 'insertUnorderedList', label: 'Bulleted list' };
     }
 
+    if (primaryKey && !event.altKey && event.shiftKey && isShortcutDigit(event, '7')) {
+        return { command: 'insertOrderedList', label: 'Numbered list' };
+    }
+
     if (primaryKey && !event.altKey && !event.shiftKey && key === '[') {
         return { command: 'outdent', label: 'Decrease list indent' };
     }
