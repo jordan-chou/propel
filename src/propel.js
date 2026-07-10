@@ -408,6 +408,7 @@ function createModernDashboardListeners() {
             updateBlockFormatSelect();
         });
         liveEditor.addEventListener('keydown', handleLiveEditorKeydown);
+        liveEditor.addEventListener('beforeinput', combineLiveEditorComponents);
         liveEditor.addEventListener('keyup', () => {
             rememberLiveSelection();
             updateBlockFormatSelect();
@@ -978,6 +979,74 @@ function handleLiveEditorKeydown(event) {
     }
 
     runLiveEditCommand(shortcut.command, null, shortcut.label);
+}
+
+function combineLiveEditorComponents(event) {
+    if (!liveEditor || !event || event.defaultPrevented || !event.inputType) {
+        return;
+    }
+
+    const isBackward = event.inputType === 'deleteContentBackward';
+    const isForward = event.inputType === 'deleteContentForward';
+    if (!isBackward && !isForward) {
+        return;
+    }
+
+    const selection = getEditorSelection(liveEditor);
+    if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const component = getLiveEditorComponent(range.startContainer);
+    if (!component || !isCaretAtComponentEdge(range, component, isBackward)) {
+        return;
+    }
+
+    const sibling = isBackward ? component.previousElementSibling : component.nextElementSibling;
+    if (!sibling) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const target = isBackward ? sibling : component;
+    const source = isBackward ? component : sibling;
+    const joinRange = document.createRange();
+    joinRange.selectNodeContents(target);
+    joinRange.collapse(false);
+
+    while (source.firstChild) {
+        target.appendChild(source.firstChild);
+    }
+    source.remove();
+
+    selection.removeAllRanges();
+    selection.addRange(joinRange);
+    syncLiveToInputHTML();
+    updateCodeView();
+    refreshReviewPanel();
+    rememberLiveSelection();
+    updateBlockFormatSelect();
+}
+
+function getLiveEditorComponent(node) {
+    let component = node && node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    while (component && component.parentElement !== liveEditor) {
+        component = component.parentElement;
+    }
+    return component && component.parentElement === liveEditor ? component : null;
+}
+
+function isCaretAtComponentEdge(range, component, atStart) {
+    const edgeRange = range.cloneRange();
+    edgeRange.selectNodeContents(component);
+    if (atStart) {
+        edgeRange.setEnd(range.startContainer, range.startOffset);
+    } else {
+        edgeRange.setStart(range.startContainer, range.startOffset);
+    }
+    return edgeRange.collapsed || edgeRange.toString() === '';
 }
 
 function preserveParagraphsOnEnter(event) {
