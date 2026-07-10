@@ -756,6 +756,7 @@ function createListeners() {
     outputText.addEventListener('focus', () => {
         activeEditorView = 'code';
     });
+    outputText.addEventListener('keydown', handleCodeEditorKeydown);
     outputText.addEventListener('scroll', () => {
         syncCodeHighlightScroll();
     });
@@ -952,6 +953,8 @@ function getWysiwygButtonLabel(button) {
 }
 
 function handleLiveEditorKeydown(event) {
+    preserveParagraphsOnEnter(event);
+
     const shortcut = getLiveEditorShortcut(event);
     if (!shortcut) {
         return;
@@ -975,6 +978,18 @@ function handleLiveEditorKeydown(event) {
     }
 
     runLiveEditCommand(shortcut.command, null, shortcut.label);
+}
+
+function preserveParagraphsOnEnter(event) {
+    if (event.key !== 'Enter' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    document.execCommand('formatBlock', false, 'p');
+    document.execCommand('insertParagraph', false, null);
 }
 
 function getLiveEditorShortcut(event) {
@@ -1021,6 +1036,138 @@ function getLiveEditorShortcut(event) {
     }
 
     return null;
+}
+
+function handleCodeEditorKeydown(event) {
+    const key = (event.key || '').toLowerCase();
+
+    if (event.altKey && !event.ctrlKey && !event.metaKey && (key === 'w' || event.code === 'KeyW')) {
+        event.preventDefault();
+        activeEditorView = 'code';
+        wrapCodeEditorSelectionWithTag();
+        return;
+    }
+
+    if (event.key !== 'Tab') {
+        return;
+    }
+
+    event.preventDefault();
+    activeEditorView = 'code';
+
+    indentCodeEditorSelection(event.shiftKey ? -1 : 1);
+    syncCodeEditorAfterProgrammaticEdit();
+}
+
+function wrapCodeEditorSelectionWithTag() {
+    if (!outputText) {
+        return;
+    }
+
+    const tagInput = prompt('Wrap with HTML tag', 'p');
+    const tag = parseCodeEditorWrapTag(tagInput);
+
+    if (!tag) {
+        return;
+    }
+
+    const selectionStart = outputText.selectionStart;
+    const selectionEnd = outputText.selectionEnd;
+    const selectedText = outputText.value.slice(selectionStart, selectionEnd);
+    const openTag = tag.attributes ? `<${tag.name} ${tag.attributes}>` : `<${tag.name}>`;
+    const closeTag = `</${tag.name}>`;
+    const wrappedText = `${openTag}${selectedText}${closeTag}`;
+
+    outputText.setRangeText(wrappedText, selectionStart, selectionEnd, 'end');
+
+    if (!selectedText) {
+        const cursor = selectionStart + openTag.length;
+        outputText.setSelectionRange(cursor, cursor);
+    } else {
+        outputText.setSelectionRange(selectionStart, selectionStart + wrappedText.length);
+    }
+
+    syncCodeEditorAfterProgrammaticEdit();
+}
+
+function parseCodeEditorWrapTag(tagInput) {
+    if (!tagInput) {
+        return null;
+    }
+
+    const normalized = tagInput.trim()
+        .replace(/^<\s*/, '')
+        .replace(/\s*\/?>$/, '');
+    const match = normalized.match(/^([A-Za-z][A-Za-z0-9-]*)(?:\s+([\s\S]+))?$/);
+
+    if (!match) {
+        return null;
+    }
+
+    return {
+        name: match[1].toLowerCase(),
+        attributes: match[2] ? match[2].trim() : ''
+    };
+}
+
+function indentCodeEditorSelection(direction) {
+    const indent = '    ';
+    const value = outputText.value;
+    const selectionStart = outputText.selectionStart;
+    const selectionEnd = outputText.selectionEnd;
+    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+    const lineEnd = selectionEnd === selectionStart
+        ? value.indexOf('\n', selectionEnd)
+        : value.indexOf('\n', selectionEnd - 1);
+    const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
+    const selectedBlock = value.slice(lineStart, actualLineEnd);
+    const lines = selectedBlock.split('\n');
+    let removedBeforeSelection = 0;
+
+    const nextLines = lines.map((line, index) => {
+        if (direction > 0) {
+            return `${indent}${line}`;
+        }
+
+        if (line.startsWith(indent)) {
+            if (index === 0) {
+                removedBeforeSelection = Math.min(indent.length, selectionStart - lineStart);
+            }
+            return line.slice(indent.length);
+        }
+
+        const leadingSpaces = line.match(/^ {1,3}/);
+        if (leadingSpaces) {
+            if (index === 0) {
+                removedBeforeSelection = Math.min(leadingSpaces[0].length, selectionStart - lineStart);
+            }
+            return line.slice(leadingSpaces[0].length);
+        }
+
+        return line;
+    });
+
+    const nextBlock = nextLines.join('\n');
+    outputText.setRangeText(nextBlock, lineStart, actualLineEnd, 'preserve');
+
+    if (selectionStart === selectionEnd) {
+        const nextCursor = direction > 0
+            ? selectionStart + indent.length
+            : Math.max(lineStart, selectionStart - removedBeforeSelection);
+        outputText.setSelectionRange(nextCursor, nextCursor);
+        return;
+    }
+
+    const delta = nextBlock.length - selectedBlock.length;
+    const nextStart = direction > 0 ? selectionStart + indent.length : Math.max(lineStart, selectionStart - removedBeforeSelection);
+    outputText.setSelectionRange(nextStart, selectionEnd + delta);
+}
+
+function syncCodeEditorAfterProgrammaticEdit() {
+    syncEditorToInputHTML();
+    updateLiveView();
+    refreshReviewPanel();
+    updateCodeHighlight();
 }
 
 function getShortcutDigit(event) {
@@ -1387,6 +1534,9 @@ function createTableEditorListeners() {
         tableEditorDialog.addEventListener('keydown', handleTableEditorDialogKeydown);
     }
     if (tableEditorCanvas) {
+        tableEditorCanvas.addEventListener('beforeinput', removeEmptyFooterPlaceholder);
+        tableEditorCanvas.addEventListener('paste', replaceEmptyFooterPlaceholderOnPaste);
+        tableEditorCanvas.addEventListener('keydown', preserveParagraphsOnEnter);
         tableEditorCanvas.addEventListener('click', handleTableEditorCanvasClick);
         tableEditorCanvas.addEventListener('mousedown', handleTableEditorCanvasMouseDown);
         tableEditorCanvas.addEventListener('mouseover', handleTableEditorCanvasMouseOver);
@@ -1490,6 +1640,58 @@ function closeTableEditor() {
         tableEditorPreviousFocus.focus();
     }
     tableEditorPreviousFocus = null;
+}
+
+function removeEmptyFooterPlaceholder(event) {
+    if (event.inputType !== 'insertText' || event.data === null) {
+        return;
+    }
+
+    const paragraph = getEmptyFooterParagraphAtSelection();
+
+    if (!paragraph) {
+        return;
+    }
+
+    event.preventDefault();
+    replaceEmptyFooterPlaceholder(paragraph, event.data);
+}
+
+function replaceEmptyFooterPlaceholderOnPaste(event) {
+    const paragraph = getEmptyFooterParagraphAtSelection();
+
+    if (!paragraph || !event.clipboardData) {
+        return;
+    }
+
+    event.preventDefault();
+    replaceEmptyFooterPlaceholder(paragraph, event.clipboardData.getData('text/plain'));
+}
+
+function getEmptyFooterParagraphAtSelection() {
+    const selection = getEditorSelection(tableEditorCanvas);
+    const paragraph = selection && selection.rangeCount > 0
+        ? getClosestElement(selection.anchorNode, tableEditorCanvas, 'tfoot p')
+        : null;
+
+    return paragraph && paragraph.textContent === '\u00a0' ? paragraph : null;
+}
+
+function replaceEmptyFooterPlaceholder(paragraph, text) {
+    paragraph.textContent = text;
+
+    const range = document.createRange();
+    range.selectNodeContents(paragraph);
+    range.collapse(false);
+    const selection = getEditorSelection(tableEditorCanvas);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    paragraph.dispatchEvent(new InputEvent('input', {
+        bubbles: true,
+        data: text,
+        inputType: 'insertText'
+    }));
 }
 
 function handleTableEditorDialogKeydown(event) {
@@ -2087,10 +2289,12 @@ function addEmptyTableEditorFooter() {
     const tfoot = ensureTableEditorTfoot(table);
     const footerRow = document.createElement('tr');
     const footerCell = document.createElement('td');
+    const footerParagraph = document.createElement('p');
 
     footerRow.classList.add('small');
     footerCell.setAttribute('colspan', String(getTableEditorWidth(table)));
-    footerCell.appendChild(document.createElement('p'));
+    footerParagraph.textContent = '\u00a0';
+    footerCell.appendChild(footerParagraph);
     footerRow.appendChild(footerCell);
     tfoot.appendChild(footerRow);
 }

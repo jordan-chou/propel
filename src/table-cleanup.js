@@ -2267,6 +2267,10 @@ window.onload = function () {
      * @param {*} tag tag name to be removed
      */
     function removeTag(e, tag) {
+        if (tag.toLowerCase() === 'p' && e.closest('tfoot')) {
+            return;
+        }
+
         if (e.tagName.toLowerCase() === tag.toLowerCase()) {
             const parent = e.parentNode;
 

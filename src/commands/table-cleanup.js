@@ -192,7 +192,9 @@ function cleanTableElements(table, options) {
     });
 
     options.unwrapTags.forEach((tagName) => {
-        Array.from(table.querySelectorAll(tagName)).forEach(unwrapElement);
+        Array.from(table.querySelectorAll(tagName))
+            .filter((element) => tagName.toLowerCase() !== 'p' || !element.closest('tfoot'))
+            .forEach(unwrapElement);
     });
 }
 
