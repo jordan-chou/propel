@@ -140,6 +140,7 @@ var langStrings = engStrings;
 /* Main */
 createListeners();
 createModernDashboardListeners();
+updateShortcutHelpForPlatform();
 
 // Set up 'Presets' button from JSON file
 fetch("./src/presetButtons.json")
@@ -156,6 +157,22 @@ refreshReviewPanel();
 updateLanguageSwitch();
 
 /* Functions */
+
+function updateShortcutHelpForPlatform() {
+    if (!shortcutHelpDialog) {
+        return;
+    }
+
+    const platform = navigator.userAgentData?.platform || navigator.platform || navigator.userAgent || '';
+    const isApplePlatform = /mac|iphone|ipad|ipod/i.test(platform);
+    const keyLabels = isApplePlatform
+        ? { primary: 'Cmd', alternate: 'Option' }
+        : { primary: 'Ctrl', alternate: 'Alt' };
+
+    shortcutHelpDialog.querySelectorAll('[data-shortcut-key]').forEach((key) => {
+        key.textContent = keyLabels[key.dataset.shortcutKey];
+    });
+}
 
 function createWetLiveEditor(host) {
     if (!host) {
