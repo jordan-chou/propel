@@ -1642,7 +1642,7 @@ textarea {
 
 .table-editor-actions {
     justify-content: flex-end;
-    padding-top: 2px;
+    padding: 12px 0 2px;
     border-top: 1px solid var(--border);
 }
 
