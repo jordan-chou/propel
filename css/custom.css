@@ -2615,6 +2615,38 @@ textarea {
 
 .review-issue-group + .review-issue-group { margin-top: 14px; }
 
+.review-issue-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin: 0 0 12px;
+}
+
+.review-issue-summary > div {
+    display: grid;
+    gap: 2px;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+}
+
+.review-issue-summary dt {
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.review-issue-summary dd {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.review-issue-summary-warning dd { color: #92400e; }
+.review-issue-summary-error dd { color: #991b1b; }
+.review-issue-summary-total dd { color: var(--text); }
+
 .review-issue-group-header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;

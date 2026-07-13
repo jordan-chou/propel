@@ -4972,6 +4972,28 @@ function updateIssues() {
         return;
     }
 
+    const warningCount = issueGroups
+        .filter(group => group.severity === 'warning')
+        .reduce((total, group) => total + group.targets.length, 0);
+    const errorCount = issueGroups
+        .filter(group => group.severity === 'error')
+        .reduce((total, group) => total + group.targets.length, 0);
+    const summary = document.createElement('dl');
+    summary.className = 'review-issue-summary';
+    [
+        ['Warnings', warningCount, 'warning'],
+        ['Errors', errorCount, 'error'],
+        ['Total', warningCount + errorCount, 'total']
+    ].forEach(([label, count, type]) => {
+        const stat = document.createElement('div');
+        const term = document.createElement('dt');
+        const value = document.createElement('dd');
+        stat.className = `review-issue-summary-${type}`;
+        term.textContent = label;
+        value.textContent = String(count);
+        stat.append(term, value);
+        summary.appendChild(stat);
+    });
     const groupsContainer = document.createDocumentFragment();
     issueGroups.forEach((group) => {
         const section = document.createElement('section');
@@ -5015,7 +5037,7 @@ function updateIssues() {
         });
         groupsContainer.appendChild(section);
     });
-    documentIssues.replaceChildren(groupsContainer);
+    documentIssues.replaceChildren(summary, groupsContainer);
 }
 
 function getDocumentIssueGroups() {
