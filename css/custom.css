@@ -1024,6 +1024,7 @@ textarea {
     display: inline-block;
     width: 18px;
     height: 18px;
+    fill: currentColor;
     color: currentColor;
 }
 
@@ -1634,6 +1635,7 @@ textarea {
     display: inline-block;
     width: 18px;
     height: 18px;
+    fill: currentColor;
     color: currentColor;
 }
 
