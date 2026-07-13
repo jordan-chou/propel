@@ -1,0 +1,9 @@
+{
+  "name": "propel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/unit/**/*.test.js",
+    "check": "node --check src/propel.js && node --test test/unit/**/*.test.js"
+  }
+}

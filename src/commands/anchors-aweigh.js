@@ -37,7 +37,6 @@ export function modifyHeadings(inputHTML, headingIDCount, modifiedComponents) {
         modifiedComponents.push(heading.cloneNode(true));
     }
 
-    console.log("Added IDs to headings");
 }
 
 /**
@@ -64,7 +63,6 @@ export function modifyTables(inputHTML, tableIDCount, modifiedComponents) {
         modifiedComponents.push(table.cloneNode(true));
     }
 
-    console.log("Added IDs to tables");
 }
 
 /**
@@ -80,7 +78,6 @@ export function modifyFigures(inputHTML, figureIDCount, modifiedComponents) {
         modifiedComponents.push(figure.cloneNode(true));
     }
 
-    console.log("Added IDs to figures");
 }
 
 /**
@@ -240,7 +237,6 @@ function generateHeadingsList(ulHTML, headings, isFrenchChecked) {
 
         // case 1: current > prev: create sub-list
         if (headingLevel > prevLevel) {
-            console.log('headingLevel > prevLevel')
             while (headingLevel - prevLevel >= 2) {
                 ulHTML += tabChars + '<ul class="lst-spcd">\n';
                 ulHTML += tabChars + '<li>';
@@ -250,12 +246,10 @@ function generateHeadingsList(ulHTML, headings, isFrenchChecked) {
         } 
         // case 2: current == prev: close list item
         else if (headingLevel == prevLevel && headingLevel > 1) {
-            console.log('headingLevel == prevLevel')
             ulHTML += tabChars + '</li>\n';
         } 
         // case 3: current < prev: close sub-list
         else if (headingLevel < prevLevel) {
-            console.log('headingLevel < prevLevel')
             while (prevLevel - headingLevel >= 2) {
                 ulHTML += tabChars + '</li>';
                 ulHTML += tabChars + '</ul>\n';

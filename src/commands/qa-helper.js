@@ -36,7 +36,6 @@ export function countTags(input) {
 
     if (!input.innerHTML) return;
 
-    console.log(input);
     const div = document.createElement('div');
     div.appendChild(input.cloneNode(true));
 
@@ -231,7 +230,6 @@ function moveToCompareSection(element) {
 function createElementList(tags) {
     let list = document.createElement('ol');
     list.classList.add('lst-spcd', 'mrgn-tp-lg');
-    console.log(tags);
     if (!tags) return;
     for (var tag of tags) {
         let li = document.createElement('li');
