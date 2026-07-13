@@ -1427,6 +1427,15 @@ textarea {
     color: var(--muted);
 }
 
+.shortcut-list [data-shortcut-platform] {
+    display: inline-flex;
+    gap: 5px;
+}
+
+.shortcut-list [data-shortcut-platform][hidden] {
+    display: none;
+}
+
 .shortcut-list kbd {
     min-width: 24px;
     padding: 2px 6px;
@@ -2318,6 +2327,18 @@ textarea {
     gap: 8px;
     width: min(360px, calc(100vw - 28px));
     pointer-events: none;
+}
+
+.toast-region.table-editor-open {
+    right: auto;
+    left: calc(100vw - min(980px, calc(100vw - 24px)) + 16px);
+    z-index: 80;
+}
+
+@media (orientation: portrait) and (min-width: 768px), (max-width: 767px) {
+    .toast-region.table-editor-open {
+        left: 16px;
+    }
 }
 
 .toast-message {

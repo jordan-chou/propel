@@ -196,6 +196,8 @@
                             <button class="btn btn-default" type="button" id="codeViewBtn" data-editor-view="code">Code</button>
                         </div>
                         <div class="wysiwyg-toolbar" id="wysiwygToolbar" aria-label="Live view formatting">
+                            <button class="btn btn-default" type="button" id="documentUndoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></button>
+                            <button class="btn btn-default toolbar-divider" type="button" id="documentRedoBtn" title="Redo (Ctrl+Y or Cmd+Shift+Z)" aria-label="Redo" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></button>
                             <label class="wb-inv" for="blockFormatSelect">Block format</label>
                             <select class="toolbar-format-select" id="blockFormatSelect" title="Block format (Ctrl+Alt+0-6 or Cmd+Option+0-6)" aria-label="Block format" aria-keyshortcuts="Control+Alt+0 Meta+Alt+0 Control+Alt+1 Meta+Alt+1 Control+Alt+2 Meta+Alt+2 Control+Alt+3 Meta+Alt+3 Control+Alt+4 Meta+Alt+4 Control+Alt+5 Meta+Alt+5 Control+Alt+6 Meta+Alt+6">
                                 <option value="p">Paragraph</option>
@@ -273,6 +275,13 @@
         </div>
         <div class="shortcut-groups">
             <section>
+                <h3>History</h3>
+                <dl class="shortcut-list">
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></span>Undo in active editor</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Z</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></span>Redo in active editor</span></dt><dd><span data-shortcut-platform="non-apple"><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Y</kbd></span><span data-shortcut-platform="apple"><kbd data-shortcut-key="primary">Cmd</kbd><kbd>Shift</kbd><kbd>Z</kbd></span></dd></div>
+                </dl>
+            </section>
+            <section>
                 <h3>Format</h3>
                 <dl class="shortcut-list">
                     <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#paragraph"></use></svg></span>Paragraph</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd data-shortcut-key="alternate">Alt</kbd><kbd>0</kbd></dd></div>
@@ -345,6 +354,10 @@
 
             <div class="table-editor-workspace">
                 <div class="table-editor-toolbar" aria-label="Table editing">
+                    <div class="table-toolbar-group" aria-label="History">
+                        <button type="button" class="table-tool-btn" id="tableEditorUndoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorRedoBtn" title="Redo (Ctrl+Y or Cmd+Shift+Z)" aria-label="Redo" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></button>
+                    </div>
                     <div class="table-toolbar-group" aria-label="Selection">
                         <button type="button" class="table-tool-btn" id="tableEditorDeselectBtn" title="Deselect cells" aria-label="Deselect cells"><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#xmark"></use></svg></button>
                     </div>

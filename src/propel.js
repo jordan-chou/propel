@@ -79,6 +79,8 @@ const codeHighlight = document.getElementById('codeHighlight');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
 const wysiwygButtons = document.querySelectorAll('[data-edit-command]');
 const blockFormatSelect = document.getElementById('blockFormatSelect');
+const documentUndoBtn = document.getElementById('documentUndoBtn');
+const documentRedoBtn = document.getElementById('documentRedoBtn');
 const liveTableEditPopover = liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null;
 const tableEditorDialog = document.getElementById('tableEditorDialog');
 const tableEditorCloseBtn = document.getElementById('tableEditorCloseBtn');
@@ -89,6 +91,8 @@ const tableEditorPrevBtn = document.getElementById('tableEditorPrevBtn');
 const tableEditorNextBtn = document.getElementById('tableEditorNextBtn');
 const tableEditorPages = document.getElementById('tableEditorPages');
 const tableEditorRecleanBtn = document.getElementById('tableEditorRecleanBtn');
+const tableEditorUndoBtn = document.getElementById('tableEditorUndoBtn');
+const tableEditorRedoBtn = document.getElementById('tableEditorRedoBtn');
 const tableEditorDeselectBtn = document.getElementById('tableEditorDeselectBtn');
 const tableEditorHeaderBtn = document.getElementById('tableEditorHeaderBtn');
 const tableEditorMergeRowBtn = document.getElementById('tableEditorMergeRowBtn');
@@ -133,6 +137,19 @@ var tableEditorIsDragging = false;
 var tableEditorPreviewCleanup = false;
 var liveTableEditTarget = null;
 var liveEditorIsSelectingText = false;
+const documentHistory = [''];
+const documentHistoryActions = ['Initial state'];
+let documentHistoryIndex = 0;
+let documentHistoryTimer = null;
+let documentHistoryRestoring = false;
+let documentHistoryLastSource = null;
+let documentHistoryLastTime = 0;
+let activeDocumentCommandLabel = null;
+let tableEditorHistory = [];
+let tableEditorHistoryIndex = -1;
+let tableEditorHistoryTimer = null;
+let tableEditorHistoryRestoring = false;
+let tableEditorPendingAction = null;
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 const paneSplitterSnapRatios = [1 / 2, 2 / 3];
 const paneSplitterSnapZone = 24;
@@ -176,6 +193,10 @@ function updateShortcutHelpForPlatform() {
 
     shortcutHelpDialog.querySelectorAll('[data-shortcut-key]').forEach((key) => {
         key.textContent = keyLabels[key.dataset.shortcutKey];
+    });
+
+    shortcutHelpDialog.querySelectorAll('[data-shortcut-platform]').forEach((shortcut) => {
+        shortcut.hidden = shortcut.dataset.shortcutPlatform === 'apple' ? !isApplePlatform : isApplePlatform;
     });
 }
 
@@ -438,6 +459,7 @@ function createModernDashboardListeners() {
 
         liveEditor.addEventListener('input', () => {
             syncLiveToInputHTML();
+            scheduleDocumentHistoryCommit('typing');
             updateCodeView();
             refreshReviewPanel();
             rememberLiveSelection();
@@ -822,6 +844,7 @@ function createListeners() {
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
         syncEditorToInputHTML();
+        scheduleDocumentHistoryCommit('typing');
         updateLiveView();
         refreshReviewPanel();
         updateCodeHighlight();
@@ -839,6 +862,35 @@ function createListeners() {
 
     // Input box. Use change instead of input so the formatter does not fight the user while typing.
     outputText.addEventListener('change', updateInputHTML);
+
+    [
+        [standardCleanupBtn, 'Standard cleanup'],
+        [addIDsApplyBtn, 'Add IDs'],
+        [footnotesBtn, 'Generate footnotes'],
+        [nbspBtn, 'Validate non-breaking spaces'],
+        [splitBtn, 'Create H1 splits']
+    ].forEach(([button, commandLabel]) => {
+        if (!button) {
+            return;
+        }
+
+        button.addEventListener('click', () => {
+            commitDocumentHistory('typing');
+            activeDocumentCommandLabel = commandLabel;
+            window.setTimeout(() => {
+                if (activeDocumentCommandLabel === commandLabel) {
+                    activeDocumentCommandLabel = null;
+                }
+            }, 0);
+        }, { capture: true });
+    });
+
+    if (documentUndoBtn) {
+        documentUndoBtn.addEventListener('click', undoDocumentChange);
+    }
+    if (documentRedoBtn) {
+        documentRedoBtn.addEventListener('click', redoDocumentChange);
+    }
 
     // Command buttons
     footnotesBtn.addEventListener('click', generateFootnotesCommand);
@@ -1026,6 +1078,10 @@ function getWysiwygButtonLabel(button) {
 }
 
 function handleLiveEditorKeydown(event) {
+    if (handleDocumentHistoryShortcut(event)) {
+        return;
+    }
+
     preserveParagraphsOnEnter(event);
 
     const shortcut = getLiveEditorShortcut(event);
@@ -1184,6 +1240,10 @@ function getLiveEditorShortcut(event) {
 }
 
 function handleCodeEditorKeydown(event) {
+    if (handleDocumentHistoryShortcut(event)) {
+        return;
+    }
+
     const key = (event.key || '').toLowerCase();
 
     if (event.altKey && !event.ctrlKey && !event.metaKey && (key === 'w' || event.code === 'KeyW')) {
@@ -1202,6 +1262,105 @@ function handleCodeEditorKeydown(event) {
 
     indentCodeEditorSelection(event.shiftKey ? -1 : 1);
     syncCodeEditorAfterProgrammaticEdit();
+}
+
+function handleDocumentHistoryShortcut(event) {
+    const key = (event.key || '').toLowerCase();
+    const isUndo = key === 'z' && !event.shiftKey;
+    const isRedo = (key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey);
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || (!isUndo && !isRedo)) {
+        return false;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (isRedo) {
+        redoDocumentChange();
+    } else {
+        undoDocumentChange();
+    }
+    return true;
+}
+
+function scheduleDocumentHistoryCommit(source = 'typing') {
+    window.clearTimeout(documentHistoryTimer);
+    documentHistoryTimer = window.setTimeout(() => commitDocumentHistory(source), 400);
+}
+
+function commitDocumentHistory(source = 'command', actionLabel = null) {
+    if (documentHistoryRestoring) {
+        return;
+    }
+
+    window.clearTimeout(documentHistoryTimer);
+    const html = inputHTML.innerHTML;
+    const now = Date.now();
+    if (html === documentHistory[documentHistoryIndex]) {
+        return;
+    }
+
+    const coalesceTyping = source === 'typing' && documentHistoryLastSource === 'typing' && now - documentHistoryLastTime < 1200;
+    const historyAction = actionLabel || (source === 'typing' ? 'Edit document' : 'Change document');
+    if (coalesceTyping) {
+        documentHistory[documentHistoryIndex] = html;
+        documentHistoryActions[documentHistoryIndex] = historyAction;
+    } else {
+        documentHistory.splice(documentHistoryIndex + 1);
+        documentHistoryActions.splice(documentHistoryIndex + 1);
+        documentHistory.push(html);
+        documentHistoryActions.push(historyAction);
+        if (documentHistory.length > 100) {
+            documentHistory.shift();
+            documentHistoryActions.shift();
+        }
+        documentHistoryIndex = documentHistory.length - 1;
+    }
+
+    documentHistoryLastSource = source;
+    documentHistoryLastTime = now;
+    updateDocumentHistoryButtons();
+}
+
+function undoDocumentChange() {
+    commitDocumentHistory('typing');
+    if (documentHistoryIndex <= 0) {
+        return;
+    }
+    const undoneAction = documentHistoryActions[documentHistoryIndex] || 'Change document';
+    restoreDocumentHistory(documentHistoryIndex - 1);
+    showActivityToast(`Undid ${undoneAction}.`, 'success', 'Undo');
+}
+
+function redoDocumentChange() {
+    if (documentHistoryIndex >= documentHistory.length - 1) {
+        return;
+    }
+    const nextIndex = documentHistoryIndex + 1;
+    const redoneAction = documentHistoryActions[nextIndex] || 'Change document';
+    restoreDocumentHistory(nextIndex);
+    showActivityToast(`Redid ${redoneAction}.`, 'success', 'Redo');
+}
+
+function restoreDocumentHistory(index) {
+    documentHistoryRestoring = true;
+    documentHistoryIndex = index;
+    inputHTML.innerHTML = documentHistory[index];
+    inputHTML.classList.add('content-area');
+    updateCodeView();
+    updateLiveView();
+    refreshReviewPanel();
+    documentHistoryRestoring = false;
+    documentHistoryLastSource = 'history';
+    updateDocumentHistoryButtons();
+}
+
+function updateDocumentHistoryButtons() {
+    if (documentUndoBtn) {
+        documentUndoBtn.disabled = documentHistoryIndex <= 0;
+    }
+    if (documentRedoBtn) {
+        documentRedoBtn.disabled = documentHistoryIndex >= documentHistory.length - 1;
+    }
 }
 
 function wrapCodeEditorSelectionWithTag() {
@@ -1649,10 +1808,35 @@ function openShortcutHelp() {
 }
 
 function handleGlobalKeydown(event) {
+    if (isDocumentHistoryShortcut(event) && !isNativeHistoryField(event.target)) {
+        handleDocumentHistoryShortcut(event);
+        return;
+    }
+
     if (event.key === 'Escape') {
         closeShortcutHelp();
         handleTableEditorEscape();
     }
+}
+
+function isDocumentHistoryShortcut(event) {
+    const key = (event.key || '').toLowerCase();
+    return Boolean(
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        (
+            key === 'z' ||
+            (key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey)
+        )
+    );
+}
+
+function isNativeHistoryField(target) {
+    if (!target || !target.closest) {
+        return false;
+    }
+
+    return Boolean(target.closest('input:not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, [contenteditable="true"]'));
 }
 
 function handleShortcutHelpDialogKeydown(event) {
@@ -1719,6 +1903,7 @@ function createTableEditorListeners() {
     }
     if (tableEditorCanvas) {
         tableEditorCanvas.addEventListener('beforeinput', removeEmptyFooterPlaceholder);
+        tableEditorCanvas.addEventListener('input', () => scheduleTableEditorHistoryCommit('Edit table content'));
         tableEditorCanvas.addEventListener('paste', replaceEmptyFooterPlaceholderOnPaste);
         tableEditorCanvas.addEventListener('keydown', preserveParagraphsOnEnter);
         tableEditorCanvas.addEventListener('click', handleTableEditorCanvasClick);
@@ -1739,54 +1924,69 @@ function createTableEditorListeners() {
         tableEditorNextBtn.addEventListener('click', () => renderTableEditor(tableEditorIndex + 1));
     }
     if (tableEditorRecleanBtn) {
-        tableEditorRecleanBtn.addEventListener('click', recleanTableEditorTable);
+        tableEditorRecleanBtn.addEventListener('click', () => runTableEditorMutation(recleanTableEditorTable, 'Re-clean table'));
     }
     if (tableEditorDeselectBtn) {
         tableEditorDeselectBtn.addEventListener('click', deselectTableEditorCells);
     }
     if (tableEditorHeaderBtn) {
-        tableEditorHeaderBtn.addEventListener('click', toggleTableEditorHeaderRows);
+        tableEditorHeaderBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorHeaderRows, 'Header row'));
     }
     if (tableEditorMergeRowBtn) {
-        tableEditorMergeRowBtn.addEventListener('click', mergeTableEditorRows);
+        tableEditorMergeRowBtn.addEventListener('click', () => runTableEditorMutation(mergeTableEditorRows, 'Merge row'));
     }
     if (tableEditorMergeCellsBtn) {
-        tableEditorMergeCellsBtn.addEventListener('click', mergeTableEditorSelectedCells);
+        tableEditorMergeCellsBtn.addEventListener('click', () => runTableEditorMutation(mergeTableEditorSelectedCells, 'Merge cells'));
     }
     if (tableEditorActiveBtn) {
-        tableEditorActiveBtn.addEventListener('click', toggleTableEditorActiveRows);
+        tableEditorActiveBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorActiveRows, 'Active row'));
     }
     if (tableEditorAddFooterBtn) {
-        tableEditorAddFooterBtn.addEventListener('click', addEmptyTableEditorFooter);
+        tableEditorAddFooterBtn.addEventListener('click', () => runTableEditorMutation(addEmptyTableEditorFooter, 'Add empty footer'));
     }
     if (tableEditorTfootBtn) {
-        tableEditorTfootBtn.addEventListener('click', toggleTableEditorRowsInTfoot);
+        tableEditorTfootBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorRowsInTfoot, 'Move rows to or from footer'));
     }
     if (tableEditorIndentBtn) {
-        tableEditorIndentBtn.addEventListener('click', () => changeTableEditorIndent(1));
+        tableEditorIndentBtn.addEventListener('click', () => runTableEditorMutation(() => changeTableEditorIndent(1), 'Indent'));
     }
     if (tableEditorOutdentBtn) {
-        tableEditorOutdentBtn.addEventListener('click', () => changeTableEditorIndent(-1));
+        tableEditorOutdentBtn.addEventListener('click', () => runTableEditorMutation(() => changeTableEditorIndent(-1), 'Outdent'));
     }
     if (tableEditorBoldBtn) {
-        tableEditorBoldBtn.addEventListener('click', toggleTableEditorBold);
+        tableEditorBoldBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorBold, 'Bold'));
     }
     if (tableEditorLeftBtn) {
-        tableEditorLeftBtn.addEventListener('click', () => alignTableEditorCells('left'));
+        tableEditorLeftBtn.addEventListener('click', () => runTableEditorMutation(() => alignTableEditorCells('left'), 'Align left'));
     }
     if (tableEditorCenterBtn) {
-        tableEditorCenterBtn.addEventListener('click', () => alignTableEditorCells('center'));
+        tableEditorCenterBtn.addEventListener('click', () => runTableEditorMutation(() => alignTableEditorCells('center'), 'Align center'));
     }
     if (tableEditorRightBtn) {
-        tableEditorRightBtn.addEventListener('click', () => alignTableEditorCells('right'));
+        tableEditorRightBtn.addEventListener('click', () => runTableEditorMutation(() => alignTableEditorCells('right'), 'Align right'));
     }
     if (tableEditorDeleteRowBtn) {
-        tableEditorDeleteRowBtn.addEventListener('click', deleteTableEditorRows);
+        tableEditorDeleteRowBtn.addEventListener('click', () => runTableEditorMutation(deleteTableEditorRows, 'Delete row'));
+    }
+    if (tableEditorUndoBtn) {
+        tableEditorUndoBtn.addEventListener('click', undoTableEditorChange);
+    }
+    if (tableEditorRedoBtn) {
+        tableEditorRedoBtn.addEventListener('click', redoTableEditorChange);
     }
 
     [tableEditorNumber, tableEditorCaption, tableEditorUnit].forEach((field) => {
         if (field) {
-            field.addEventListener('input', updateTableEditorCaption);
+            field.addEventListener('input', () => {
+                updateTableEditorCaption();
+                scheduleTableEditorHistoryCommit('Edit table caption');
+            });
+        }
+    });
+
+    [tableEditorFinancial, tableEditorFrench].forEach((field) => {
+        if (field) {
+            field.addEventListener('change', () => commitTableEditorHistory('Change table options'));
         }
     });
 }
@@ -1802,6 +2002,9 @@ function openTableEditor(index = 0, options = {}) {
     tableEditorPreviewCleanup = options.previewCleanup !== false;
     tableEditorPreviousFocus = document.activeElement;
     tableEditorDialog.hidden = false;
+    if (toastRegion) {
+        toastRegion.classList.add('table-editor-open');
+    }
 
     renderTableEditor(index);
 
@@ -1816,6 +2019,9 @@ function closeTableEditor() {
     }
 
     tableEditorDialog.hidden = true;
+    if (toastRegion) {
+        toastRegion.classList.remove('table-editor-open');
+    }
     if (tableEditorCanvas) {
         tableEditorCanvas.innerHTML = '';
     }
@@ -1883,6 +2089,10 @@ function handleTableEditorDialogKeydown(event) {
         return;
     }
 
+    if (handleTableEditorHistoryShortcut(event)) {
+        return;
+    }
+
     if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
@@ -1911,6 +2121,139 @@ function handleTableEditorDialogKeydown(event) {
     if (!event.shiftKey && document.activeElement === lastElement) {
         event.preventDefault();
         firstElement.focus();
+    }
+}
+
+function handleTableEditorHistoryShortcut(event) {
+    const key = (event.key || '').toLowerCase();
+    const isUndo = key === 'z' && !event.shiftKey;
+    const isRedo = (key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey);
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || (!isUndo && !isRedo)) {
+        return false;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (isRedo) {
+        redoTableEditorChange();
+    } else {
+        undoTableEditorChange();
+    }
+    return true;
+}
+
+function getTableEditorSnapshot() {
+    if (!tableEditorCanvas) {
+        return null;
+    }
+
+    const clone = tableEditorCanvas.cloneNode(true);
+    clone.querySelectorAll('.selected').forEach((cell) => cell.classList.remove('selected'));
+    return {
+        html: clone.innerHTML,
+        financial: Boolean(tableEditorFinancial && tableEditorFinancial.checked),
+        french: Boolean(tableEditorFrench && tableEditorFrench.checked)
+    };
+}
+
+function tableEditorSnapshotsEqual(first, second) {
+    return Boolean(first && second) && first.html === second.html && first.financial === second.financial && first.french === second.french;
+}
+
+function resetTableEditorHistory() {
+    window.clearTimeout(tableEditorHistoryTimer);
+    tableEditorPendingAction = null;
+    tableEditorHistory = [];
+    tableEditorHistoryIndex = -1;
+    commitTableEditorHistory('Open table editor');
+}
+
+function scheduleTableEditorHistoryCommit(actionLabel = 'Edit table') {
+    window.clearTimeout(tableEditorHistoryTimer);
+    tableEditorPendingAction = actionLabel;
+    tableEditorHistoryTimer = window.setTimeout(() => {
+        commitTableEditorHistory(tableEditorPendingAction);
+        tableEditorPendingAction = null;
+    }, 350);
+}
+
+function runTableEditorMutation(callback, actionLabel) {
+    window.clearTimeout(tableEditorHistoryTimer);
+    commitTableEditorHistory(tableEditorPendingAction);
+    tableEditorPendingAction = null;
+    callback();
+    commitTableEditorHistory(actionLabel);
+}
+
+function commitTableEditorHistory(actionLabel = 'Edit table') {
+    if (tableEditorHistoryRestoring) {
+        return;
+    }
+
+    window.clearTimeout(tableEditorHistoryTimer);
+    const snapshot = getTableEditorSnapshot();
+    if (!snapshot || tableEditorSnapshotsEqual(snapshot, tableEditorHistory[tableEditorHistoryIndex])) {
+        return;
+    }
+
+    snapshot.action = actionLabel || 'Edit table';
+    tableEditorHistory.splice(tableEditorHistoryIndex + 1);
+    tableEditorHistory.push(snapshot);
+    if (tableEditorHistory.length > 100) {
+        tableEditorHistory.shift();
+    }
+    tableEditorHistoryIndex = tableEditorHistory.length - 1;
+    updateTableEditorHistoryButtons();
+}
+
+function undoTableEditorChange() {
+    commitTableEditorHistory(tableEditorPendingAction);
+    tableEditorPendingAction = null;
+    if (tableEditorHistoryIndex <= 0) {
+        return;
+    }
+    const undoneAction = tableEditorHistory[tableEditorHistoryIndex].action || 'Edit table';
+    restoreTableEditorHistory(tableEditorHistoryIndex - 1);
+    showActivityToast(`Undid ${undoneAction}.`, 'success', 'Table undo');
+}
+
+function redoTableEditorChange() {
+    if (tableEditorHistoryIndex >= tableEditorHistory.length - 1) {
+        return;
+    }
+    const nextIndex = tableEditorHistoryIndex + 1;
+    const redoneAction = tableEditorHistory[nextIndex].action || 'Edit table';
+    restoreTableEditorHistory(nextIndex);
+    showActivityToast(`Redid ${redoneAction}.`, 'success', 'Table redo');
+}
+
+function restoreTableEditorHistory(index) {
+    const snapshot = tableEditorHistory[index];
+    if (!snapshot || !tableEditorCanvas) {
+        return;
+    }
+
+    tableEditorHistoryRestoring = true;
+    tableEditorHistoryIndex = index;
+    tableEditorCanvas.innerHTML = snapshot.html;
+    if (tableEditorFinancial) {
+        tableEditorFinancial.checked = snapshot.financial;
+    }
+    if (tableEditorFrench) {
+        tableEditorFrench.checked = snapshot.french;
+    }
+    tableEditorLastSelectedCell = null;
+    loadTableEditorCaptionFields();
+    tableEditorHistoryRestoring = false;
+    updateTableEditorHistoryButtons();
+}
+
+function updateTableEditorHistoryButtons() {
+    if (tableEditorUndoBtn) {
+        tableEditorUndoBtn.disabled = tableEditorHistoryIndex <= 0;
+    }
+    if (tableEditorRedoBtn) {
+        tableEditorRedoBtn.disabled = tableEditorHistoryIndex >= tableEditorHistory.length - 1;
     }
 }
 
@@ -2034,6 +2377,7 @@ function renderTableEditor(index) {
 
     loadTableEditorCaptionFields();
     updateTableEditorStatus(items.length);
+    resetTableEditorHistory();
 }
 
 function updateTableEditorStatus(tableCount = getTableEditorItems().length) {
@@ -2694,6 +3038,7 @@ function applyTableEditorChanges(moveNext) {
     });
 
     item.container.replaceWith(cleanClone);
+    activeDocumentCommandLabel = 'Apply table edits';
     updateOutputText();
     addProcessingLog(`Applied edits to table ${tableEditorIndex + 1}.`, 'success');
 
@@ -3232,6 +3577,9 @@ function updateOutputText() {
     if (!inputHTML.classList.contains("content-area")) {
         inputHTML.classList.add("content-area");
     }
+    const commandLabel = activeDocumentCommandLabel;
+    commitDocumentHistory('command', commandLabel);
+    activeDocumentCommandLabel = null;
     updateCodeView();
     updateLiveView();
     refreshReviewPanel();
