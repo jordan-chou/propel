@@ -19,20 +19,17 @@ These instructions apply to the entire repository. Propel is expected to be deve
 ## Architectural boundaries
 
 - `DocumentStore` owns canonical document state. Do not introduce another independent document state owner.
-- Live/code/table editors and review/AI features consume or update the canonical document through established synchronization and mutation boundaries.
+- Live/code/table editors and review features consume or update the canonical document through established synchronization and mutation boundaries.
 - Register user-invokable operations with stable IDs in `CommandRegistry`.
 - Prefer stateless transformations with explicit inputs and structured results. Avoid module-global document state and direct access to unrelated UI elements.
-- Keep analysis separate from rendering, provider adapters separate from AI proposal policy, and third-party conversion code behind adapters.
+- Keep analysis separate from rendering and third-party conversion code behind adapters.
 - Reduce `src/propel.js` through small, tested extractions; do not replace it with a large rewrite.
 
-## Content-facing AI rules
+## No content-facing AI integration
 
-- AI proposes; it does not directly mutate document HTML.
-- Require structured, schema-validated responses tied to a document revision or fingerprint.
-- Show a human-reviewable proposal/diff before applying content changes, and make accepted changes undoable.
-- Send only explicitly selected context. Do not log document contents.
-- Never place provider credentials in client-side code. Use a server-side authenticated adapter for remote providers.
-- Treat accessibility semantics, alt text, table headers, and bilingual publishing output as human-reviewed decisions.
+- Propel currently has no AI provider, AI API client, or document-content AI feature. Do not add one unless the user explicitly requests that separate feature.
+- References to Codex and Copilot concern development assistance only and must not create runtime dependencies or transmit user documents.
+- Never introduce provider credentials, remote document processing, or document-content telemetry incidentally.
 
 ## Verification
 
@@ -47,4 +44,3 @@ These instructions apply to the entire repository. Propel is expected to be deve
 - Explain the outcome, tests run, and any browser/manual checks not run.
 - Link to the most relevant changed files.
 - Do not leave speculative abstractions, unused modules, debug logging, secrets, or generated dependency output behind.
-

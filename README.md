@@ -58,7 +58,6 @@ src/document/              Canonical document state and cleanup
 src/review/                Document analysis
 src/table-editor/          Table-editor model and feature modules
 src/ui/                    Shared browser UI utilities
-src/ai/                    Provider-neutral AI proposal boundary
 test/unit/                 Node unit tests
 test/browser/              Real-browser characterization tests
 docs/                      Architecture, testing, legacy, and vendor notes
@@ -68,7 +67,7 @@ See [docs/architecture.md](docs/architecture.md) for dependency direction and ar
 
 ## Architecture principles
 
-The internal document root managed by `DocumentStore` is the canonical document. The live editor, code editor, table editor, review panel, and future AI features are views or clients of that state—not competing sources of truth.
+The internal document root managed by `DocumentStore` is the canonical document. The live editor, code editor, table editor, and review panel are views or clients of that state—not competing sources of truth.
 
 Commands use stable identifiers through `CommandRegistry`. New transformations should accept explicit input and options and return structured output such as HTML, changes, warnings, and affected paths. A transformation should not reach into unrelated page controls or retain the current document in module-global state.
 
@@ -83,19 +82,11 @@ Most future programming is expected to be performed with tools such as Codex and
 
 AI-generated changes are held to the same standard as human changes: inspect the relevant execution path, preserve existing behavior unless a behavior change is requested, add or update tests, run `npm run check`, and report browser interactions that were not actually exercised. Generated code should fit the existing architecture instead of adding another state owner or bypassing the command/document boundaries.
 
-## Future content-facing AI
+## AI connectivity
 
-Propel may eventually connect document content to an AI provider. This is separate from using AI to develop Propel.
+Propel does not contain an AI provider integration, AI API endpoint, API key handling, document-upload mechanism, or AI content-processing feature. References to Codex and Copilot in this repository describe development tools only; they are not part of the running application.
 
-The existing `src/ai/` layer treats content AI as a proposal system:
-
-1. Propel creates a revisioned document snapshot and explicitly selected context.
-2. A provider returns a structured proposal rather than directly editing HTML.
-3. Propel validates the schema and document revision.
-4. The user reviews the proposal or diff.
-5. An accepted change enters normal document history and remains undoable.
-
-Provider credentials must not be placed in browser source. Production provider calls should use an authenticated server-side adapter. Document content should be minimized, deliberately selected, and excluded from logs; privacy and retention requirements must be decided before enabling remote content processing.
+Any future proposal to send document content to an AI service must be treated as a new, explicitly reviewed feature with privacy, security, consent, retention, accessibility, and server-side credential requirements. It must not be introduced incidentally during ordinary development.
 
 ## Adding a feature
 
