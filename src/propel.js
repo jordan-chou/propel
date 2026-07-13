@@ -4380,7 +4380,7 @@ function updateDocumentHealth() {
         return;
     }
 
-    const issueTotal = stats.emptyLinks + stats.missingHeadingIds + stats.missingTableIds + stats.missingFigureIds + stats.headingSkips;
+    const issueTotal = stats.emptyLinks + stats.missingHeadingIds + stats.missingTableIds + stats.missingFigureIds + stats.headingSkips + stats.tablesNeedingCleanup;
     let statusText = 'Looks clean';
     let statusClass = 'label-success';
     if (issueTotal === 0) {
@@ -4477,6 +4477,9 @@ function updateIssues() {
     if (stats.missingTableIds > 0) {
         issues.push(`${stats.missingTableIds} table(s) missing an ID.`);
     }
+    if (stats.tablesNeedingCleanup > 0) {
+        issues.push(`${stats.tablesNeedingCleanup} table(s) may not have been cleaned up yet. Open Table cleanup to review.`);
+    }
     if (stats.missingFigureIds > 0) {
         issues.push(`${stats.missingFigureIds} figure(s) missing an ID.`);
     }
@@ -4527,10 +4530,28 @@ function getDocumentStats() {
         emptyLinks: links.filter(link => !link.getAttribute('href') || link.getAttribute('href').trim() === '').length,
         missingHeadingIds: headings.filter(heading => !heading.id).length,
         missingTableIds: tables.filter(table => !table.id).length,
+        tablesNeedingCleanup: tables.filter(table => !isCleanedTable(table)).length,
         missingFigureIds: figures.filter(figure => !figure.id).length,
         imagesMissingAlt: images.filter(img => !img.hasAttribute('alt')).length,
         headingSkips: getHeadingSkipCount(headings)
     };
+}
+
+/**
+ * Detects the structural baseline produced by the table cleanup command.
+ * This deliberately avoids checking optional styling such as financial-table
+ * alignment so tables remain "clean" after supported editor customizations.
+ */
+function isCleanedTable(table) {
+    return Boolean(
+        table
+        && table.classList.contains('table')
+        && table.classList.contains('table-bordered')
+        && table.parentElement
+        && table.parentElement.matches('div.table-responsive')
+        && table.querySelector(':scope > thead')
+        && table.querySelector(':scope > tbody')
+    );
 }
 
 function getHeadingSkipCount(headings) {
