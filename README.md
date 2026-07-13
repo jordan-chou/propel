@@ -19,15 +19,19 @@ The application runs locally in the browser and currently has no production buil
 
 ## Running locally
 
-Propel uses ES modules and must be served over HTTP rather than opened directly with a `file:` URL.
+Propel can be run locally by opening `index.html` in a browser.
 
-From the repository root, start any static web server. For example, if Python is available:
+Alternatively, you can serve the repository over HTTP. From the repository root, Python's built-in server is a simple option:
 
 ```sh
 python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000/` and upload a Word document. No `npm install` is required for the current application or unit tests.
+
+## Philosophy
+
+Propel is intended to keep document conversion and editing simple, understandable, and under the user's control. It should never perform destructive or drastic changes without explicit user intervention. When a change could significantly alter content or structure, Propel should make the action clear and leave the decision to the user.
 
 ## Testing
 
