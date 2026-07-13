@@ -90,8 +90,10 @@ const tableEditorCloseBtn = document.getElementById('tableEditorCloseBtn');
 const tableEditorCancelBtn = document.getElementById('tableEditorCancelBtn');
 const tableEditorApplyBtn = document.getElementById('tableEditorApplyBtn');
 const tableEditorApplyNextBtn = document.getElementById('tableEditorApplyNextBtn');
+const tableEditorFirstBtn = document.getElementById('tableEditorFirstBtn');
 const tableEditorPrevBtn = document.getElementById('tableEditorPrevBtn');
 const tableEditorNextBtn = document.getElementById('tableEditorNextBtn');
+const tableEditorLastBtn = document.getElementById('tableEditorLastBtn');
 const tableEditorPages = document.getElementById('tableEditorPages');
 const tableEditorRecleanBtn = document.getElementById('tableEditorRecleanBtn');
 const tableEditorUndoBtn = document.getElementById('tableEditorUndoBtn');
@@ -2079,11 +2081,17 @@ function createTableEditorListeners() {
     if (tableEditorApplyNextBtn) {
         tableEditorApplyNextBtn.addEventListener('click', () => applyTableEditorChanges(true));
     }
+    if (tableEditorFirstBtn) {
+        tableEditorFirstBtn.addEventListener('click', () => renderTableEditor(0));
+    }
     if (tableEditorPrevBtn) {
         tableEditorPrevBtn.addEventListener('click', () => renderTableEditor(tableEditorIndex - 1));
     }
     if (tableEditorNextBtn) {
         tableEditorNextBtn.addEventListener('click', () => renderTableEditor(tableEditorIndex + 1));
+    }
+    if (tableEditorLastBtn) {
+        tableEditorLastBtn.addEventListener('click', () => renderTableEditor(getTableEditorItems().length - 1));
     }
     if (tableEditorRecleanBtn) {
         tableEditorRecleanBtn.addEventListener('click', () => runTableEditorMutation(recleanTableEditorTable, 'Re-clean table'));
@@ -2858,11 +2866,17 @@ function updateTableEditorStatus(tableCount = getTableEditorItems().length) {
     if (tableEditorStatus) {
         tableEditorStatus.textContent = `Table ${tableEditorIndex + 1} of ${tableCount}. Use the Live view Edit table button or double-click a table to edit it here.`;
     }
+    if (tableEditorFirstBtn) {
+        tableEditorFirstBtn.disabled = tableEditorIndex <= 0;
+    }
     if (tableEditorPrevBtn) {
         tableEditorPrevBtn.disabled = tableEditorIndex <= 0;
     }
     if (tableEditorNextBtn) {
         tableEditorNextBtn.disabled = tableEditorIndex >= tableCount - 1;
+    }
+    if (tableEditorLastBtn) {
+        tableEditorLastBtn.disabled = tableEditorIndex >= tableCount - 1;
     }
     if (tableEditorApplyNextBtn) {
         tableEditorApplyNextBtn.disabled = tableEditorIndex >= tableCount - 1;
@@ -2877,6 +2891,7 @@ function renderTableEditorPagination(tableCount) {
     }
 
     tableEditorPages.innerHTML = '';
+    let activeButton = null;
 
     for (let index = 0; index < tableCount; index++) {
         const button = document.createElement('button');
@@ -2888,6 +2903,7 @@ function renderTableEditorPagination(tableCount) {
         if (index === tableEditorIndex) {
             button.classList.add('active');
             button.setAttribute('aria-current', 'page');
+            activeButton = button;
         }
 
         button.addEventListener('click', () => {
@@ -2895,6 +2911,21 @@ function renderTableEditorPagination(tableCount) {
         });
 
         tableEditorPages.appendChild(button);
+    }
+
+    if (activeButton) {
+        requestAnimationFrame(() => {
+            if (!activeButton.isConnected) {
+                return;
+            }
+
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            activeButton.scrollIntoView({
+                behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        });
     }
 }
 

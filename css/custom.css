@@ -991,7 +991,6 @@ textarea {
     overflow: auto;
 }
 
-.table-editor-nav,
 .table-editor-toolbar,
 .table-editor-actions {
     display: flex;
@@ -1000,22 +999,105 @@ textarea {
     gap: 8px;
 }
 
+.table-editor-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid rgba(37, 87, 214, 0.12);
+    border-radius: 10px;
+    background: var(--surface-2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.table-editor-nav-heading {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.table-editor-nav-title {
+    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.table-editor-nav-hint {
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.table-editor-nav-controls {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr) 32px;
+    gap: 6px;
+}
+
+.table-editor-nav-controls .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 32px;
+    padding: 5px 8px;
+    border-color: rgba(37, 87, 214, 0.2);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.86);
+}
+
+.table-editor-nav-controls .table-editor-nav-end {
+    padding: 5px;
+    color: var(--muted);
+}
+
+.table-editor-nav-controls svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.table-editor-nav-controls .btn:disabled,
+.table-editor-nav-controls .btn:disabled:hover,
+.table-editor-nav-controls .btn:disabled:focus {
+    border-color: rgba(102, 112, 133, 0.12);
+    background: rgba(255, 255, 255, 0.38);
+    color: rgba(102, 112, 133, 0.42);
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.72;
+}
+
 .table-editor-pages {
     display: flex;
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-    gap: 5px;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    gap: 6px;
+    padding: 3px 1px 2px;
+    overflow-x: auto;
+    scrollbar-width: thin;
 }
 
 .table-editor-page-btn {
-    min-width: 32px;
-    min-height: 30px;
-    padding: 4px 8px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: #fff;
-    color: var(--text);
-    font-weight: 700;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.76);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 650;
+    transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
 .table-editor-page-btn:hover,
@@ -1029,6 +1111,7 @@ textarea {
     border-color: var(--primary);
     background: var(--primary);
     color: #fff;
+    box-shadow: 0 2px 6px rgba(37, 87, 214, 0.24);
 }
 
 .table-editor-options {

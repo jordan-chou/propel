@@ -335,9 +335,17 @@
         <div class="table-editor-layout">
             <aside class="table-editor-panel" aria-label="Table details">
                 <div class="table-editor-nav" aria-label="Table navigation">
-                    <button type="button" class="btn btn-default btn-sm" id="tableEditorPrevBtn">Previous</button>
+                    <div class="table-editor-nav-heading">
+                        <span class="table-editor-nav-title">Tables</span>
+                        <span class="table-editor-nav-hint">Select a table to edit</span>
+                    </div>
+                    <div class="table-editor-nav-controls">
+                        <button type="button" class="btn btn-default btn-sm table-editor-nav-end" id="tableEditorFirstBtn" aria-label="First table" title="First table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3v10M12 3.5 7.5 8l4.5 4.5"></path></svg></button>
+                        <button type="button" class="btn btn-default btn-sm" id="tableEditorPrevBtn" aria-label="Previous table" title="Previous table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10.5 3.5 6 8l4.5 4.5"></path></svg></button>
+                        <button type="button" class="btn btn-default btn-sm" id="tableEditorNextBtn" aria-label="Next table" title="Next table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m5.5 3.5 4.5 4.5-4.5 4.5"></path></svg></button>
+                        <button type="button" class="btn btn-default btn-sm table-editor-nav-end" id="tableEditorLastBtn" aria-label="Last table" title="Last table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 3v10M4 3.5 8.5 8 4 12.5"></path></svg></button>
+                    </div>
                     <div class="table-editor-pages" id="tableEditorPages" aria-label="Jump to table"></div>
-                    <button type="button" class="btn btn-default btn-sm" id="tableEditorNextBtn">Next</button>
                 </div>
 
                 <div class="form-row">
