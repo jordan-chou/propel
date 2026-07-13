@@ -83,6 +83,9 @@ const documentUndoBtn = document.getElementById('documentUndoBtn');
 const documentRedoBtn = document.getElementById('documentRedoBtn');
 const liveTableEditPopover = liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null;
 const tableEditorDialog = document.getElementById('tableEditorDialog');
+const tableEditorResizeHandle = document.getElementById('tableEditorResizeHandle');
+const tableEditorSnapGuides = document.querySelectorAll('.table-editor-snap-guide');
+const tableEditorFullscreenBtn = document.getElementById('tableEditorFullscreenBtn');
 const tableEditorCloseBtn = document.getElementById('tableEditorCloseBtn');
 const tableEditorCancelBtn = document.getElementById('tableEditorCancelBtn');
 const tableEditorApplyBtn = document.getElementById('tableEditorApplyBtn');
@@ -155,6 +158,10 @@ let tableEditorPendingAction = null;
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 const paneSplitterSnapRatios = [1 / 2, 2 / 3];
 const paneSplitterSnapZone = 24;
+const tableEditorSizeStorageKey = 'propel.tableEditorSize';
+const tableEditorBottomLayoutQuery = window.matchMedia('(orientation: portrait) and (min-width: 768px), (max-width: 767px)');
+const tableEditorMobileLayoutQuery = window.matchMedia('(max-width: 767px)');
+const tableEditorSnapZone = 24;
 
 // Footnote generator
 var showFullPreview = false;
@@ -370,6 +377,7 @@ function createModernDashboardListeners() {
             setActivityPanelOpen(false);
         });
     }
+    document.addEventListener('keydown', handleActivityPanelKeydown, true);
 
     if (shortcutHelpBtn) {
         shortcutHelpBtn.addEventListener('click', openShortcutHelp);
@@ -1829,6 +1837,19 @@ function handleGlobalKeydown(event) {
     }
 }
 
+function handleActivityPanelKeydown(event) {
+    if (event.key !== 'Escape' || !isActivityPanelOpen()) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    setActivityPanelOpen(false);
+    if (activityToggleBtn) {
+        activityToggleBtn.focus();
+    }
+}
+
 function isDocumentHistoryShortcut(event) {
     const key = (event.key || '').toLowerCase();
     return Boolean(
@@ -1911,6 +1932,14 @@ function createTableEditorListeners() {
     if (tableEditorDialog) {
         tableEditorDialog.addEventListener('keydown', handleTableEditorDialogKeydown);
     }
+    if (tableEditorFullscreenBtn) {
+        tableEditorFullscreenBtn.addEventListener('click', toggleTableEditorFullscreen);
+    }
+    if (tableEditorResizeHandle) {
+        tableEditorResizeHandle.addEventListener('pointerdown', startTableEditorResize);
+        tableEditorResizeHandle.addEventListener('keydown', handleTableEditorResizeKeydown);
+    }
+    tableEditorBottomLayoutQuery.addEventListener('change', updateTableEditorResizeHandle);
     if (tableEditorCanvas) {
         tableEditorCanvas.addEventListener('beforeinput', removeEmptyFooterPlaceholder);
         tableEditorCanvas.addEventListener('input', () => scheduleTableEditorHistoryCommit('Edit table content'));
@@ -2015,7 +2044,171 @@ function createTableEditorListeners() {
     if (tableEditorPanel) {
         tableEditorPanel.addEventListener('scroll', hideOptionTooltip);
     }
-    window.addEventListener('resize', hideOptionTooltip);
+    window.addEventListener('resize', () => {
+        hideOptionTooltip();
+        updateTableEditorResizeHandle();
+        updateTableEditorToastPosition();
+    });
+}
+
+function updateTableEditorToastPosition() {
+    if (!toastRegion || !tableEditorDialog || tableEditorDialog.hidden) {
+        return;
+    }
+
+    const editorRect = tableEditorDialog.getBoundingClientRect();
+    toastRegion.style.setProperty('--table-editor-toast-left', `${Math.round(editorRect.left + 16)}px`);
+    toastRegion.style.setProperty('--table-editor-toast-bottom', `${Math.round(window.innerHeight - editorRect.bottom + 14)}px`);
+}
+
+function getStoredTableEditorSize() {
+    try {
+        return JSON.parse(localStorage.getItem(tableEditorSizeStorageKey)) || {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function storeTableEditorSize(name, value) {
+    const size = getStoredTableEditorSize();
+    size[name] = Math.round(value);
+    try {
+        localStorage.setItem(tableEditorSizeStorageKey, JSON.stringify(size));
+    } catch (error) {
+        // The editor remains resizable when storage is unavailable.
+    }
+}
+
+function updateTableEditorResizeHandle() {
+    if (!tableEditorDialog || !tableEditorResizeHandle) {
+        return;
+    }
+
+    const { isBottomLayout, min, max } = getTableEditorSizeMetrics();
+    const value = isBottomLayout ? tableEditorDialog.offsetHeight : tableEditorDialog.offsetWidth;
+    tableEditorResizeHandle.setAttribute('aria-orientation', isBottomLayout ? 'horizontal' : 'vertical');
+    tableEditorResizeHandle.setAttribute('aria-valuemin', String(min));
+    tableEditorResizeHandle.setAttribute('aria-valuemax', String(max));
+    tableEditorResizeHandle.setAttribute('aria-valuenow', String(Math.round(value)));
+    updateTableEditorSnapGuides();
+}
+
+function getTableEditorSizeMetrics() {
+    const isBottomLayout = tableEditorBottomLayoutQuery.matches;
+    const viewportSize = isBottomLayout ? window.innerHeight : window.innerWidth;
+    const min = isBottomLayout ? Math.min(360, viewportSize - 24) : Math.min(600, viewportSize - 24);
+    const max = Math.max(min, viewportSize - 24);
+    const responsiveDefaultRatio = tableEditorMobileLayoutQuery.matches ? 0.72 : 0.86;
+    const defaultSize = isBottomLayout
+        ? Math.min(viewportSize * responsiveDefaultRatio, tableEditorMobileLayoutQuery.matches ? 760 : 920, max)
+        : Math.min(980, max);
+
+    return { isBottomLayout, viewportSize, min, max, defaultSize };
+}
+
+function getTableEditorSnapSizes(metrics = getTableEditorSizeMetrics()) {
+    return [metrics.defaultSize, metrics.viewportSize * (2 / 3)]
+        .map((size) => Math.max(metrics.min, Math.min(size, metrics.max)));
+}
+
+function updateTableEditorSnapGuides() {
+    const metrics = getTableEditorSizeMetrics();
+    const sizes = getTableEditorSnapSizes(metrics);
+
+    tableEditorSnapGuides.forEach((guide, index) => {
+        const size = sizes[index];
+        const duplicatesEarlierGuide = sizes.slice(0, index).some((otherSize) => Math.abs(otherSize - size) < 1);
+        guide.hidden = duplicatesEarlierGuide;
+        guide.style.setProperty('--table-editor-snap-position', `${metrics.viewportSize - size}px`);
+    });
+}
+
+function snapTableEditorSize(value, metrics = getTableEditorSizeMetrics()) {
+    const snapSize = getTableEditorSnapSizes(metrics).find((size) => Math.abs(value - size) <= tableEditorSnapZone);
+    return snapSize === undefined ? value : snapSize;
+}
+
+function showActiveTableEditorSnap(value) {
+    const sizes = getTableEditorSnapSizes();
+    tableEditorSnapGuides.forEach((guide, index) => {
+        guide.classList.toggle('active', Math.abs(sizes[index] - value) < 1);
+    });
+}
+
+function applyStoredTableEditorSize() {
+    const size = getStoredTableEditorSize();
+    if (Number.isFinite(size.width)) {
+        tableEditorDialog.style.setProperty('--table-editor-width', `${size.width}px`);
+    }
+    if (Number.isFinite(size.height)) {
+        tableEditorDialog.style.setProperty('--table-editor-height', `${size.height}px`);
+    }
+    updateTableEditorResizeHandle();
+}
+
+function setTableEditorSize(value) {
+    const { isBottomLayout, min, max } = getTableEditorSizeMetrics();
+    const nextValue = Math.max(min, Math.min(value, max));
+    const name = isBottomLayout ? 'height' : 'width';
+    tableEditorDialog.style.setProperty(`--table-editor-${name}`, `${nextValue}px`);
+    tableEditorResizeHandle.setAttribute('aria-valuenow', String(Math.round(nextValue)));
+    updateTableEditorToastPosition();
+    return { name, value: nextValue };
+}
+
+function startTableEditorResize(event) {
+    if (event.button !== 0 || tableEditorDialog.classList.contains('table-editor-fullscreen')) {
+        return;
+    }
+    event.preventDefault();
+    tableEditorResizeHandle.setPointerCapture(event.pointerId);
+    tableEditorDialog.classList.add('table-editor-resizing');
+    updateTableEditorSnapGuides();
+
+    const resize = (moveEvent) => {
+        const rawValue = tableEditorBottomLayoutQuery.matches
+            ? window.innerHeight - moveEvent.clientY
+            : window.innerWidth - moveEvent.clientX;
+        const value = snapTableEditorSize(rawValue);
+        setTableEditorSize(value);
+        showActiveTableEditorSnap(value);
+    };
+    const finish = () => {
+        tableEditorDialog.classList.remove('table-editor-resizing');
+        showActiveTableEditorSnap(Number.NaN);
+        tableEditorResizeHandle.removeEventListener('pointermove', resize);
+        tableEditorResizeHandle.removeEventListener('pointerup', finish);
+        tableEditorResizeHandle.removeEventListener('pointercancel', finish);
+        tableEditorResizeHandle.removeEventListener('lostpointercapture', finish);
+        const isBottomLayout = tableEditorBottomLayoutQuery.matches;
+        storeTableEditorSize(isBottomLayout ? 'height' : 'width', isBottomLayout ? tableEditorDialog.offsetHeight : tableEditorDialog.offsetWidth);
+    };
+    tableEditorResizeHandle.addEventListener('pointermove', resize);
+    tableEditorResizeHandle.addEventListener('pointerup', finish);
+    tableEditorResizeHandle.addEventListener('pointercancel', finish);
+    tableEditorResizeHandle.addEventListener('lostpointercapture', finish);
+}
+
+function handleTableEditorResizeKeydown(event) {
+    const isBottomLayout = tableEditorBottomLayoutQuery.matches;
+    const direction = isBottomLayout
+        ? { ArrowUp: 1, ArrowDown: -1 }[event.key]
+        : { ArrowLeft: 1, ArrowRight: -1 }[event.key];
+    if (!direction) {
+        return;
+    }
+    event.preventDefault();
+    const current = isBottomLayout ? tableEditorDialog.offsetHeight : tableEditorDialog.offsetWidth;
+    const result = setTableEditorSize(current + direction * (event.shiftKey ? 50 : 10));
+    storeTableEditorSize(result.name, result.value);
+}
+
+function toggleTableEditorFullscreen() {
+    const fullscreen = tableEditorDialog.classList.toggle('table-editor-fullscreen');
+    tableEditorFullscreenBtn.setAttribute('aria-pressed', String(fullscreen));
+    tableEditorFullscreenBtn.textContent = fullscreen ? 'Exit fullscreen' : 'Fullscreen';
+    updateTableEditorResizeHandle();
+    updateTableEditorToastPosition();
 }
 
 function showOptionTooltip(button) {
@@ -2058,8 +2251,10 @@ function openTableEditor(index = 0, options = {}) {
     tableEditorPreviewCleanup = options.previewCleanup !== false;
     tableEditorPreviousFocus = document.activeElement;
     tableEditorDialog.hidden = false;
+    applyStoredTableEditorSize();
     if (toastRegion) {
         toastRegion.classList.add('table-editor-open');
+        updateTableEditorToastPosition();
     }
 
     syncTableEditorFrenchOption();
@@ -2076,6 +2271,11 @@ function closeTableEditor() {
     }
 
     tableEditorDialog.hidden = true;
+    tableEditorDialog.classList.remove('table-editor-fullscreen');
+    if (tableEditorFullscreenBtn) {
+        tableEditorFullscreenBtn.setAttribute('aria-pressed', 'false');
+        tableEditorFullscreenBtn.textContent = 'Fullscreen';
+    }
     hideOptionTooltip();
     if (toastRegion) {
         toastRegion.classList.remove('table-editor-open');

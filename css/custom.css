@@ -858,7 +858,7 @@ textarea {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     gap: 14px;
-    width: min(980px, calc(100vw - 24px));
+    width: min(var(--table-editor-width, 980px), calc(100vw - 24px));
     height: auto;
     padding: 16px;
     border: 1px solid var(--border);
@@ -866,6 +866,98 @@ textarea {
     border-radius: 12px 0 0 12px;
     background: #fff;
     box-shadow: var(--shadow);
+}
+
+.table-editor-dialog.table-editor-fullscreen {
+    top: var(--header-height);
+    left: 0;
+    width: 100vw;
+    height: calc(100vh - var(--header-height));
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.table-editor-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-editor-resize-handle {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    bottom: 0;
+    left: -6px;
+    width: 12px;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.table-editor-resize-handle::after {
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    width: 2px;
+    height: 48px;
+    border-radius: 2px;
+    background: var(--border);
+    content: "";
+    transform: translateY(-50%);
+}
+
+.table-editor-resize-handle:hover::after,
+.table-editor-resize-handle:focus-visible::after {
+    background: var(--primary);
+}
+
+.table-editor-snap-guide {
+    position: fixed;
+    z-index: 71;
+    top: var(--header-height);
+    bottom: 0;
+    left: var(--table-editor-snap-position);
+    width: 1px;
+    border-left: 1px dashed rgba(37, 87, 214, 0.16);
+    opacity: 0;
+    pointer-events: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.table-editor-snap-guide::after {
+    position: absolute;
+    top: 6px;
+    left: 4px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.78);
+    color: rgba(37, 87, 214, 0.45);
+    content: attr(data-label);
+    font-size: 0.62rem;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.table-editor-dialog.table-editor-resizing .table-editor-snap-guide {
+    border-color: rgba(37, 87, 214, 0.38);
+    opacity: 1;
+}
+
+.table-editor-dialog.table-editor-resizing .table-editor-snap-guide::after,
+.table-editor-snap-guide.active::after {
+    opacity: 1;
+}
+
+.table-editor-snap-guide.active {
+    border-color: rgba(37, 87, 214, 0.8);
+    box-shadow: 0 0 5px rgba(37, 87, 214, 0.35);
+}
+
+.table-editor-dialog.table-editor-fullscreen .table-editor-resize-handle,
+.table-editor-dialog.table-editor-fullscreen .table-editor-snap-guide {
+    display: none;
 }
 
 .table-editor-dialog[hidden] {
@@ -1282,8 +1374,9 @@ textarea {
 
 .table-editor-canvas table,
 .table-editor-canvas .table {
-    width: 100%;
-    max-width: 100%;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
     margin-bottom: 22px;
     border-spacing: 0;
     border-collapse: collapse;
@@ -1900,6 +1993,7 @@ textarea {
 
 #codeHighlight {
     z-index: 0;
+    overflow: hidden;
     color: #d7deea;
     pointer-events: none;
 }
@@ -1953,7 +2047,7 @@ textarea {
 #liveEditor {
     grid-column: 1;
     grid-row: 2;
-    overflow: auto;
+    overflow: hidden;
     padding: 0;
     background: #fff;
     color: var(--text);
@@ -2130,10 +2224,44 @@ textarea {
         right: 0;
         bottom: 0;
         width: auto;
-        height: min(86vh, 920px);
+        height: min(var(--table-editor-height, 86vh), calc(100vh - 24px));
         border-right: 1px solid var(--border);
         border-bottom: 0;
         border-radius: 12px 12px 0 0;
+    }
+
+    .table-editor-resize-handle {
+        top: -6px;
+        right: 0;
+        bottom: auto;
+        left: 0;
+        width: auto;
+        height: 12px;
+        cursor: row-resize;
+    }
+
+    .table-editor-resize-handle::after {
+        top: 5px;
+        left: 50%;
+        width: 48px;
+        height: 2px;
+        transform: translateX(-50%);
+    }
+
+    .table-editor-snap-guide {
+        top: var(--table-editor-snap-position);
+        right: 0;
+        bottom: auto;
+        left: 0;
+        width: auto;
+        height: 1px;
+        border-top: 1px dashed rgba(37, 87, 214, 0.16);
+        border-left: 0;
+    }
+
+    .table-editor-dialog.table-editor-fullscreen {
+        top: var(--header-height);
+        height: calc(100vh - var(--header-height));
     }
 
     .table-editor-layout {
@@ -2327,7 +2455,7 @@ textarea {
     top: var(--header-height);
     right: 0;
     bottom: 0;
-    z-index: 30;
+    z-index: 75;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     width: min(420px, calc(100vw - 24px));
@@ -2383,14 +2511,9 @@ textarea {
 
 .toast-region.table-editor-open {
     right: auto;
-    left: calc(100vw - min(980px, calc(100vw - 24px)) + 16px);
+    bottom: var(--table-editor-toast-bottom, 14px);
+    left: var(--table-editor-toast-left, 16px);
     z-index: 80;
-}
-
-@media (orientation: portrait) and (min-width: 768px), (max-width: 767px) {
-    .toast-region.table-editor-open {
-        left: 16px;
-    }
 }
 
 .toast-message {
@@ -2607,10 +2730,44 @@ textarea {
         right: 0;
         bottom: 0;
         width: auto;
-        height: min(72vh, 760px);
+        height: min(var(--table-editor-height, 72vh), calc(100vh - 24px));
         border-right: 1px solid var(--border);
         border-bottom: 0;
         border-radius: 12px 12px 0 0;
+    }
+
+    .table-editor-resize-handle {
+        top: -6px;
+        right: 0;
+        bottom: auto;
+        left: 0;
+        width: auto;
+        height: 12px;
+        cursor: row-resize;
+    }
+
+    .table-editor-resize-handle::after {
+        top: 5px;
+        left: 50%;
+        width: 48px;
+        height: 2px;
+        transform: translateX(-50%);
+    }
+
+    .table-editor-snap-guide {
+        top: var(--table-editor-snap-position);
+        right: 0;
+        bottom: auto;
+        left: 0;
+        width: auto;
+        height: 1px;
+        border-top: 1px dashed rgba(37, 87, 214, 0.16);
+        border-left: 0;
+    }
+
+    .table-editor-dialog.table-editor-fullscreen {
+        top: var(--header-height);
+        height: calc(100vh - var(--header-height));
     }
 
     .table-editor-layout {

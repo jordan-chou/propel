@@ -316,12 +316,18 @@
     </section>
 
     <section class="table-editor-dialog" id="tableEditorDialog" role="dialog" aria-labelledby="tableEditorTitle" hidden>
+        <div class="table-editor-snap-guide" data-snap-target="default" data-label="Default" aria-hidden="true"></div>
+        <div class="table-editor-snap-guide" data-snap-target="0.6666666667" data-label="33/66" aria-hidden="true"></div>
+        <div class="table-editor-resize-handle" id="tableEditorResizeHandle" role="separator" aria-label="Resize table editor" aria-orientation="vertical" aria-valuemin="600" aria-valuemax="980" aria-valuenow="980" tabindex="0"></div>
         <div class="dialog-header">
             <div>
                 <h2 id="tableEditorTitle">Table cleanup</h2>
                 <p id="tableEditorStatus" class="table-editor-status text-muted">No table selected.</p>
             </div>
-            <button type="button" class="btn btn-xs" id="tableEditorCloseBtn">Close</button>
+            <div class="table-editor-header-actions">
+                <button type="button" class="btn btn-xs" id="tableEditorFullscreenBtn" aria-pressed="false">Fullscreen</button>
+                <button type="button" class="btn btn-xs" id="tableEditorCloseBtn">Close</button>
+            </div>
         </div>
 
         <div class="table-editor-layout">
