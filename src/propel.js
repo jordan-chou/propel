@@ -65,6 +65,15 @@ const documentIssues = document.getElementById('documentIssues');
 const reviewFlagsToggle = document.getElementById('reviewFlagsToggle');
 const htmlPreview = document.getElementById('htmlPreview');
 const healthScore = document.getElementById('healthScore');
+let selectedOutlineType = 'headings';
+const outlineTypes = {
+    headings: { label: 'Headings', selector: 'h1, h2, h3, h4, h5, h6', empty: 'No headings found yet.' },
+    tables: { label: 'Tables', selector: 'table', empty: 'No tables found yet.' },
+    figures: { label: 'Figures', selector: 'figure', empty: 'No figures found yet.' },
+    images: { label: 'Images', selector: 'img', empty: 'No images found yet.' },
+    links: { label: 'Links', selector: 'a', empty: 'No links found yet.' },
+    footnotes: { label: 'Footnotes', selector: 'sup a, a[href^="#fn"], a[href^="#ftn"]', empty: 'No footnotes found yet.' }
+};
 const reviewTabs = document.querySelectorAll('[data-review-tab]');
 const workflowTabs = document.querySelectorAll('[data-workflow-tab]');
 const standardCleanupBtn = document.getElementById('standardCleanupBtn');
@@ -4854,17 +4863,26 @@ function updateDocumentHealth() {
 
     documentHealth.innerHTML = `
         <div class="report-summary">
-            <span class="label ${statusClass}">${statusText}</span>
+            <button type="button" class="label ${statusClass} report-review-score" aria-controls="issuesPane">${statusText}</button>
             <span class="text-muted">${issueTotal} review item${issueTotal === 1 ? '' : 's'}</span>
         </div>
-        <dl class="report-stats">
-            <div><dt>Headings</dt><dd>${stats.headings}</dd></div>
-            <div><dt>Tables</dt><dd>${stats.tables}</dd></div>
-            <div><dt>Figures</dt><dd>${stats.figures}</dd></div>
-            <div><dt>Images</dt><dd>${stats.images}</dd></div>
-            <div><dt>Links</dt><dd>${stats.links}</dd></div>
-            <div><dt>Footnotes</dt><dd>${stats.footnoteRefs}</dd></div>
-        </dl>`;
+        <div class="report-stats" role="group" aria-label="Choose outline contents">
+            ${Object.entries(outlineTypes).map(([type, config]) => `
+                <button type="button" class="report-stat${selectedOutlineType === type ? ' is-selected' : ''}"
+                    data-outline-type="${type}" aria-pressed="${selectedOutlineType === type}">
+                    <span class="report-stat-label">${config.label}</span>
+                    <span class="report-stat-count">${type === 'footnotes' ? stats.footnoteRefs : stats[type]}</span>
+                </button>`).join('')}
+        </div>`;
+
+    documentHealth.querySelector('.report-review-score')?.addEventListener('click', openActivityReviewTab);
+    documentHealth.querySelectorAll('[data-outline-type]').forEach(button => {
+        button.addEventListener('click', () => {
+            selectedOutlineType = button.dataset.outlineType;
+            updateDocumentHealth();
+            updateHeadingOutline();
+        });
+    });
 }
 
 function updateHeadingOutline() {
@@ -4872,18 +4890,21 @@ function updateHeadingOutline() {
         return;
     }
 
-    const headings = Array.from(inputHTML.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-    if (headings.length === 0) {
-        documentOutline.innerHTML = '<div class="report-block"><strong>Outline</strong><p class="text-muted">No headings found yet.</p></div>';
+    const outlineType = outlineTypes[selectedOutlineType] || outlineTypes.headings;
+    const elements = Array.from(inputHTML.querySelectorAll(outlineType.selector));
+    const outlineHeading = `<strong class="report-heading">${outlineType.label}</strong>`;
+    if (elements.length === 0) {
+        documentOutline.innerHTML = `${outlineHeading}<p class="text-muted">${outlineType.empty}</p>`;
         return;
     }
 
     const outline = document.createElement('ol');
     outline.className = 'report-outline';
 
-    headings.forEach((heading) => {
-        const level = Number(heading.tagName.substring(1));
-        const path = getElementPath(heading, inputHTML);
+    elements.forEach((element) => {
+        const isHeading = /^H[1-6]$/.test(element.tagName);
+        const level = isHeading ? Number(element.tagName.substring(1)) : 1;
+        const path = getElementPath(element, inputHTML);
         const item = document.createElement('li');
         const button = document.createElement('button');
         const label = document.createElement('span');
@@ -4891,8 +4912,8 @@ function updateHeadingOutline() {
         item.style.marginLeft = `${Math.max(0, level - 1) * 12}px`;
         button.type = 'button';
         button.className = 'report-outline-button';
-        button.innerHTML = `<span class="label label-default">${heading.tagName.toLowerCase()}</span>`;
-        label.textContent = heading.textContent.trim() || '(empty heading)';
+        button.innerHTML = `<span class="label label-default">${element.tagName.toLowerCase()}</span>`;
+        label.textContent = getOutlineElementLabel(element, selectedOutlineType);
         button.append(' ', label);
         button.addEventListener('click', () => {
             scrollEditorsToElementPath(path);
@@ -4904,10 +4925,22 @@ function updateHeadingOutline() {
 
     documentOutline.innerHTML = '';
     const heading = document.createElement('strong');
-    heading.textContent = 'Outline';
+    heading.textContent = outlineType.label;
     heading.className = 'report-heading';
     documentOutline.appendChild(heading);
     documentOutline.appendChild(outline);
+}
+
+function getOutlineElementLabel(element, type) {
+    if (type === 'images') {
+        return element.getAttribute('alt') || element.getAttribute('src') || '(unlabelled image)';
+    }
+    if (type === 'links' || type === 'footnotes') {
+        return element.textContent.trim() || element.getAttribute('href') || '(empty link)';
+    }
+
+    const text = element.textContent.replace(/\s+/g, ' ').trim();
+    return text || `(empty ${type.slice(0, -1)})`;
 }
 
 function updateIssues() {

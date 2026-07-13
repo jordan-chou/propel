@@ -2483,6 +2483,10 @@ textarea {
     cursor: pointer;
 }
 
+#healthScore:hover {
+    box-shadow: inset 0 0 0 1px currentColor;
+}
+
 #healthScore:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
@@ -2504,6 +2508,20 @@ textarea {
     margin-bottom: 10px;
 }
 
+.report-review-score {
+    border: 0;
+    cursor: pointer;
+}
+
+.report-review-score:hover {
+    box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.report-review-score:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 .report-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(72px, 1fr));
@@ -2511,21 +2529,49 @@ textarea {
     margin: 0;
 }
 
-.report-stats div {
+.report-stat {
+    display: block;
+    width: 100%;
     padding: 8px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-2);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.report-stats dt {
+.report-stat:hover {
+    border-color: var(--primary);
+    background: var(--surface);
+}
+
+.report-stat:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.report-stat.is-selected {
+    border-color: var(--primary);
+    background: #eef4ff;
+    box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.report-stat-label {
+    display: block;
     color: var(--muted);
     font-size: 0.72rem;
     font-weight: 700;
 }
 
-.report-stats dd {
-    margin: 2px 0 0;
+.report-stat.is-selected .report-stat-label {
+    color: var(--primary);
+}
+
+.report-stat-count {
+    display: block;
+    margin-top: 2px;
     font-size: 1.1rem;
     font-weight: 800;
 }
