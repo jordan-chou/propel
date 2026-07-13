@@ -20,6 +20,7 @@ import { runStandardCleanup } from './document/cleanup.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { CommandRegistry } from './commands/command-registry.js';
 import { buildCellGrid, getCellPosition } from './table-editor/model.js';
+import { toggleCellsBold } from './table-editor/formatting.js';
 import { readFileAsArrayBuffer, getMammothLibrary, convertWithMammoth } from './conversion/mammoth-adapter.js';
 import { createJSONStorage } from './ui/storage.js';
 
@@ -3671,27 +3672,7 @@ function getTableEditorWidth(table) {
 }
 
 function toggleTableEditorBold() {
-    getTableEditorSelectedCells().forEach((cell) => {
-        const strong = cell.children.length === 1 && cell.firstElementChild && cell.firstElementChild.tagName.toLowerCase() === 'strong'
-            ? cell.firstElementChild
-            : null;
-
-        if (strong) {
-            while (strong.firstChild) {
-                cell.insertBefore(strong.firstChild, strong);
-            }
-            strong.remove();
-            cell.classList.add('fnt-nrml');
-            return;
-        }
-
-        const wrapper = document.createElement('strong');
-        while (cell.firstChild) {
-            wrapper.appendChild(cell.firstChild);
-        }
-        cell.appendChild(wrapper);
-        cell.classList.remove('fnt-nrml');
-    });
+    toggleCellsBold(getTableEditorSelectedCells());
 }
 
 function alignTableEditorCells(alignment) {

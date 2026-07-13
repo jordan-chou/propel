@@ -2,6 +2,7 @@ import { createBodyFtnTags, replaceFootnoteSection } from '../../src/commands/fo
 import { cleanupTable } from '../../src/commands/table-cleanup.js';
 import { fixNbspHTML } from '../../src/commands/nbsp.js';
 import { getCellsInRange } from '../../src/table-editor/model.js';
+import { toggleCellBold, toggleCellsBold } from '../../src/table-editor/formatting.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -32,6 +33,58 @@ test('table model selects a rectangular range', () => {
     host.innerHTML = '<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>';
     const cells = host.querySelectorAll('td');
     equal(getCellsInRange(host.querySelector('table'), cells[0], cells[3]).length, 4);
+});
+
+test('table editor bold toggles fnt-nrml on header cells without adding strong', () => {
+    const header = document.createElement('th');
+    header.textContent = 'Heading';
+
+    toggleCellBold(header);
+    equal(header.classList.contains('fnt-nrml'), true);
+    equal(header.querySelector('strong'), null);
+
+    toggleCellBold(header);
+    equal(header.classList.contains('fnt-nrml'), false);
+    equal(header.querySelector('strong'), null);
+});
+
+test('table editor bold continues to wrap data cell content', () => {
+    const cell = document.createElement('td');
+    cell.classList.add('fnt-nrml');
+    cell.textContent = 'Value';
+
+    toggleCellBold(cell);
+    equal(cell.innerHTML, '<strong>Value</strong>');
+    equal(cell.classList.contains('fnt-nrml'), false);
+
+    toggleCellBold(cell);
+    equal(cell.innerHTML, 'Value');
+    equal(cell.classList.contains('fnt-nrml'), true);
+});
+
+test('table editor bold makes a mixed cell selection uniformly bold', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tr><th>Heading</th><th class="fnt-nrml">Normal heading</th><td><strong>Bold value</strong></td><td>Normal value</td></tr></table>';
+    const cells = host.querySelectorAll('th, td');
+
+    toggleCellsBold(cells);
+
+    equal(cells[0].classList.contains('fnt-nrml'), false);
+    equal(cells[1].classList.contains('fnt-nrml'), false);
+    equal(cells[2].innerHTML, '<strong>Bold value</strong>');
+    equal(cells[3].innerHTML, '<strong>Normal value</strong>');
+});
+
+test('table editor bold unbolds every cell when the full selection is bold', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tr><th>Heading</th><td><strong>Value</strong></td></tr></table>';
+    const cells = host.querySelectorAll('th, td');
+
+    toggleCellsBold(cells);
+
+    equal(cells[0].classList.contains('fnt-nrml'), true);
+    equal(cells[0].querySelector('strong'), null);
+    equal(cells[1].innerHTML, 'Value');
 });
 
 const output = document.getElementById('results');
