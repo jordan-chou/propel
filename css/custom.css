@@ -3124,3 +3124,659 @@ textarea {
         bottom: 18px;
     }
 }
+
+/* Corporate editorial visual system
+   A calm, paper-led workspace with mineral accents and precise controls. */
+:root {
+    --font-sans: "Avenir Next", Avenir, "Segoe UI Variable", "Segoe UI", Helvetica, Arial, sans-serif;
+    --bg: #e8ece9;
+    --surface: #fbfaf6;
+    --surface-2: #f1f3ef;
+    --border: #d3d9d4;
+    --border-strong: #aeb9b3;
+    --text: #172d33;
+    --muted: #687873;
+    --primary: #08766c;
+    --primary-dark: #075b55;
+    --success: #18705d;
+    --warning: #96671e;
+    --danger: #a43c32;
+    --info: #376b83;
+    --shadow: 0 16px 42px rgba(22, 45, 51, 0.12), 0 2px 8px rgba(22, 45, 51, 0.06);
+    --radius: 5px;
+    --header-height: 72px;
+    --command-bar-height: 62px;
+}
+
+html,
+body {
+    background:
+        radial-gradient(circle at 76% -20%, rgba(8, 118, 108, 0.10), transparent 38%),
+        linear-gradient(145deg, #e4e9e6 0%, #f0f1ed 58%, #e4e9e5 100%);
+    letter-spacing: 0.005em;
+}
+
+::selection {
+    background: rgba(8, 118, 108, 0.22);
+    color: #10282d;
+}
+
+:focus-visible {
+    outline: 2px solid #c48b3a;
+    outline-offset: 2px;
+}
+
+.app-header {
+    position: relative;
+    grid-template-columns: 310px minmax(0, 1fr) auto;
+    min-height: var(--header-height);
+    padding: 11px 20px;
+    border-bottom: 0;
+    background: #142f36;
+    color: #f8f6ef;
+    box-shadow: 0 7px 24px rgba(16, 40, 46, 0.16);
+    backdrop-filter: none;
+}
+
+.app-header::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #c58b3b 0 9%, #138478 9% 34%, rgba(255,255,255,0.1) 34% 100%);
+    content: "";
+}
+
+.brand { gap: 14px; }
+
+.brand a {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    background: #f5f3eb;
+    box-shadow: inset 0 -2px 0 rgba(20,47,54,0.1);
+}
+
+.brand img {
+    width: 28px;
+    height: 28px;
+}
+
+.brand-title strong {
+    color: #fffdf7;
+    font-size: 1.28rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+}
+
+.brand-title span {
+    margin-top: 4px;
+    color: #b8c9c7;
+    font-size: 0.76rem;
+    letter-spacing: 0.025em;
+}
+
+.header-actions { gap: 8px; }
+
+.app-header .btn,
+#shortcutHelpBtn {
+    border-color: rgba(255,255,255,0.18);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    color: #e7efec;
+    box-shadow: none;
+}
+
+.app-header .btn:hover,
+.app-header .btn:focus,
+#shortcutHelpBtn:hover,
+#shortcutHelpBtn:focus {
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+}
+
+.app-header .label-default {
+    border-color: rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.08);
+    color: #d9e5e1;
+}
+
+.language-switch {
+    min-height: 34px;
+    border-color: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    background: #0c252b;
+    color: #a9bbb8;
+}
+
+.language-switch-option { border-radius: 2px; }
+
+.language-switch-option.active {
+    background: #f3f0e7;
+    color: #17363b;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+}
+
+.main-grid {
+    gap: 8px;
+    padding: 8px;
+}
+
+.panel {
+    border-color: rgba(126, 143, 135, 0.38);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 8px 26px rgba(26, 53, 57, 0.08);
+}
+
+.left-rail {
+    border-color: rgba(126, 143, 135, 0.42);
+    border-radius: 4px;
+    background: rgba(251, 250, 246, 0.94);
+    box-shadow: 0 3px 12px rgba(26, 53, 57, 0.07);
+}
+
+.left-rail .rail-scroll { padding: 6px 8px; }
+
+.left-rail .section-kicker {
+    padding-right: 5px;
+    color: #697b76;
+    font-size: 0.63rem;
+    letter-spacing: 0.12em;
+}
+
+.upload-drop-zone,
+.upload-drop-zone.needs-file {
+    min-height: 43px;
+    border-color: rgba(8, 118, 108, 0.42);
+    border-radius: 3px;
+    background: #f2f6f2;
+    box-shadow: none;
+}
+
+.upload-drop-zone.needs-file {
+    background: linear-gradient(90deg, rgba(8,118,108,0.08), transparent 54%), #f8f8f3;
+}
+
+.upload-drop-zone strong { color: #175b56; }
+
+.upload-drop-zone.needs-file::before {
+    border-radius: 2px;
+    background: #c48b3a;
+    box-shadow: none;
+    animation: uploadStartPulse 2.2s ease-out infinite;
+}
+
+.btn {
+    border-color: #b8c2bc;
+    border-radius: 4px;
+    background: #fbfaf6;
+    color: #233b40;
+    font-weight: 650;
+    box-shadow: 0 1px 1px rgba(20, 47, 54, 0.04);
+    transition: border-color 130ms ease, background-color 130ms ease, color 130ms ease, transform 130ms ease;
+}
+
+.btn:hover {
+    border-color: #64867f;
+    background: #f0f5f1;
+    color: #075b55;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+    border-color: #08766c;
+    background: #08766c;
+    color: #fff;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+
+.btn-primary:hover {
+    border-color: #075b55;
+    background: #075b55;
+    color: #fff;
+}
+
+.left-rail .btn { border-radius: 3px; }
+
+.left-rail .btn-primary,
+.split-command {
+    border-color: #08766c;
+    background: #08766c;
+}
+
+.split-command {
+    border-radius: 3px;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.14);
+}
+
+.command-settings-btn,
+.left-rail .command-settings-btn {
+    background: #08665e;
+}
+
+.command-settings-btn:hover { background: #07534e; }
+
+.rail-copy-action .btn {
+    min-width: 106px;
+    border-color: #173c43;
+    background: #173c43;
+}
+
+.rail-copy-action .btn:hover { background: #0e2e34; }
+
+.editor-panel {
+    border-color: rgba(87, 108, 102, 0.52);
+    box-shadow: 0 14px 38px rgba(25, 51, 56, 0.11);
+}
+
+.editor-surface { background: #f5f5f0; }
+
+.wysiwyg-toolbar,
+.code-toolbar {
+    border-color: #cfd6d1;
+    background: #edf0ec;
+}
+
+.wysiwyg-toolbar {
+    box-shadow: inset 0 -1px 0 rgba(24,51,55,0.04);
+}
+
+.wysiwyg-toolbar .btn {
+    border-radius: 3px;
+    background: transparent;
+    color: #405953;
+}
+
+.wysiwyg-toolbar .btn:hover,
+.wysiwyg-toolbar .btn:focus {
+    border-color: #9aaca5;
+    background: #fbfaf6;
+    color: #08766c;
+}
+
+.wysiwyg-toolbar .btn.active,
+.wysiwyg-toolbar .btn[aria-pressed="true"] {
+    border-color: rgba(8,118,108,0.36);
+    background: rgba(8,118,108,0.11);
+    color: #075b55;
+}
+
+.toolbar-format-select {
+    border-color: #b8c2bc;
+    border-radius: 3px;
+    background: #faf9f5;
+    color: #294147;
+}
+
+.code-toolbar {
+    color: #71817c;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+#liveEditor {
+    background:
+        linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), rgba(26,57,61,0.04) calc(100% - 1px)),
+        #fffefa;
+    color: #203439;
+}
+
+#liveEditor:empty::before { color: #899691; }
+
+.code-editor,
+#outputText,
+#codeHighlight {
+    background: #152b31;
+    color: #dbe8e3;
+}
+
+#outputText { caret-color: #e2ad5a; }
+
+#outputText::placeholder { color: #8fa39e; }
+
+.pane-splitter { background: #d7dcd8; }
+
+.pane-splitter:hover,
+.pane-splitter:focus { background: #08766c; }
+
+.settings-box.command-dialog,
+.shortcut-dialog,
+.table-editor-dialog {
+    border-color: #aebbb5;
+    border-radius: 5px;
+    background: #fbfaf6;
+    box-shadow: 0 24px 70px rgba(14, 37, 42, 0.24);
+}
+
+.modal-backdrop { background: rgba(10, 31, 36, 0.46); }
+
+.dialog-header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.dialog-header h2,
+.table-editor-dialog h2 {
+    color: #18383e;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.form-control,
+.file-input,
+select,
+textarea {
+    border-color: #b8c2bc;
+    border-radius: 3px;
+    background: #fffefa;
+}
+
+.form-control:focus,
+select:focus,
+textarea:focus {
+    border-color: #08766c;
+    box-shadow: 0 0 0 3px rgba(8,118,108,0.12);
+    outline: 0;
+}
+
+.table-editor-dialog { border-radius: 5px 0 0 5px; }
+
+.table-editor-panel { background: #f4f5f1; }
+
+.table-editor-toolbar {
+    border-color: #ccd4cf;
+    border-radius: 4px;
+    background: #edf0ec;
+}
+
+.table-toolbar-group { border-color: #c2ccc6; }
+
+.table-tool-btn {
+    border-radius: 3px;
+    color: #3e5752;
+}
+
+.table-tool-btn:hover,
+.table-tool-btn:focus {
+    border-color: #76958e;
+    background: #fffefa;
+    color: #08766c;
+}
+
+.table-editor-canvas {
+    border-color: #c2ccc6;
+    border-radius: 3px;
+    background: #fffefa;
+}
+
+.table-editor-page-btn { border-radius: 3px; }
+
+.table-editor-page-btn.active {
+    border-color: #08766c;
+    background: #08766c;
+}
+
+.activity-panel {
+    border-left-color: #83958e;
+    background: #f8f7f2;
+    box-shadow: -20px 0 54px rgba(13, 37, 41, 0.24);
+}
+
+.activity-panel-header {
+    border-bottom-color: #405c5b;
+    background: #19383e;
+    color: #f8f6ef;
+}
+
+.activity-panel-header .btn {
+    border-color: rgba(255,255,255,0.22);
+    background: transparent;
+    color: #e6eeeb;
+}
+
+.review-tabs {
+    gap: 2px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.17);
+}
+
+.review-tab {
+    border-radius: 2px;
+    color: #b9cbc7;
+}
+
+.review-tab.active,
+.review-tab:hover {
+    background: #f5f3eb;
+    color: #17383e;
+}
+
+.report-stat,
+.review-issue-summary,
+.outline-item,
+.issue-item {
+    border-radius: 3px;
+    background: #f1f3ef;
+}
+
+.label,
+.report-issue-pill {
+    border-radius: 3px;
+}
+
+.toast-message {
+    border-radius: 4px;
+    background: rgba(251,250,246,0.98);
+    box-shadow: 0 14px 36px rgba(18,44,48,0.18);
+}
+
+#loader { background: rgba(10, 31, 36, 0.48); }
+
+#loader::after {
+    border-radius: 4px;
+    background: #fbfaf6;
+    color: #17383e;
+}
+
+@media (max-width: 767px) {
+    :root { --header-height: 70px; }
+
+    .app-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 10px 12px 12px;
+    }
+
+    .brand-title span { display: none; }
+
+    .header-actions {
+        width: auto;
+        gap: 5px;
+    }
+
+    #healthScore { display: none; }
+
+    .main-grid { padding: 6px; }
+
+    .left-rail .rail-scroll { padding: 5px; }
+
+    .upload-drop-zone,
+    .upload-drop-zone.needs-file { min-width: 210px; }
+
+    .editor-panel { border-radius: 3px; }
+}
+
+/* Code view: keep the editable textarea transparent so the highlighted layer
+   remains visible, with a palette tuned for the mineral code surface. */
+#outputText {
+    background: transparent;
+    color: transparent;
+}
+
+#codeHighlight { background: #152b31; }
+#codeHighlight .pln { color: #dbe8e3; }
+#codeHighlight .tag,
+#codeHighlight .kwd { color: #78d8ca; }
+#codeHighlight .atn,
+#codeHighlight .typ,
+#codeHighlight .dec,
+#codeHighlight .var { color: #f2c879; }
+#codeHighlight .atv,
+#codeHighlight .str { color: #b8d991; }
+#codeHighlight .pun,
+#codeHighlight .opn,
+#codeHighlight .clo { color: #91aaa5; }
+#codeHighlight .com { color: #829994; font-style: italic; }
+#codeHighlight .lit { color: #e5a984; }
+#codeHighlight .fun { color: #dda4c7; }
+
+/* The table editor is a WET preview and intentionally retains its established
+   white canvas, blue interaction states, and Canada.ca table presentation. */
+.table-editor-dialog {
+    --surface: #fff;
+    --surface-2: #f5f5f5;
+    --border: #ddd;
+    --border-strong: #adadad;
+    --text: #333;
+    --muted: #6f6f6f;
+    --primary: #2572b4;
+    --primary-dark: #1c578a;
+    --danger: #d3080c;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #333;
+    border-color: #d9e2ec;
+    border-radius: 12px 0 0 12px;
+    background: #fff;
+}
+
+.table-editor-dialog .dialog-header h2,
+.table-editor-dialog h2 {
+    color: #333;
+    font-weight: 700;
+    letter-spacing: normal;
+}
+
+.table-editor-dialog .text-muted,
+.table-editor-status,
+.table-editor-nav-hint { color: #6f6f6f; }
+
+.table-editor-dialog .form-row label { color: #333; }
+
+.table-editor-dialog .form-control,
+.table-editor-dialog select,
+.table-editor-dialog textarea {
+    border-color: #ccc;
+    border-radius: 4px;
+    background: #fff;
+    color: #555;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.075);
+}
+
+.table-editor-dialog .form-control:focus,
+.table-editor-dialog select:focus,
+.table-editor-dialog textarea:focus {
+    border-color: #66afe9;
+    outline: 0;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.075), 0 0 8px rgba(102,175,233,0.6);
+}
+
+.table-editor-dialog .btn {
+    border-color: #ccc;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 400;
+    box-shadow: none;
+}
+
+.table-editor-dialog .btn:hover,
+.table-editor-dialog .btn:focus {
+    border-color: #adadad;
+    background: #e6e6e6;
+    color: #333;
+}
+
+.table-editor-dialog .btn-primary {
+    border-color: #245269;
+    background: #2572b4;
+    color: #fff;
+}
+
+.table-editor-dialog .btn-primary:hover,
+.table-editor-dialog .btn-primary:focus {
+    border-color: #122b40;
+    background: #1c578a;
+    color: #fff;
+}
+
+.table-editor-panel { background: transparent; }
+
+.table-editor-options,
+.table-editor-nav {
+    border-color: #ddd;
+    background: #f5f5f5;
+}
+
+.table-editor-toolbar {
+    border-color: #d9e2ec;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+
+.table-toolbar-group {
+    border-color: #d9e2ec;
+    border-radius: 7px;
+}
+
+.table-tool-btn {
+    border-radius: 6px;
+    color: #475467;
+}
+
+.table-tool-btn:hover,
+.table-tool-btn:focus {
+    border-color: rgba(37,87,214,0.28);
+    background: #eef4ff;
+    color: #0f3557;
+}
+
+.table-tool-btn:focus {
+    box-shadow: 0 0 0 2px rgba(37,114,180,0.28);
+}
+
+.table-tool-btn:active {
+    border-color: rgba(37,114,180,0.48);
+    background: #d9edf7;
+}
+
+.table-editor-canvas {
+    border-color: #d9e2ec;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.table-editor-canvas .selected {
+    outline-color: rgba(37, 87, 214, 0.45);
+}
+
+.table-editor-page-btn { border-radius: 999px; }
+
+.table-editor-page-btn.active {
+    border-color: #245269;
+    background: #2572b4;
+    box-shadow: 0 2px 6px rgba(37, 114, 180, 0.24);
+}
+
+@media (max-width: 767px) {
+    .table-editor-dialog { border-radius: 12px 12px 0 0; }
+}
