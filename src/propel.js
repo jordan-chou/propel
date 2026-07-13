@@ -2213,7 +2213,7 @@ function createTableEditorListeners() {
         tableEditorOutdentBtn.addEventListener('click', () => runTableEditorMutation(() => changeTableEditorIndent(-1), 'Outdent'));
     }
     if (tableEditorBoldBtn) {
-        tableEditorBoldBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorBold, 'Bold'));
+        tableEditorBoldBtn.addEventListener('click', boldTableEditorSelection);
     }
     if (tableEditorLeftBtn) {
         tableEditorLeftBtn.addEventListener('click', () => runTableEditorMutation(() => alignTableEditorCells('left'), 'Align left'));
@@ -2614,6 +2614,14 @@ function handleTableEditorDialogKeydown(event) {
         return;
     }
 
+    const key = (event.key || '').toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && key === 'b') {
+        event.preventDefault();
+        event.stopPropagation();
+        boldTableEditorSelection();
+        return;
+    }
+
     if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
@@ -2643,6 +2651,10 @@ function handleTableEditorDialogKeydown(event) {
         event.preventDefault();
         firstElement.focus();
     }
+}
+
+function boldTableEditorSelection() {
+    runTableEditorMutation(toggleTableEditorBold, 'Bold');
 }
 
 function handleTableEditorHistoryShortcut(event) {
