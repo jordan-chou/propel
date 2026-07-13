@@ -2378,6 +2378,18 @@ function renderTableEditor(index) {
     loadTableEditorCaptionFields();
     updateTableEditorStatus(items.length);
     resetTableEditorHistory();
+    scrollLiveToTableEditorTable();
+}
+
+function scrollLiveToTableEditorTable() {
+    if (!liveEditor) {
+        return;
+    }
+
+    const liveTable = liveEditor.querySelectorAll('table')[tableEditorIndex];
+    if (liveTable) {
+        scrollLiveElementIntoView(liveTable);
+    }
 }
 
 function updateTableEditorStatus(tableCount = getTableEditorItems().length) {
