@@ -132,6 +132,8 @@ var logCount = 0;
 var activeEditorView = 'live';
 var elementSyncLineMap = [];
 var lastLiveSelectionRange = null;
+var lastCodeComponentChildPath = null;
+var lastLiveComponentChild = null;
 var shortcutHelpPreviousFocus = null;
 var livePaneWidthRatio = null;
 var tableEditorIndex = 0;
@@ -1100,6 +1102,14 @@ function handleLiveEditorKeydown(event) {
         return;
     }
 
+    const selectionDirection = getComponentSelectionDirection(event);
+    if (selectionDirection) {
+        event.preventDefault();
+        event.stopPropagation();
+        selectLiveEditorComponent(selectionDirection);
+        return;
+    }
+
     preserveParagraphsOnEnter(event);
 
     const shortcut = getLiveEditorShortcut(event);
@@ -1239,14 +1249,6 @@ function getLiveEditorShortcut(event) {
         return { command: 'insertOrderedList', label: 'Numbered list' };
     }
 
-    if (primaryKey && !event.altKey && !event.shiftKey && key === '[') {
-        return { command: 'outdent', label: 'Decrease list indent' };
-    }
-
-    if (primaryKey && !event.altKey && !event.shiftKey && key === ']') {
-        return { command: 'indent', label: 'Increase list indent' };
-    }
-
     if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey) {
         return {
             command: event.shiftKey ? 'outdent' : 'indent',
@@ -1264,6 +1266,15 @@ function handleCodeEditorKeydown(event) {
 
     const key = (event.key || '').toLowerCase();
 
+    const selectionDirection = getComponentSelectionDirection(event);
+    if (selectionDirection) {
+        event.preventDefault();
+        event.stopPropagation();
+        activeEditorView = 'code';
+        selectCodeEditorComponent(selectionDirection);
+        return;
+    }
+
     if (event.altKey && !event.ctrlKey && !event.metaKey && (key === 'w' || event.code === 'KeyW')) {
         event.preventDefault();
         activeEditorView = 'code';
@@ -1280,6 +1291,113 @@ function handleCodeEditorKeydown(event) {
 
     indentCodeEditorSelection(event.shiftKey ? -1 : 1);
     syncCodeEditorAfterProgrammaticEdit();
+}
+
+function getComponentSelectionDirection(event) {
+    const hasPrimaryModifier = event.ctrlKey !== event.metaKey;
+    if (!hasPrimaryModifier || event.altKey || event.shiftKey) {
+        return null;
+    }
+
+    if (event.key === '[' || event.code === 'BracketLeft') {
+        return 'parent';
+    }
+    if (event.key === ']' || event.code === 'BracketRight') {
+        return 'child';
+    }
+    return null;
+}
+
+function selectCodeEditorComponent(direction) {
+    if (!outputText) {
+        return;
+    }
+    if (elementSyncLineMap.length === 0) {
+        updateElementSyncLineMap();
+    }
+
+    const start = outputText.selectionStart || 0;
+    const end = outputText.selectionEnd || start;
+    const selectedEntry = elementSyncLineMap.find(entry =>
+        entry.startIndex === start && entry.endIndex === end
+    );
+    const currentEntry = selectedEntry || getSyncEntryForCodeIndex(start);
+    if (!currentEntry) {
+        return;
+    }
+
+    let targetEntry = null;
+    if (direction === 'parent' && currentEntry.path.length > 1) {
+        lastCodeComponentChildPath = currentEntry.path.slice();
+        targetEntry = getCodeEntryForPath(currentEntry.path.slice(0, -1));
+    } else if (direction === 'child') {
+        const rememberedChild = lastCodeComponentChildPath &&
+            lastCodeComponentChildPath.length === currentEntry.path.length + 1 &&
+            currentEntry.path.every((part, index) => part === lastCodeComponentChildPath[index])
+            ? getCodeEntryForPath(lastCodeComponentChildPath)
+            : null;
+        targetEntry = rememberedChild || elementSyncLineMap.find(entry =>
+            entry.path.length === currentEntry.path.length + 1 &&
+            currentEntry.path.every((part, index) => part === entry.path[index])
+        );
+    }
+
+    if (!targetEntry) {
+        return;
+    }
+    outputText.setSelectionRange(targetEntry.startIndex, targetEntry.endIndex);
+    scrollCodeToIndex(targetEntry.startIndex);
+}
+
+function selectLiveEditorComponent(direction) {
+    const selection = getEditorSelection(liveEditor);
+    if (!selection || selection.rangeCount === 0) {
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+    let current = getExactlySelectedElement(range) ||
+        (range.startContainer.nodeType === Node.ELEMENT_NODE
+            ? range.startContainer
+            : range.startContainer.parentElement);
+    if (!current || current === liveEditor || !liveEditor.contains(current)) {
+        return;
+    }
+
+    let target = null;
+    if (direction === 'parent') {
+        target = current.parentElement === liveEditor ? null : current.parentElement;
+        if (target) {
+            lastLiveComponentChild = current;
+        }
+    } else {
+        const rememberedChild = lastLiveComponentChild &&
+            lastLiveComponentChild.parentElement === current &&
+            liveEditor.contains(lastLiveComponentChild)
+            ? lastLiveComponentChild
+            : null;
+        target = rememberedChild || current.firstElementChild;
+    }
+    if (!target) {
+        return;
+    }
+
+    const targetRange = document.createRange();
+    targetRange.selectNode(target);
+    selection.removeAllRanges();
+    selection.addRange(targetRange);
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    rememberLiveSelection();
+}
+
+function getExactlySelectedElement(range) {
+    if (!range || range.collapsed || range.startContainer !== range.endContainer ||
+        range.startContainer.nodeType !== Node.ELEMENT_NODE ||
+        range.endOffset !== range.startOffset + 1) {
+        return null;
+    }
+    const selectedNode = range.startContainer.childNodes[range.startOffset];
+    return selectedNode && selectedNode.nodeType === Node.ELEMENT_NODE ? selectedNode : null;
 }
 
 function handleDocumentHistoryShortcut(event) {
