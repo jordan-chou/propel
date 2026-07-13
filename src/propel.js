@@ -927,6 +927,8 @@ function setCommandLanguage(language) {
 }
 
 function updateLanguageSwitch() {
+    syncTableEditorFrenchOption();
+
     if (!langBtn) {
         return;
     }
@@ -936,6 +938,12 @@ function updateLanguageSwitch() {
     langBtn.querySelectorAll('[data-language-option]').forEach((option) => {
         option.classList.toggle('active', option.getAttribute('data-language-option') === (isEngLang ? 'en' : 'fr'));
     });
+}
+
+function syncTableEditorFrenchOption() {
+    if (tableEditorFrench) {
+        tableEditorFrench.checked = !isEngLang;
+    }
 }
 
 function switchEditorView(view) {
@@ -2006,6 +2014,7 @@ function openTableEditor(index = 0, options = {}) {
         toastRegion.classList.add('table-editor-open');
     }
 
+    syncTableEditorFrenchOption();
     renderTableEditor(index);
 
     if (tableEditorCaption) {
