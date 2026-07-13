@@ -115,6 +115,9 @@ const tableEditorCanvas = document.getElementById('tableEditorCanvas');
 const tableEditorNumber = document.getElementById('tableEditorNumber');
 const tableEditorCaption = document.getElementById('tableEditorCaption');
 const tableEditorUnit = document.getElementById('tableEditorUnit');
+const tableEditorNumberSuggestion = document.getElementById('tableEditorNumberSuggestion');
+const tableEditorCaptionSuggestion = document.getElementById('tableEditorCaptionSuggestion');
+const tableEditorUnitSuggestion = document.getElementById('tableEditorUnitSuggestion');
 const tableEditorFinancial = document.getElementById('tableEditorFinancial');
 const tableEditorFrench = document.getElementById('tableEditorFrench');
 const optionHelpButtons = document.querySelectorAll('.option-help[data-tooltip]');
@@ -157,6 +160,8 @@ let tableEditorHistoryIndex = -1;
 let tableEditorHistoryTimer = null;
 let tableEditorHistoryRestoring = false;
 let tableEditorPendingAction = null;
+let tableEditorCaptionSuggestions = {};
+let tableEditorAcceptedExternalCaptionNodes = new Set();
 const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
 const paneSplitterSnapRatios = [1 / 2, 2 / 3];
 const paneSplitterSnapZone = 24;
@@ -2134,8 +2139,37 @@ function createTableEditorListeners() {
 
     [tableEditorNumber, tableEditorCaption, tableEditorUnit].forEach((field) => {
         if (field) {
+            field.addEventListener('beforeinput', () => dismissPendingTableCaptionSuggestion(field));
+            field.addEventListener('focus', () => {
+                if (field.hasAttribute('data-caption-suggestion')) {
+                    field.select();
+                }
+            });
+            field.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' || !field.hasAttribute('data-caption-suggestion')) {
+                    return;
+                }
+
+                event.preventDefault();
+                const type = field.getAttribute('data-caption-suggestion');
+                const suggestionHost = field === tableEditorNumber
+                    ? tableEditorNumberSuggestion
+                    : field === tableEditorCaption
+                        ? tableEditorCaptionSuggestion
+                        : tableEditorUnitSuggestion;
+                acceptTableCaptionSuggestion(type, field, suggestionHost);
+                focusNextTableCaptionField(field);
+            });
             field.addEventListener('input', () => {
                 updateTableEditorCaption();
+                const suggestionHost = field === tableEditorNumber
+                    ? tableEditorNumberSuggestion
+                    : field === tableEditorCaption
+                        ? tableEditorCaptionSuggestion
+                        : tableEditorUnitSuggestion;
+                if (suggestionHost) {
+                    suggestionHost.hidden = Boolean(field.value.trim());
+                }
                 scheduleTableEditorHistoryCommit('Edit table caption');
             });
         }
@@ -2167,6 +2201,16 @@ function createTableEditorListeners() {
         updateTableEditorResizeHandle();
         updateTableEditorToastPosition();
     });
+}
+
+function focusNextTableCaptionField(field) {
+    const fields = [tableEditorNumber, tableEditorCaption, tableEditorUnit].filter(Boolean);
+    const fieldIndex = fields.indexOf(field);
+    const nextField = fields[fieldIndex + 1] || tableEditorFinancial;
+
+    if (nextField) {
+        nextField.focus();
+    }
 }
 
 function updateTableEditorToastPosition() {
@@ -2378,8 +2422,12 @@ function openTableEditor(index = 0, options = {}) {
     syncTableEditorFrenchOption();
     renderTableEditor(index);
 
-    if (tableEditorCaption) {
-        tableEditorCaption.focus();
+    const firstSuggestedField = [tableEditorNumber, tableEditorCaption, tableEditorUnit]
+        .find((field) => field && field.hasAttribute('data-caption-suggestion'));
+    const initialField = firstSuggestedField || tableEditorCaption;
+
+    if (initialField) {
+        initialField.focus();
     }
 }
 
@@ -2528,12 +2576,24 @@ function getTableEditorSnapshot() {
     return {
         html: clone.innerHTML,
         financial: Boolean(tableEditorFinancial && tableEditorFinancial.checked),
-        french: Boolean(tableEditorFrench && tableEditorFrench.checked)
+        french: Boolean(tableEditorFrench && tableEditorFrench.checked),
+        acceptedExternalCaptionNodes: Array.from(tableEditorAcceptedExternalCaptionNodes)
     };
 }
 
 function tableEditorSnapshotsEqual(first, second) {
-    return Boolean(first && second) && first.html === second.html && first.financial === second.financial && first.french === second.french;
+    if (!first || !second) {
+        return false;
+    }
+
+    const firstAccepted = first.acceptedExternalCaptionNodes || [];
+    const secondAccepted = second.acceptedExternalCaptionNodes || [];
+
+    return first.html === second.html
+        && first.financial === second.financial
+        && first.french === second.french
+        && firstAccepted.length === secondAccepted.length
+        && firstAccepted.every((node) => secondAccepted.includes(node));
 }
 
 function resetTableEditorHistory() {
@@ -2590,7 +2650,30 @@ function undoTableEditorChange() {
     }
     const undoneAction = tableEditorHistory[tableEditorHistoryIndex].action || 'Edit table';
     restoreTableEditorHistory(tableEditorHistoryIndex - 1);
+    restoreFocusAfterTableSuggestionUndo(undoneAction);
     showActivityToast(`Undid ${undoneAction}.`, 'success', 'Table undo');
+}
+
+function restoreFocusAfterTableSuggestionUndo(action) {
+    const match = /^Add suggested table (number|title|unit)$/.exec(action || '');
+    if (!match) {
+        return;
+    }
+
+    const field = match[1] === 'number'
+        ? tableEditorNumber
+        : match[1] === 'title'
+            ? tableEditorCaption
+            : tableEditorUnit;
+
+    if (!field) {
+        return;
+    }
+
+    field.focus();
+    if (field.hasAttribute('data-caption-suggestion')) {
+        field.select();
+    }
 }
 
 function redoTableEditorChange() {
@@ -2618,8 +2701,10 @@ function restoreTableEditorHistory(index) {
     if (tableEditorFrench) {
         tableEditorFrench.checked = snapshot.french;
     }
+    tableEditorAcceptedExternalCaptionNodes = new Set(snapshot.acceptedExternalCaptionNodes || []);
     tableEditorLastSelectedCell = null;
     loadTableEditorCaptionFields();
+    loadTableEditorCaptionSuggestions(getTableEditorItems()[tableEditorIndex], false);
     tableEditorHistoryRestoring = false;
     updateTableEditorHistoryButtons();
 }
@@ -2752,6 +2837,7 @@ function renderTableEditor(index) {
     }
 
     loadTableEditorCaptionFields();
+    loadTableEditorCaptionSuggestions(item);
     updateTableEditorStatus(items.length);
     resetTableEditorHistory();
     scrollLiveToTableEditorTable();
@@ -2854,6 +2940,129 @@ function loadTableEditorCaptionFields() {
     tableEditorUnit.value = small ? small.textContent.trim() : '';
 }
 
+function loadTableEditorCaptionSuggestions(item, resetAcceptedNodes = true) {
+    tableEditorCaptionSuggestions = findTableCaptionSuggestions(item);
+    if (resetAcceptedNodes) {
+        tableEditorAcceptedExternalCaptionNodes = new Set();
+    }
+
+    renderTableCaptionSuggestion('number', tableEditorNumberSuggestion, tableEditorNumber);
+    renderTableCaptionSuggestion('title', tableEditorCaptionSuggestion, tableEditorCaption);
+    renderTableCaptionSuggestion('unit', tableEditorUnitSuggestion, tableEditorUnit);
+}
+
+function renderTableCaptionSuggestion(type, host, field) {
+    if (!host || !field) {
+        return;
+    }
+
+    const suggestion = tableEditorCaptionSuggestions[type];
+    host.hidden = !suggestion || Boolean(field.value.trim());
+
+    if (host.hidden) {
+        field.removeAttribute('data-caption-suggestion');
+        return;
+    }
+
+    field.value = suggestion.text;
+    field.setAttribute('data-caption-suggestion', type);
+    host.onclick = () => acceptTableCaptionSuggestion(type, field, host);
+}
+
+function dismissPendingTableCaptionSuggestion(field) {
+    if (!field || !field.hasAttribute('data-caption-suggestion')) {
+        return;
+    }
+
+    field.value = '';
+    field.removeAttribute('data-caption-suggestion');
+    const suggestionHost = field === tableEditorNumber
+        ? tableEditorNumberSuggestion
+        : field === tableEditorCaption
+            ? tableEditorCaptionSuggestion
+            : tableEditorUnitSuggestion;
+    if (suggestionHost) {
+        suggestionHost.hidden = true;
+    }
+}
+
+function acceptTableCaptionSuggestion(type, field, host) {
+    const suggestion = tableEditorCaptionSuggestions[type];
+    if (!suggestion) {
+        return;
+    }
+
+    field.value = suggestion.text;
+    field.removeAttribute('data-caption-suggestion');
+    if (suggestion.sourceType === 'table') {
+        const section = suggestion.node.parentElement;
+        suggestion.node.remove();
+        if (section && !section.querySelector('tr')) {
+            section.remove();
+        }
+        cleanupTable(getTableEditorTable(), getTableEditorOptions());
+    } else {
+        tableEditorAcceptedExternalCaptionNodes.add(suggestion.node);
+    }
+    host.hidden = true;
+    updateTableEditorCaption();
+    commitTableEditorHistory(`Add suggested table ${type}`);
+}
+
+function findTableCaptionSuggestions(item) {
+    const candidates = [];
+    const table = getTableEditorTable();
+
+    if (!item || !table) {
+        return {};
+    }
+
+    let sibling = item.container.previousElementSibling;
+    while (sibling && candidates.length < 3 && sibling.matches('p, h1, h2, h3, h4, h5, h6, div')) {
+        const text = sibling.textContent.replace(/\s+/g, ' ').trim();
+        if (!text || sibling.querySelector('table')) {
+            break;
+        }
+        candidates.unshift({ node: sibling, sourceType: 'document', text });
+        sibling = sibling.previousElementSibling;
+    }
+
+    Array.from(table.querySelectorAll(':scope > thead > tr, :scope > tbody > tr')).slice(0, 3).forEach((row) => {
+        const cells = row.querySelectorAll(':scope > th, :scope > td');
+        if (cells.length !== 1) {
+            return;
+        }
+        const text = cells[0].textContent.replace(/\s+/g, ' ').trim();
+        if (text) {
+            candidates.push({ node: row, sourceType: 'table', text });
+        }
+    });
+
+    const suggestions = {};
+    const numberPattern = /^(?:table|tableau)\s+(?:no\.?\s*)?(?:\d+|[ivxlcdm]+)(?:[.\-:]|\b)/i;
+    const unitPattern = /^(?:units?|unit[eé]s?)\s*[:\-]|^(?:per\s+cent|percent(?:age)?|pour\s+cent|pourcentage)\b|^(?:in\s+|en\s+)?(?:thousands?|millions?|billions?|milliers?|milliards?)(?:\s+of|\s+de)?\b|^\([^)]*(?:[$€£%]|dollars?|euros?|per\s+cent|percent(?:age)?|pour\s+cent|pourcentage|millions?|billions?|milliers?|milliards?)[^)]*\)$/i;
+
+    candidates.forEach((candidate) => {
+        if (!suggestions.number && numberPattern.test(candidate.text)) {
+            suggestions.number = candidate;
+        } else if (!suggestions.unit && unitPattern.test(candidate.text)) {
+            suggestions.unit = candidate;
+        }
+    });
+
+    // A free-form line is only proposed as a title when nearby number/unit text
+    // makes the group look like table metadata rather than ordinary body copy.
+    if (suggestions.number || suggestions.unit) {
+        suggestions.title = candidates.find((candidate) => (
+            candidate !== suggestions.number
+            && candidate !== suggestions.unit
+            && candidate.text.length <= 240
+        ));
+    }
+
+    return suggestions;
+}
+
 function updateTableEditorCaption() {
     const table = getTableEditorTable();
 
@@ -2861,9 +3070,9 @@ function updateTableEditorCaption() {
         return;
     }
 
-    const numberValue = tableEditorNumber ? tableEditorNumber.value.trim() : '';
-    const titleValue = tableEditorCaption ? tableEditorCaption.value.trim() : '';
-    const unitValue = tableEditorUnit ? tableEditorUnit.value.trim() : '';
+    const numberValue = tableEditorNumber && !tableEditorNumber.hasAttribute('data-caption-suggestion') ? tableEditorNumber.value.trim() : '';
+    const titleValue = tableEditorCaption && !tableEditorCaption.hasAttribute('data-caption-suggestion') ? tableEditorCaption.value.trim() : '';
+    const unitValue = tableEditorUnit && !tableEditorUnit.hasAttribute('data-caption-suggestion') ? tableEditorUnit.value.trim() : '';
     let caption = table.querySelector(':scope > caption');
 
     if (!numberValue && !titleValue && !unitValue) {
@@ -3426,6 +3635,12 @@ function applyTableEditorChanges(moveNext) {
     });
 
     item.container.replaceWith(cleanClone);
+    tableEditorAcceptedExternalCaptionNodes.forEach((node) => {
+        if (node.parentNode) {
+            node.remove();
+        }
+    });
+    tableEditorAcceptedExternalCaptionNodes.clear();
     activeDocumentCommandLabel = 'Apply table edits';
     updateOutputText();
     addProcessingLog(`Applied edits to table ${tableEditorIndex + 1}.`, 'success');
