@@ -114,6 +114,8 @@ const tableEditorCaption = document.getElementById('tableEditorCaption');
 const tableEditorUnit = document.getElementById('tableEditorUnit');
 const tableEditorFinancial = document.getElementById('tableEditorFinancial');
 const tableEditorFrench = document.getElementById('tableEditorFrench');
+const optionHelpButtons = document.querySelectorAll('.option-help[data-tooltip]');
+const optionTooltip = document.getElementById('optionTooltip');
 
 // Local HTML for input
 const inputHTML = document.createElement('div');
@@ -1997,6 +1999,52 @@ function createTableEditorListeners() {
             field.addEventListener('change', () => commitTableEditorHistory('Change table options'));
         }
     });
+
+    optionHelpButtons.forEach((button) => {
+        button.addEventListener('mouseenter', () => showOptionTooltip(button));
+        button.addEventListener('focus', () => showOptionTooltip(button));
+        button.addEventListener('mouseleave', () => {
+            if (document.activeElement !== button) {
+                hideOptionTooltip();
+            }
+        });
+        button.addEventListener('blur', hideOptionTooltip);
+    });
+
+    const tableEditorPanel = tableEditorDialog.querySelector('.table-editor-panel');
+    if (tableEditorPanel) {
+        tableEditorPanel.addEventListener('scroll', hideOptionTooltip);
+    }
+    window.addEventListener('resize', hideOptionTooltip);
+}
+
+function showOptionTooltip(button) {
+    if (!optionTooltip || !button) {
+        return;
+    }
+
+    optionTooltip.textContent = button.dataset.tooltip || '';
+    optionTooltip.hidden = false;
+
+    const buttonRect = button.getBoundingClientRect();
+    const tooltipRect = optionTooltip.getBoundingClientRect();
+    const viewportPadding = 8;
+    const centeredLeft = buttonRect.left + (buttonRect.width - tooltipRect.width) / 2;
+    const maxLeft = window.innerWidth - tooltipRect.width - viewportPadding;
+    const left = Math.max(viewportPadding, Math.min(centeredLeft, maxLeft));
+    const above = buttonRect.top - tooltipRect.height - viewportPadding;
+    const preferredTop = above >= viewportPadding ? above : buttonRect.bottom + viewportPadding;
+    const maxTop = window.innerHeight - tooltipRect.height - viewportPadding;
+    const top = Math.max(viewportPadding, Math.min(preferredTop, maxTop));
+
+    optionTooltip.style.left = `${left}px`;
+    optionTooltip.style.top = `${top}px`;
+}
+
+function hideOptionTooltip() {
+    if (optionTooltip) {
+        optionTooltip.hidden = true;
+    }
 }
 
 function openTableEditor(index = 0, options = {}) {
@@ -2028,6 +2076,7 @@ function closeTableEditor() {
     }
 
     tableEditorDialog.hidden = true;
+    hideOptionTooltip();
     if (toastRegion) {
         toastRegion.classList.remove('table-editor-open');
     }

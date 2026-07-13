@@ -346,8 +346,16 @@
                 </div>
 
                 <div class="table-editor-options">
-                    <label class="checkline" for="tableEditorFinancial"><input type="checkbox" id="tableEditorFinancial" checked> Financial table</label>
-                    <label class="checkline" for="tableEditorFrench"><input type="checkbox" id="tableEditorFrench"> French number format</label>
+                    <div class="table-editor-option">
+                        <label class="checkline" for="tableEditorFinancial"><input type="checkbox" id="tableEditorFinancial" checked> Financial table</label>
+                        <button type="button" class="option-help" aria-label="About the Financial table option" aria-describedby="tableEditorFinancialHelp" data-tooltip="Right-aligns numeric column headings and data cells for financial tables.">?</button>
+                        <span class="wb-inv" id="tableEditorFinancialHelp">Right-aligns numeric column headings and data cells for financial tables.</span>
+                    </div>
+                    <div class="table-editor-option">
+                        <label class="checkline" for="tableEditorFrench"><input type="checkbox" id="tableEditorFrench"> French number format</label>
+                        <button type="button" class="option-help" aria-label="About the French number format option" aria-describedby="tableEditorFrenchHelp" data-tooltip="Uses commas for decimals and non-breaking spaces between groups of thousands.">?</button>
+                        <span class="wb-inv" id="tableEditorFrenchHelp">Uses commas for decimals and non-breaking spaces between groups of thousands.</span>
+                    </div>
                 </div>
 
                 <button type="button" class="btn btn-default btn-full" id="tableEditorRecleanBtn">Re-clean table</button>
@@ -394,6 +402,8 @@
             <button type="button" class="btn btn-primary" id="tableEditorApplyBtn">Apply</button>
         </div>
     </section>
+
+    <div class="option-tooltip" id="optionTooltip" role="tooltip" hidden></div>
 
     <div id="loader" class="hidden"><div class="inner one"></div><div class="inner two"></div><div class="inner three"></div></div>
 

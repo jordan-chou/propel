@@ -948,6 +948,58 @@ textarea {
     background: var(--surface-2);
 }
 
+.table-editor-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.option-help {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid var(--muted);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.option-help:hover,
+.option-help:focus {
+    border-color: var(--primary);
+    color: var(--primary-dark);
+    outline: none;
+}
+
+.option-tooltip {
+    position: fixed;
+    z-index: 100;
+    width: 220px;
+    max-width: calc(100vw - 16px);
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #172033;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: left;
+    box-shadow: var(--shadow);
+    pointer-events: none;
+}
+
+.option-tooltip[hidden] {
+    display: none;
+}
+
 .table-editor-workspace {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
