@@ -3639,144 +3639,16 @@ textarea:focus {
 #codeHighlight .lit { color: #e5a984; }
 #codeHighlight .fun { color: #dda4c7; }
 
-/* The table editor is a WET preview and intentionally retains its established
-   white canvas, blue interaction states, and Canada.ca table presentation. */
-.table-editor-dialog {
-    --surface: #fff;
-    --surface-2: #f5f5f5;
-    --border: #ddd;
-    --border-strong: #adadad;
-    --text: #333;
-    --muted: #6f6f6f;
-    --primary: #2572b4;
-    --primary-dark: #1c578a;
-    --danger: #d3080c;
-    font-family: Arial, Helvetica, sans-serif;
-    color: #333;
-    border-color: #d9e2ec;
-    border-radius: 12px 0 0 12px;
-    background: #fff;
-}
-
-.table-editor-dialog .dialog-header h2,
-.table-editor-dialog h2 {
-    color: #333;
-    font-weight: 700;
-    letter-spacing: normal;
-}
-
-.table-editor-dialog .text-muted,
-.table-editor-status,
-.table-editor-nav-hint { color: #6f6f6f; }
-
-.table-editor-dialog .form-row label { color: #333; }
-
-.table-editor-dialog .form-control,
-.table-editor-dialog select,
-.table-editor-dialog textarea {
-    border-color: #ccc;
-    border-radius: 4px;
-    background: #fff;
-    color: #555;
-    box-shadow: inset 0 1px 1px rgba(0,0,0,0.075);
-}
-
-.table-editor-dialog .form-control:focus,
-.table-editor-dialog select:focus,
-.table-editor-dialog textarea:focus {
-    border-color: #66afe9;
-    outline: 0;
-    box-shadow: inset 0 1px 1px rgba(0,0,0,0.075), 0 0 8px rgba(102,175,233,0.6);
-}
-
-.table-editor-dialog .btn {
-    border-color: #ccc;
-    border-radius: 4px;
-    background: #fff;
-    color: #333;
-    font-family: Arial, Helvetica, sans-serif;
-    font-weight: 400;
-    box-shadow: none;
-}
-
-.table-editor-dialog .btn:hover,
-.table-editor-dialog .btn:focus {
-    border-color: #adadad;
-    background: #e6e6e6;
-    color: #333;
-}
-
-.table-editor-dialog .btn-primary {
-    border-color: #245269;
-    background: #2572b4;
-    color: #fff;
-}
-
-.table-editor-dialog .btn-primary:hover,
-.table-editor-dialog .btn-primary:focus {
-    border-color: #122b40;
-    background: #1c578a;
-    color: #fff;
-}
-
-.table-editor-panel { background: transparent; }
-
-.table-editor-options,
-.table-editor-nav {
-    border-color: #ddd;
-    background: #f5f5f5;
-}
-
-.table-editor-toolbar {
-    border-color: #d9e2ec;
-    border-radius: 8px;
-    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
-}
-
-.table-toolbar-group {
-    border-color: #d9e2ec;
-    border-radius: 7px;
-}
-
-.table-tool-btn {
-    border-radius: 6px;
-    color: #475467;
-}
-
-.table-tool-btn:hover,
-.table-tool-btn:focus {
-    border-color: rgba(37,87,214,0.28);
-    background: #eef4ff;
-    color: #0f3557;
-}
-
-.table-tool-btn:focus {
-    box-shadow: 0 0 0 2px rgba(37,114,180,0.28);
-}
-
-.table-tool-btn:active {
-    border-color: rgba(37,114,180,0.48);
-    background: #d9edf7;
-}
-
+/* Only the document preview retains WET/Canada.ca presentation. The table
+   editor chrome continues to use Propel's corporate visual system. */
 .table-editor-canvas {
-    border-color: #d9e2ec;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #333;
+    border-color: #ddd;
     border-radius: 8px;
     background: #fff;
 }
 
 .table-editor-canvas .selected {
     outline-color: rgba(37, 87, 214, 0.45);
-}
-
-.table-editor-page-btn { border-radius: 999px; }
-
-.table-editor-page-btn.active {
-    border-color: #245269;
-    background: #2572b4;
-    box-shadow: 0 2px 6px rgba(37, 114, 180, 0.24);
-}
-
-@media (max-width: 767px) {
-    .table-editor-dialog { border-radius: 12px 12px 0 0; }
 }
