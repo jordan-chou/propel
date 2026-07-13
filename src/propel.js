@@ -4978,7 +4978,6 @@ function updateIssues() {
         const header = document.createElement('div');
         const heading = document.createElement('h4');
         const count = document.createElement('span');
-        const action = document.createElement('button');
         const list = document.createElement('ul');
         const paths = group.targets.map(target => getElementPath(target, inputHTML));
         section.className = 'review-issue-group';
@@ -4986,11 +4985,15 @@ function updateIssues() {
         heading.textContent = group.label;
         count.className = 'review-issue-group-count';
         count.textContent = String(group.targets.length);
-        action.type = 'button';
-        action.className = 'btn btn-xs review-issue-action';
-        action.textContent = group.actionLabel;
-        action.addEventListener('click', () => runReviewIssueAction(group.action, paths));
-        header.append(heading, count, action);
+        header.append(heading, count);
+        if (group.action && group.actionLabel) {
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'btn btn-xs review-issue-action';
+            action.textContent = group.actionLabel;
+            action.addEventListener('click', () => runReviewIssueAction(group.action, paths));
+            header.appendChild(action);
+        }
         section.append(header, list);
         group.targets.forEach((target, index) => {
             const item = document.createElement('li');
@@ -5030,11 +5033,11 @@ function getDocumentIssueGroups() {
         return Number(heading.tagName.substring(1)) > previousLevel + 1;
     });
     const groups = [
-        { label: 'Empty links', severity: 'error', action: 'editCode', actionLabel: 'Fix link', targets: links.filter(link => !link.getAttribute('href') || link.getAttribute('href').trim() === ''), getMessage: target => `${describeReviewTarget(target, 'Link')} has an empty or missing href value.` },
+        { label: 'Empty links', severity: 'error', targets: links.filter(link => !link.getAttribute('href') || link.getAttribute('href').trim() === ''), getMessage: target => `${describeReviewTarget(target, 'Link')} has an empty or missing href value.` },
         { label: 'Missing IDs', severity: 'warning', action: 'addIds', actionLabel: 'Add IDs', targets: missingIdTargets, getMessage: target => `${describeReviewTarget(target, getReviewTargetType(target))} is missing an ID.` },
         { label: 'Table cleanup', severity: 'error', action: 'tableCleanup', actionLabel: 'Table Cleanup', targets: tables.filter(table => !isCleanedTable(table)), getMessage: (target, index) => `${describeReviewTarget(target, `Table ${index + 1}`)} may not have been cleaned up yet. Open Table cleanup to review.` },
-        { label: 'Heading level skips', severity: 'error', action: 'edit', actionLabel: 'Fix heading', targets: headingSkips, getMessage: target => `${describeReviewTarget(target, target.tagName)} may skip a heading level.` },
-        { label: 'Missing image alt text', severity: 'error', action: 'editCode', actionLabel: 'Add alt text', targets: images.filter(image => !image.hasAttribute('alt')), getMessage: (target, index) => `${describeReviewTarget(target, `Image ${index + 1}`)} is missing an alt attribute. Empty alt may be valid for decorative images.` }
+        { label: 'Heading level skips', severity: 'error', targets: headingSkips, getMessage: target => `${describeReviewTarget(target, target.tagName)} may skip a heading level.` },
+        { label: 'Missing image alt text', severity: 'error', targets: images.filter(image => !image.hasAttribute('alt')), getMessage: (target, index) => `${describeReviewTarget(target, `Image ${index + 1}`)} is missing an alt attribute. Empty alt may be valid for decorative images.` }
     ];
 
     return groups.filter(group => group.targets.length > 0);
@@ -5062,17 +5065,6 @@ function runReviewIssueAction(action, paths) {
             addProcessingLog(`Table cleanup opened from Review for table ${tableIndex + 1}.`, 'info');
         }
         return;
-    }
-    if (firstPath) {
-        setActivityPanelOpen(false);
-        goToReviewError(firstPath);
-        if (action === 'editCode') {
-            const codeEntry = getCodeEntryForPath(firstPath);
-            outputText?.focus({ preventScroll: true });
-            if (codeEntry) outputText?.setSelectionRange(codeEntry.startIndex, codeEntry.startIndex);
-        } else {
-            liveEditor?.focus({ preventScroll: true });
-        }
     }
 }
 
