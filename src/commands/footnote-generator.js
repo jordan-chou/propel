@@ -29,8 +29,6 @@ export function createBodyFtnTags(inputHTML, langStrings) {
 
         // get footnote number from <div id="ftn###">
         let matches = s.textContent.match(/(\d+)/);
-        console.log(s.textContent);
-        console.log(matches[0]);
         const fnNum = matches[0];
         // const fnNum = fnCount++; // This assumes that references and footnotes are matched 1-to-1 sequentially
 
@@ -49,9 +47,9 @@ export function createBodyFtnTags(inputHTML, langStrings) {
  * @param {String[]} langStrings Strings in EN or FR
  * @param {Boolean} isEngLang Is in lang EN
  */
-export function replaceFootnoteSection(inputHTML, langStrings) {
+export function replaceFootnoteSection(inputHTML, langStrings, isEngLang) {
     const firstFootnote = inputHTML.querySelector('li[id^="footnote-"]');
-    firstFootnote.parentNode.parentNode.replaceChild(createFootnotes(inputHTML, langStrings), firstFootnote.parentNode);
+    firstFootnote.parentNode.parentNode.replaceChild(createFootnotes(inputHTML, langStrings, isEngLang), firstFootnote.parentNode);
 }
 
 /**

@@ -1642,7 +1642,7 @@ textarea {
 
 .table-editor-actions {
     justify-content: flex-end;
-    padding-top: 2px;
+    padding: 12px 0 2px;
     border-top: 1px solid var(--border);
 }
 
@@ -3123,4 +3123,558 @@ textarea {
     #topBtn {
         bottom: 18px;
     }
+}
+
+/* Cool editorial visual system
+   A crisp, blue-led workspace with precise controls. */
+:root {
+    --font-sans: "Avenir Next", Avenir, "Segoe UI Variable", "Segoe UI", Helvetica, Arial, sans-serif;
+    --bg: #e8edf5;
+    --surface: #f8faff;
+    --surface-2: #eef3fa;
+    --border: #ccd6e5;
+    --border-strong: #9eacc2;
+    --text: #17233b;
+    --muted: #66748c;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --success: #087f5b;
+    --warning: #96671e;
+    --danger: #a43c32;
+    --info: #0369a1;
+    --shadow: 0 16px 42px rgba(30, 58, 110, 0.12), 0 2px 8px rgba(30, 58, 110, 0.06);
+    --radius: 5px;
+    --header-height: 72px;
+    --command-bar-height: 62px;
+}
+
+html,
+body {
+    background:
+        radial-gradient(circle at 76% -20%, rgba(37, 99, 235, 0.14), transparent 38%),
+        linear-gradient(145deg, #e3eaf5 0%, #f1f5fb 58%, #e5ebf5 100%);
+    letter-spacing: 0.005em;
+}
+
+::selection {
+    background: rgba(37, 99, 235, 0.22);
+    color: #14213d;
+}
+
+:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+}
+
+.app-header {
+    position: relative;
+    grid-template-columns: 310px minmax(0, 1fr) auto;
+    min-height: var(--header-height);
+    padding: 11px 20px;
+    border-bottom: 0;
+    background: #172554;
+    color: #f5f8ff;
+    box-shadow: 0 7px 24px rgba(15, 35, 80, 0.2);
+    backdrop-filter: none;
+}
+
+.app-header::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: #3b82f6;
+    content: "";
+}
+
+.brand { gap: 14px; }
+
+.brand a {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    background: #f3f7ff;
+    box-shadow: inset 0 -2px 0 rgba(23,37,84,0.1);
+}
+
+.brand img {
+    width: 28px;
+    height: 28px;
+}
+
+.brand-title strong {
+    color: #f8fbff;
+    font-size: 1.28rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+}
+
+.brand-title span {
+    margin-top: 4px;
+    color: #b9c8e6;
+    font-size: 0.76rem;
+    letter-spacing: 0.025em;
+}
+
+.header-actions { gap: 8px; }
+
+.app-header .btn,
+#shortcutHelpBtn {
+    border-color: rgba(255,255,255,0.18);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    color: #e5edff;
+    box-shadow: none;
+}
+
+.app-header .btn:hover,
+.app-header .btn:focus,
+#shortcutHelpBtn:hover,
+#shortcutHelpBtn:focus {
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+}
+
+.app-header .label-default {
+    border-color: rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.08);
+    color: #dbe7ff;
+}
+
+.language-switch {
+    min-height: 34px;
+    border-color: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    background: #101d45;
+    color: #b3c3e2;
+}
+
+.language-switch-option { border-radius: 2px; }
+
+.language-switch-option.active {
+    background: #eef4ff;
+    color: #172554;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+}
+
+.main-grid {
+    gap: 8px;
+    padding: 8px;
+}
+
+.panel {
+    border-color: rgba(105, 124, 157, 0.38);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 8px 26px rgba(30, 58, 110, 0.08);
+}
+
+.left-rail {
+    border-color: rgba(105, 124, 157, 0.42);
+    border-radius: 4px;
+    background: rgba(248, 250, 255, 0.94);
+    box-shadow: 0 3px 12px rgba(30, 58, 110, 0.07);
+}
+
+.left-rail .rail-scroll { padding: 6px 8px; }
+
+.left-rail .section-kicker {
+    padding-right: 5px;
+    color: #697891;
+    font-size: 0.63rem;
+    letter-spacing: 0.12em;
+}
+
+.upload-drop-zone,
+.upload-drop-zone.needs-file {
+    min-height: 43px;
+    border-color: rgba(37, 99, 235, 0.42);
+    border-radius: 3px;
+    background: #f1f6ff;
+    box-shadow: none;
+}
+
+.upload-drop-zone.needs-file {
+    background: linear-gradient(90deg, rgba(37,99,235,0.09), transparent 54%), #f7f9ff;
+}
+
+.upload-drop-zone strong { color: #1e4fae; }
+
+.upload-drop-zone.needs-file::before {
+    border-radius: 2px;
+    background: #38bdf8;
+    box-shadow: none;
+    animation: uploadStartPulse 2.2s ease-out infinite;
+}
+
+.btn {
+    border-color: #afbdd2;
+    border-radius: 4px;
+    background: #f8faff;
+    color: #223252;
+    font-weight: 650;
+    box-shadow: 0 1px 1px rgba(23, 37, 84, 0.04);
+    transition: border-color 130ms ease, background-color 130ms ease, color 130ms ease, transform 130ms ease;
+}
+
+.btn:hover {
+    border-color: #7894c4;
+    background: #edf3ff;
+    color: #1d4ed8;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #fff;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+
+.btn-primary:hover {
+    border-color: #1d4ed8;
+    background: #1d4ed8;
+    color: #fff;
+}
+
+.left-rail .btn {
+    border-radius: 3px;
+    transition: border-color 130ms ease, background-color 130ms ease, color 130ms ease, box-shadow 130ms ease, transform 130ms ease;
+}
+
+.left-rail .btn-primary,
+.split-command {
+    border-color: #2563eb;
+    background: #2563eb;
+}
+
+.left-rail .btn-primary:hover,
+.left-rail .btn-primary:focus-visible {
+    border-color: #1e40af;
+    background: #1d4ed8;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22), 0 5px 12px rgba(30, 64, 175, 0.22);
+    transform: translateY(-1px);
+}
+
+.left-rail .btn-primary:active {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+    transform: translateY(1px);
+}
+
+.split-command {
+    border-radius: 3px;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.14);
+}
+
+.command-settings-btn,
+.left-rail .command-settings-btn {
+    background: #2457c5;
+}
+
+.left-rail .command-settings-btn:hover,
+.left-rail .command-settings-btn:focus-visible {
+    border-color: #172f7a;
+    background: #163b91;
+}
+
+.rail-copy-action .btn {
+    min-width: 106px;
+    border-color: #1e315d;
+    background: #1e315d;
+}
+
+.rail-copy-action .btn:hover,
+.rail-copy-action .btn:focus-visible {
+    border-color: #60a5fa;
+    background: #29477e;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.24), 0 5px 12px rgba(23, 37, 84, 0.24);
+}
+
+.editor-panel {
+    border-color: rgba(91, 111, 148, 0.52);
+    box-shadow: 0 14px 38px rgba(30, 58, 110, 0.11);
+}
+
+.editor-surface { background: #f1f5fb; }
+
+.wysiwyg-toolbar,
+.code-toolbar {
+    border-color: #cbd5e5;
+    background: #edf2f9;
+}
+
+.wysiwyg-toolbar {
+    box-shadow: inset 0 -1px 0 rgba(23,37,84,0.04);
+}
+
+.wysiwyg-toolbar .btn {
+    border-radius: 3px;
+    background: transparent;
+    color: #405476;
+}
+
+.wysiwyg-toolbar .btn:hover,
+.wysiwyg-toolbar .btn:focus {
+    border-color: #95a8c8;
+    background: #f8faff;
+    color: #2563eb;
+}
+
+.wysiwyg-toolbar .btn.active,
+.wysiwyg-toolbar .btn[aria-pressed="true"] {
+    border-color: rgba(37,99,235,0.36);
+    background: rgba(37,99,235,0.11);
+    color: #1d4ed8;
+}
+
+.toolbar-format-select {
+    border-color: #afbdd2;
+    border-radius: 3px;
+    background: #f7f9fe;
+    color: #293b60;
+}
+
+.code-toolbar {
+    color: #71809a;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+#liveEditor {
+    background:
+        linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), rgba(30,58,110,0.05) calc(100% - 1px)),
+        #fbfdff;
+    color: #1f2f4d;
+}
+
+#liveEditor:empty::before { color: #8794aa; }
+
+.code-editor,
+#outputText,
+#codeHighlight {
+    background: #111b35;
+    color: #dce7ff;
+}
+
+#outputText { caret-color: #67e8f9; }
+
+#outputText::placeholder { color: #8999b8; }
+
+.pane-splitter { background: #d3dcea; }
+
+.pane-splitter:hover,
+.pane-splitter:focus { background: #2563eb; }
+
+.settings-box.command-dialog,
+.shortcut-dialog,
+.table-editor-dialog {
+    border-color: #a8b6cc;
+    border-radius: 5px;
+    background: #f8faff;
+    box-shadow: 0 24px 70px rgba(15, 35, 80, 0.24);
+}
+
+.modal-backdrop { background: rgba(10, 22, 52, 0.48); }
+
+.dialog-header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.dialog-header h2,
+.table-editor-dialog h2 {
+    color: #1a315e;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.form-control,
+.file-input,
+select,
+textarea {
+    border-color: #afbdd2;
+    border-radius: 3px;
+    background: #fbfdff;
+}
+
+.form-control:focus,
+select:focus,
+textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.14);
+    outline: 0;
+}
+
+.table-editor-dialog { border-radius: 5px 0 0 5px; }
+
+.table-editor-panel { background: #f1f5fb; }
+
+.table-editor-toolbar {
+    border-color: #c8d3e3;
+    border-radius: 4px;
+    background: #edf2f9;
+}
+
+.table-toolbar-group { border-color: #bdc9da; }
+
+.table-tool-btn {
+    border-radius: 3px;
+    color: #3e5275;
+}
+
+.table-tool-btn:hover,
+.table-tool-btn:focus {
+    border-color: #7792be;
+    background: #fbfdff;
+    color: #2563eb;
+}
+
+.table-editor-canvas {
+    border-color: #bdc9da;
+    border-radius: 3px;
+    background: #fbfdff;
+}
+
+.table-editor-page-btn { border-radius: 3px; }
+
+.table-editor-page-btn.active {
+    border-color: #2563eb;
+    background: #2563eb;
+}
+
+.activity-panel {
+    border-left-color: #8495b2;
+    background: #f5f8fd;
+    box-shadow: -20px 0 54px rgba(15, 35, 80, 0.24);
+}
+
+.activity-panel-header {
+    border-bottom-color: #415986;
+    background: #172554;
+    color: #f5f8ff;
+}
+
+.activity-panel-header .btn {
+    border-color: rgba(255,255,255,0.22);
+    background: transparent;
+    color: #e4ecff;
+}
+
+.review-tabs {
+    gap: 2px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.17);
+}
+
+.review-tab {
+    border-radius: 2px;
+    color: #becbea;
+}
+
+.review-tab.active,
+.review-tab:hover {
+    background: #f0f5ff;
+    color: #172f60;
+}
+
+.report-stat,
+.review-issue-summary,
+.outline-item,
+.issue-item {
+    border-radius: 3px;
+    background: #edf2f9;
+}
+
+.label,
+.report-issue-pill {
+    border-radius: 3px;
+}
+
+.toast-message {
+    border-radius: 4px;
+    background: rgba(248,250,255,0.98);
+    box-shadow: 0 14px 36px rgba(20,42,86,0.18);
+}
+
+#loader { background: rgba(10, 22, 52, 0.5); }
+
+#loader::after {
+    border-radius: 4px;
+    background: #f8faff;
+    color: #172f60;
+}
+
+@media (max-width: 767px) {
+    :root { --header-height: 70px; }
+
+    .app-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 10px 12px 12px;
+    }
+
+    .brand-title span { display: none; }
+
+    .header-actions {
+        width: auto;
+        gap: 5px;
+    }
+
+    #healthScore { display: none; }
+
+    .main-grid { padding: 6px; }
+
+    .left-rail .rail-scroll { padding: 5px; }
+
+    .upload-drop-zone,
+    .upload-drop-zone.needs-file { min-width: 210px; }
+
+    .editor-panel { border-radius: 3px; }
+}
+
+/* Code view: keep the editable textarea transparent so the highlighted layer
+   remains visible, with a palette tuned for the cool code surface. */
+#outputText {
+    background: transparent;
+    color: transparent;
+}
+
+#codeHighlight { background: #111b35; }
+#codeHighlight .pln { color: #dce7ff; }
+#codeHighlight .tag,
+#codeHighlight .kwd { color: #67e8f9; }
+#codeHighlight .atn,
+#codeHighlight .typ,
+#codeHighlight .dec,
+#codeHighlight .var { color: #fbbf7a; }
+#codeHighlight .atv,
+#codeHighlight .str { color: #a7e3a1; }
+#codeHighlight .pun,
+#codeHighlight .opn,
+#codeHighlight .clo { color: #9aaad0; }
+#codeHighlight .com { color: #7f91b7; font-style: italic; }
+#codeHighlight .lit { color: #f4a7a7; }
+#codeHighlight .fun { color: #d8a7f3; }
+
+/* Only the document preview retains WET/Canada.ca presentation. The table
+   editor chrome continues to use Propel's corporate visual system. */
+.table-editor-canvas {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #333;
+    border-color: #ddd;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.table-editor-canvas .selected {
+    outline-color: rgba(37, 87, 214, 0.45);
 }

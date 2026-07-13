@@ -9,12 +9,20 @@
 import { modifyHeadings, modifyFigures, modifyTables, createOnThisPage } from './commands/anchors-aweigh.js';
 import { createBodyFtnTags, replaceFootnoteSection } from './commands/footnote-generator.js';
 import { splitH1s, createSplitButton } from './commands/split-h1s.js';
-import { setInputHTMLForNbsp, fixAllIssues } from './commands/nbsp.js';
+import { fixNbspHTML } from './commands/nbsp.js';
 import { cleanupTable, defaultTableCleanupOptions, renameTag } from './commands/table-cleanup.js';
 import { collapseAll, setCodeTheme, countTags, qaHelperTagsDefault, setUpPresetBtns } from './commands/qa-helper.js';
 
 import { engStrings, frStrings } from './strings.js';
 import * as Utils from './util.js';
+import { DocumentStore } from './document/document-store.js';
+import { runStandardCleanup } from './document/cleanup.js';
+import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
+import { CommandRegistry } from './commands/command-registry.js';
+import { buildCellGrid, getCellPosition } from './table-editor/model.js';
+import { toggleCellsBold } from './table-editor/formatting.js';
+import { readFileAsArrayBuffer, getMammothLibrary, convertWithMammoth } from './conversion/mammoth-adapter.js';
+import { createJSONStorage } from './ui/storage.js';
 
 /* HTML Elements */
 const file = document.getElementById('file');
@@ -137,6 +145,14 @@ const optionTooltip = document.getElementById('optionTooltip');
 
 // Local HTML for input
 const inputHTML = document.createElement('div');
+const documentStore = new DocumentStore(inputHTML);
+const commandRegistry = new CommandRegistry()
+    .register('document.standardCleanup', { label: 'Standard cleanup', execute: standardCleanupCommand })
+    .register('document.addIds', { label: 'Add IDs', execute: addIDsCommand })
+    .register('document.generateFootnotes', { label: 'Generate footnotes', execute: generateFootnotesCommand })
+    .register('document.fixSpacing', { label: 'Validate non-breaking spaces', execute: validateNbspCommand })
+    .register('table.openCleanup', { label: 'Table cleanup', execute: tableCleanupCommand })
+    .register('document.splitHeadings', { label: 'Create H1 splits', execute: splitByH1Command });
 
 /* Global Variables */
 // Elapsed time
@@ -174,10 +190,11 @@ let tableEditorHistoryRestoring = false;
 let tableEditorPendingAction = null;
 let tableEditorCaptionSuggestions = {};
 let tableEditorAcceptedExternalCaptionNodes = new Set();
-const paneSplitterStorageKey = 'propel.livePaneWidthRatio';
+const uiPreferences = createJSONStorage(window.localStorage, 'propel');
+const paneSplitterStorageKey = 'livePaneWidthRatio';
 const paneSplitterSnapRatios = [1 / 2, 2 / 3];
 const paneSplitterSnapZone = 24;
-const tableEditorSizeStorageKey = 'propel.tableEditorSize';
+const tableEditorSizeStorageKey = 'tableEditorSize';
 const tableEditorBottomLayoutQuery = window.matchMedia('(orientation: portrait) and (min-width: 768px), (max-width: 767px)');
 const tableEditorMobileLayoutQuery = window.matchMedia('(max-width: 767px)');
 const tableEditorSnapZone = 24;
@@ -460,7 +477,7 @@ function createModernDashboardListeners() {
     });
 
     if (standardCleanupBtn) {
-        standardCleanupBtn.addEventListener('click', standardCleanupCommand);
+        standardCleanupBtn.addEventListener('click', () => commandRegistry.execute('document.standardCleanup'));
     }
 
     if (activityToggleBtn) {
@@ -804,7 +821,7 @@ function setLivePaneWidthFromRatio(ratio) {
 
 function applySavedPaneSplitterLocation() {
     try {
-        const savedRatio = localStorage.getItem(paneSplitterStorageKey);
+        const savedRatio = uiPreferences.get(paneSplitterStorageKey);
 
         if (savedRatio !== null) {
             setLivePaneWidthFromRatio(Number(savedRatio));
@@ -826,7 +843,7 @@ function savePaneSplitterLocation() {
     }
 
     try {
-        localStorage.setItem(paneSplitterStorageKey, String(livePaneWidthRatio));
+        uiPreferences.set(paneSplitterStorageKey, livePaneWidthRatio);
     } catch (error) {
         console.warn('Could not save pane splitter location.', error);
     }
@@ -912,7 +929,7 @@ function createListeners() {
         if (addIDsApplyBtn) {
             addIDsApplyBtn.addEventListener('click', (event) => {
                 event.stopPropagation();
-                addIDsCommand();
+                commandRegistry.execute('document.addIds');
                 closeAddIDsSettings();
             });
         }
@@ -1001,10 +1018,10 @@ function createListeners() {
     }
 
     // Command buttons
-    footnotesBtn.addEventListener('click', generateFootnotesCommand);
-    nbspBtn.addEventListener('click', validateNbspCommand);
-    tableCleanupBtn.addEventListener('click', tableCleanupCommand);
-    splitBtn.addEventListener('click', splitByH1Command);
+    footnotesBtn.addEventListener('click', () => commandRegistry.execute('document.generateFootnotes'));
+    nbspBtn.addEventListener('click', () => commandRegistry.execute('document.fixSpacing'));
+    tableCleanupBtn.addEventListener('click', () => commandRegistry.execute('table.openCleanup'));
+    splitBtn.addEventListener('click', () => commandRegistry.execute('document.splitHeadings'));
 
     // QA Helper buttons
     countBtn.addEventListener('click', qaHelperCount);
@@ -1550,6 +1567,7 @@ function commitDocumentHistory(source = 'command', actionLabel = null) {
 
     documentHistoryLastSource = source;
     documentHistoryLastTime = now;
+    documentStore.touch(historyAction, { source });
     updateDocumentHistoryButtons();
 }
 
@@ -1576,7 +1594,7 @@ function redoDocumentChange() {
 function restoreDocumentHistory(index) {
     documentHistoryRestoring = true;
     documentHistoryIndex = index;
-    inputHTML.innerHTML = documentHistory[index];
+    documentStore.replaceHTML(documentHistory[index], { source: 'history', historyIndex: index });
     inputHTML.classList.add('content-area');
     updateCodeView();
     updateLiveView();
@@ -2322,7 +2340,7 @@ function updateTableEditorToastPosition() {
 
 function getStoredTableEditorSize() {
     try {
-        return JSON.parse(localStorage.getItem(tableEditorSizeStorageKey)) || {};
+        return uiPreferences.get(tableEditorSizeStorageKey, {});
     } catch (error) {
         return {};
     }
@@ -2332,7 +2350,7 @@ function storeTableEditorSize(name, value) {
     const size = getStoredTableEditorSize();
     size[name] = Math.round(value);
     try {
-        localStorage.setItem(tableEditorSizeStorageKey, JSON.stringify(size));
+        uiPreferences.set(tableEditorSizeStorageKey, size);
     } catch (error) {
         // The editor remains resizable when storage is unavailable.
     }
@@ -3369,25 +3387,11 @@ function clearTableEditorTextSelectionForMultiCellSelection() {
 }
 
 function getTableEditorCellPosition(cell) {
-    return getTableEditorCellGrid().find((entry) => entry.cell === cell) || null;
+    return getCellPosition(getTableEditorTable(), cell);
 }
 
 function getTableEditorCellGrid() {
-    const table = getTableEditorTable();
-    const rows = table ? Array.from(table.querySelectorAll('tr')) : [];
-    const grid = [];
-
-    rows.forEach((row, rowIndex) => {
-        Array.from(row.querySelectorAll('th, td')).forEach((cell, columnIndex) => {
-            grid.push({
-                cell,
-                row: rowIndex,
-                column: columnIndex
-            });
-        });
-    });
-
-    return grid;
+    return buildCellGrid(getTableEditorTable());
 }
 
 function getTableEditorSelectedCells() {
@@ -3668,27 +3672,7 @@ function getTableEditorWidth(table) {
 }
 
 function toggleTableEditorBold() {
-    getTableEditorSelectedCells().forEach((cell) => {
-        const strong = cell.children.length === 1 && cell.firstElementChild && cell.firstElementChild.tagName.toLowerCase() === 'strong'
-            ? cell.firstElementChild
-            : null;
-
-        if (strong) {
-            while (strong.firstChild) {
-                cell.insertBefore(strong.firstChild, strong);
-            }
-            strong.remove();
-            cell.classList.add('fnt-nrml');
-            return;
-        }
-
-        const wrapper = document.createElement('strong');
-        while (cell.firstChild) {
-            wrapper.appendChild(cell.firstChild);
-        }
-        cell.appendChild(wrapper);
-        cell.classList.remove('fnt-nrml');
-    });
+    toggleCellsBold(getTableEditorSelectedCells());
 }
 
 function alignTableEditorCells(alignment) {
@@ -3803,7 +3787,7 @@ function updateAddIDsSettingsState() {
 /**
  * Converts the input text into HTML components for better JavaScript compatibility
  */
-function convertUsingMammoth(file) {
+async function convertUsingMammoth(file) {
     const loading = document.getElementById('loader');
     const mammothLibrary = getMammothLibrary();
 
@@ -3813,35 +3797,22 @@ function convertUsingMammoth(file) {
         return;
     }
 
-    var reader = new FileReader();
-    reader.onload = function () {
-        var arrayBuffer = reader.result;
+    try {
+        const arrayBuffer = await readFileAsArrayBuffer(file);
         clearOutputText();
         if (loading) { loading.classList.remove("hidden"); }
-        detectDocxLanguageFromMetadata(arrayBuffer, file.name, mammothLibrary)
-            .then(function(languageResult) {
-                applyDetectedDocumentLanguage(languageResult);
-                return mammothLibrary.convertToHtml({ arrayBuffer: arrayBuffer });
-            })
-            .then(function(result) {
-                var html = result.value;
-                var messages = result.messages;
-                handleConvertedHTML(html);
-                if (messages && messages.length > 0) {
-                    addProcessingLog(`Mammoth returned ${messages.length} message(s). Check console for details.`, 'warning');
-                    console.warn(messages);
-                }
-            })
-            .catch(function (error) {
-                console.error("Mammoth conversion error:", error);
-                addProcessingLog('Mammoth conversion error. Check console for details.', 'danger');
-            });
-    };
-    reader.onerror = function (err) {
-        console.error("File reading failed:", err);
-        addProcessingLog('File reading failed. Check console for details.', 'danger');
-    };
-    reader.readAsArrayBuffer(file);
+        applyDetectedDocumentLanguage(await detectDocxLanguageFromMetadata(arrayBuffer, file.name, mammothLibrary));
+        const { html, messages } = await convertWithMammoth(mammothLibrary, arrayBuffer);
+        handleConvertedHTML(html);
+        if (messages.length > 0) {
+            addProcessingLog(`Mammoth returned ${messages.length} message(s). Check console for details.`, 'warning');
+            console.warn(messages);
+        }
+    } catch (error) {
+        console.error('Mammoth conversion error:', error);
+        addProcessingLog('Mammoth conversion error. Check console for details.', 'danger');
+        if (loading) loading.classList.add('hidden');
+    }
 }
 
 function detectDocxLanguageFromMetadata(arrayBuffer, fileName, mammothLibrary) {
@@ -4055,12 +4026,9 @@ function applyDetectedDocumentLanguage(languageResult) {
  */
 function handleConvertedHTML(html) {
     const loading = document.getElementById('loader');
-    inputHTML.innerHTML = html;
+    documentStore.replaceHTML(html, { source: 'conversion' });
 
-    const imgCount = cleanImgSources();
-    const bookmarkCount = removeBookmarkTags();
-    const hrefCount = cleanBookmarkHrefs();
-    normalizeSmartQuotes();
+    const { imageSources: imgCount, bookmarks: bookmarkCount, bookmarkLinks: hrefCount } = runStandardCleanup(inputHTML);
 
     const conversionTime = getEndTime();
     if (loading) { loading.classList.add("hidden"); }
@@ -4082,8 +4050,6 @@ function handleConvertedHTML(html) {
 function standardCleanupCommand() {
     const debug = document.getElementById('debug');
 
-    console.log('Standard cleanup');
-
     try {
         syncActiveEditorToInputHTML();
 
@@ -4091,10 +4057,7 @@ function standardCleanupCommand() {
             throw new Error('Input is empty');
         }
 
-        const imgCount = cleanImgSources();
-        const bookmarkCount = removeBookmarkTags();
-        const hrefCount = cleanBookmarkHrefs();
-        normalizeSmartQuotes();
+        const { imageSources: imgCount, bookmarks: bookmarkCount, bookmarkLinks: hrefCount } = runStandardCleanup(inputHTML);
 
         updateOutputText();
         setDebugMessage(debug, 'Standard cleanup successful', false);
@@ -4162,8 +4125,7 @@ function validateNbspCommand() {
     const debug = document.getElementById('debug');
     try {
         syncActiveEditorToInputHTML();
-        setInputHTMLForNbsp(inputHTML);
-        inputHTML.innerHTML = fixAllIssues(!isEngLang);
+        documentStore.replaceHTML(fixNbspHTML(inputHTML.innerHTML, !isEngLang), { source: 'document.fixSpacing' });
         
         updateOutputText();
         setDebugMessage(debug, 'Validate &nbsp; successful', false);
@@ -4247,46 +4209,6 @@ function qaHelperCount() {
 /**
  * Removes all src values from img tags
  */
-function cleanImgSources() {
-    const imgs = inputHTML.querySelectorAll('img');
-    for (var img of imgs) {
-        img.src = "";
-    }
-    return imgs.length;
-}
-
-/**
- * Removes all a tags that contain IDs starting with "_"
- */
-function removeBookmarkTags() {
-    const as = inputHTML.querySelectorAll('a[id^="_"]');
-    const count = as.length;
-    for (var a of as) {
-        Utils.stripTag(a);
-    }
-    return count;
-}
-
-/**
- * Empties hrefs of a tags that start with "#_Toc"
- */
-function cleanBookmarkHrefs() {
-    const as = inputHTML.querySelectorAll('a[href^="#_Toc"]');
-    for (var a of as) {
-        a.href = "";
-    }
-    return as.length;
-}
-
-/**
- * Normalize smart quotes (“” and ‘’) to regular quotes (" and ')
- */
-function normalizeSmartQuotes() {
-    inputHTML.innerHTML = inputHTML.innerHTML
-        .replace(/[“”]/g, '"')
-        .replace(/[‘’]/g, "'");
-}
-
 /**
  * Capture the current time into a global variable
  */
@@ -4814,18 +4736,6 @@ function clearOutputText() {
     refreshReviewPanel();
 }
 
-function getMammothLibrary() {
-    if (window.mammoth && typeof window.mammoth.convertToHtml === 'function') {
-        return window.mammoth;
-    }
-
-    if (typeof mammoth !== 'undefined' && mammoth && typeof mammoth.convertToHtml === 'function') {
-        return mammoth;
-    }
-
-    return null;
-}
-
 function setFileUploadStatus() {}
 
 /**
@@ -5041,40 +4951,13 @@ function updateIssues() {
 }
 
 function getDocumentIssueGroups() {
-    const headings = Array.from(inputHTML.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-    const tables = Array.from(inputHTML.querySelectorAll('table'));
-    const figures = Array.from(inputHTML.querySelectorAll('figure'));
-    const images = Array.from(inputHTML.querySelectorAll('img'));
-    const links = Array.from(inputHTML.querySelectorAll('a'));
-    const missingIdTargets = [...headings, ...tables, ...figures]
-        .filter(element => !element.id)
-        .sort((first, second) => first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_PRECEDING ? 1 : -1);
-    const headingSkips = headings.filter((heading, index) => {
-        if (index === 0) return false;
-        const previousLevel = Number(headings[index - 1].tagName.substring(1));
-        return Number(heading.tagName.substring(1)) > previousLevel + 1;
-    });
-    const groups = [
-        { label: 'Empty links', severity: 'error', targets: links.filter(link => !link.getAttribute('href') || link.getAttribute('href').trim() === ''), getMessage: target => `${describeReviewTarget(target, 'Link')} has an empty or missing href value.` },
-        { label: 'Missing IDs', severity: 'warning', action: 'addIds', actionLabel: 'Add IDs', targets: missingIdTargets, getMessage: target => `${describeReviewTarget(target, getReviewTargetType(target))} is missing an ID.` },
-        { label: 'Table cleanup', severity: 'error', action: 'tableCleanup', actionLabel: 'Table Cleanup', targets: tables.filter(table => !isCleanedTable(table)), getMessage: (target, index) => `${describeReviewTarget(target, `Table ${index + 1}`)} may not have been cleaned up yet. Open Table cleanup to review.` },
-        { label: 'Heading level skips', severity: 'error', targets: headingSkips, getMessage: target => `${describeReviewTarget(target, target.tagName)} may skip a heading level.` },
-        { label: 'Missing image alt text', severity: 'error', targets: images.filter(image => !image.hasAttribute('alt')), getMessage: (target, index) => `${describeReviewTarget(target, `Image ${index + 1}`)} is missing an alt attribute. Empty alt may be valid for decorative images.` }
-    ];
-
-    return groups.filter(group => group.targets.length > 0);
-}
-
-function getReviewTargetType(target) {
-    if (target.matches('table')) return 'Table';
-    if (target.matches('figure')) return 'Figure';
-    return target.tagName;
+    return analyzeDocument(inputHTML).issueGroups;
 }
 
 function runReviewIssueAction(action, paths) {
     const firstPath = paths.find(path => Array.isArray(path));
     if (action === 'addIds') {
-        addIDsCommand();
+        commandRegistry.execute('document.addIds');
         return;
     }
     if (action === 'tableCleanup' && firstPath) {
@@ -5088,15 +4971,6 @@ function runReviewIssueAction(action, paths) {
         }
         return;
     }
-}
-
-function describeReviewTarget(target, fallback) {
-    const text = (target.getAttribute?.('aria-label') || target.getAttribute?.('alt') || target.textContent || '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    if (!text) return fallback;
-    const summary = text.length > 42 ? `${text.substring(0, 39).trim()}…` : text;
-    return `${fallback} “${summary}”`;
 }
 
 function updateLiveReviewFlags() {
@@ -5220,59 +5094,7 @@ function updateHtmlPreview() {
 }
 
 function getDocumentStats() {
-    const headings = Array.from(inputHTML.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-    const tables = Array.from(inputHTML.querySelectorAll('table'));
-    const figures = Array.from(inputHTML.querySelectorAll('figure'));
-    const images = Array.from(inputHTML.querySelectorAll('img'));
-    const links = Array.from(inputHTML.querySelectorAll('a'));
-
-    return {
-        headings: headings.length,
-        tables: tables.length,
-        figures: figures.length,
-        images: images.length,
-        links: links.length,
-        footnoteRefs: inputHTML.querySelectorAll('sup a, a[href^="#fn"], a[href^="#ftn"]').length,
-        emptyLinks: links.filter(link => !link.getAttribute('href') || link.getAttribute('href').trim() === '').length,
-        missingHeadingIds: headings.filter(heading => !heading.id).length,
-        missingTableIds: tables.filter(table => !table.id).length,
-        tablesNeedingCleanup: tables.filter(table => !isCleanedTable(table)).length,
-        missingFigureIds: figures.filter(figure => !figure.id).length,
-        imagesMissingAlt: images.filter(img => !img.hasAttribute('alt')).length,
-        headingSkips: getHeadingSkipCount(headings)
-    };
-}
-
-/**
- * Detects the structural baseline produced by the table cleanup command.
- * This deliberately avoids checking optional styling such as financial-table
- * alignment so tables remain "clean" after supported editor customizations.
- */
-function isCleanedTable(table) {
-    return Boolean(
-        table
-        && table.classList.contains('table')
-        && table.classList.contains('table-bordered')
-        && table.parentElement
-        && table.parentElement.matches('div.table-responsive')
-        && table.querySelector(':scope > thead')
-        && table.querySelector(':scope > tbody')
-    );
-}
-
-function getHeadingSkipCount(headings) {
-    let skips = 0;
-    let previousLevel = null;
-
-    headings.forEach((heading) => {
-        const currentLevel = Number(heading.tagName.substring(1));
-        if (previousLevel !== null && currentLevel > previousLevel + 1) {
-            skips += 1;
-        }
-        previousLevel = currentLevel;
-    });
-
-    return skips;
+    return analyzeDocument(inputHTML).stats;
 }
 
 function hasInput() {

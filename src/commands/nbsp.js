@@ -7,14 +7,14 @@
  */
 
 const nbsp = '&nbsp;';
-var inputHTML;
-
-export function setInputHTMLForNbsp(input) {
-    inputHTML = input;
+/** Stateless entry point used by commands, tests, and future batch/AI workflows. */
+export function fixNbspHTML(html, isFrench, documentRef = document) {
+    var content = applyNbspRules(html, isFrench);
+    return unfixImgAlt(content, documentRef);
 }
 
-export function fixAllIssues(isFrench) {
-    var content = inputHTML.innerHTML;
+export function applyNbspRules(html, isFrench) {
+    var content = html;
     var rules = getRules(isFrench);
     Object.keys(rules).forEach(key => {
         content = content.replace(rules[key], match => match.replaceAll(/ /g, nbsp));
@@ -24,7 +24,6 @@ export function fixAllIssues(isFrench) {
             content = content.replace(`${nbsp}${nbsp}`, nbsp);
         }
     });
-    content = unfixImgAlt(content);
     return content;
 }
 
@@ -54,8 +53,8 @@ function getRules(isFrench) {
     };
 }
 
-function unfixImgAlt(html) {
-    const div = document.createElement('div');
+function unfixImgAlt(html, documentRef) {
+    const div = documentRef.createElement('div');
     div.innerHTML = html;
 
     const imgs = div.querySelectorAll('img');
