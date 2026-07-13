@@ -62,6 +62,7 @@ const toastRegion = document.getElementById('toastRegion');
 const documentHealth = document.getElementById('documentHealth');
 const documentOutline = document.getElementById('documentOutline');
 const documentIssues = document.getElementById('documentIssues');
+const reviewFlagsToggle = document.getElementById('reviewFlagsToggle');
 const htmlPreview = document.getElementById('htmlPreview');
 const healthScore = document.getElementById('healthScore');
 const reviewTabs = document.querySelectorAll('[data-review-tab]');
@@ -287,6 +288,80 @@ function createWetLiveEditor(host) {
                 box-shadow: 0 0 0 6px rgba(37,87,214,0.08);
             }
 
+            .wet-live-editor .review-flagged-component {
+                position: relative;
+            }
+
+            .wet-live-editor .review-flag-button {
+                position: absolute;
+                z-index: 12;
+                top: -7px;
+                left: -7px;
+                display: grid;
+                width: 14px;
+                height: 14px;
+                place-items: center;
+                border: 1px solid #92400e;
+                border-radius: 50%;
+                background: #fff7ed;
+                color: #b45309;
+                font: 700 9px/1 sans-serif;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+                cursor: pointer;
+                opacity: 0;
+                pointer-events: none;
+                transform: scale(0.88);
+                transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            .wet-live-editor.review-flags-visible .review-flag-button {
+                opacity: 0.6;
+                pointer-events: auto;
+            }
+
+            .wet-live-editor.review-flags-visible .review-flag-button:hover,
+            .wet-live-editor .review-flag-button:focus {
+                opacity: 1;
+                transform: scale(1);
+                outline: 2px solid rgba(37, 87, 214, 0.45);
+                outline-offset: 1px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+            }
+
+            .review-flag-count {
+                position: absolute;
+                top: -7px;
+                right: -8px;
+                min-width: 12px;
+                height: 12px;
+                padding: 0 3px;
+                border-radius: 999px;
+                background: #b45309;
+                color: #fff;
+                font: 700 8px/12px sans-serif;
+                text-align: center;
+            }
+
+            .review-flag-button-error .review-flag-count {
+                background: #b91c1c;
+            }
+
+            .wet-live-editor .review-flag-button-error {
+                border-color: #991b1b;
+                background: #fef2f2;
+                color: #b91c1c;
+            }
+
+            .wet-live-editor .review-flag-target {
+                animation: review-flag-pulse 0.8s ease-in-out 2;
+            }
+
+            @keyframes review-flag-pulse {
+                50% { box-shadow: 0 0 0 7px rgba(180, 83, 9, 0.22); }
+            }
+
             .table-edit-popover {
                 position: absolute;
                 z-index: 20;
@@ -356,6 +431,10 @@ function createModernDashboardListeners() {
             switchReviewTab(tab.getAttribute('data-review-tab'));
         });
     });
+
+    if (reviewFlagsToggle) {
+        reviewFlagsToggle.addEventListener('change', updateLiveReviewFlagVisibility);
+    }
 
     workflowTabs.forEach((tab) => {
         tab.addEventListener('click', (event) => {
@@ -622,6 +701,7 @@ function switchReviewTab(targetId) {
     document.querySelectorAll('.review-pane').forEach((pane) => {
         pane.classList.toggle('active', pane.id === targetId);
     });
+    updateLiveReviewFlagVisibility();
 }
 
 function openActivityReviewTab() {
@@ -4291,6 +4371,12 @@ function syncLiveToInputHTML() {
     }
 
     const clone = liveEditor.cloneNode(true);
+    clone.querySelectorAll('.review-flag-button').forEach(element => element.remove());
+    clone.querySelectorAll('.review-flagged-component, .review-flag-target').forEach((element) => {
+        element.classList.remove('review-flagged-component', 'review-flag-error', 'review-flag-target');
+        element.removeAttribute('data-review-issues');
+        if (!element.className) element.removeAttribute('class');
+    });
     replaceElementTag(clone, 'b', 'strong');
     replaceElementTag(clone, 'i', 'em');
     removeEmptyStyleAttributes(clone);
@@ -4729,6 +4815,7 @@ function refreshReviewPanel() {
     updateHeadingOutline();
     updateIssues();
     updateHtmlPreview();
+    updateLiveReviewFlags();
 }
 
 function updateDocumentHealth() {
@@ -4744,13 +4831,17 @@ function updateDocumentHealth() {
         return;
     }
 
-    const issueTotal = stats.emptyLinks + stats.missingHeadingIds + stats.missingTableIds + stats.missingFigureIds + stats.headingSkips + stats.tablesNeedingCleanup;
+    const issueGroups = getDocumentIssueGroups();
+    const issueTotal = issueGroups.reduce((total, group) => total + group.targets.length, 0);
+    const errorTotal = issueGroups
+        .filter(group => group.severity === 'error')
+        .reduce((total, group) => total + group.targets.length, 0);
     let statusText = 'Looks clean';
     let statusClass = 'label-success';
     if (issueTotal === 0) {
         statusText = 'Looks clean';
         statusClass = 'label-success';
-    } else if (issueTotal <= 3) {
+    } else if (errorTotal === 0) {
         statusText = 'Review suggested';
         statusClass = 'label-warning';
     } else {
@@ -4824,42 +4915,234 @@ function updateIssues() {
         return;
     }
 
-    const stats = getDocumentStats();
-    const issues = [];
+    const issueGroups = getDocumentIssueGroups();
 
     if (!hasInput()) {
         documentIssues.innerHTML = '<p class="text-muted">Items to review will appear here.</p>';
         return;
     }
 
-    if (stats.emptyLinks > 0) {
-        issues.push(`${stats.emptyLinks} empty or missing link href value(s).`);
-    }
-    if (stats.missingHeadingIds > 0) {
-        issues.push(`${stats.missingHeadingIds} heading(s) missing an ID.`);
-    }
-    if (stats.missingTableIds > 0) {
-        issues.push(`${stats.missingTableIds} table(s) missing an ID.`);
-    }
-    if (stats.tablesNeedingCleanup > 0) {
-        issues.push(`${stats.tablesNeedingCleanup} table(s) may not have been cleaned up yet. Open Table cleanup to review.`);
-    }
-    if (stats.missingFigureIds > 0) {
-        issues.push(`${stats.missingFigureIds} figure(s) missing an ID.`);
-    }
-    if (stats.headingSkips > 0) {
-        issues.push(`${stats.headingSkips} possible heading level skip(s).`);
-    }
-    if (stats.imagesMissingAlt > 0) {
-        issues.push(`${stats.imagesMissingAlt} image(s) with missing alt attribute. Empty alt may be valid for decorative images.`);
-    }
-
-    if (issues.length === 0) {
+    if (issueGroups.length === 0) {
         documentIssues.innerHTML = '<p class="text-success">No obvious structural issues found.</p>';
         return;
     }
 
-    documentIssues.innerHTML = `<ul>${issues.map(issue => `<li>${escapeHTML(issue)}</li>`).join('')}</ul>`;
+    const groupsContainer = document.createDocumentFragment();
+    issueGroups.forEach((group) => {
+        const section = document.createElement('section');
+        const header = document.createElement('div');
+        const heading = document.createElement('h4');
+        const count = document.createElement('span');
+        const action = document.createElement('button');
+        const list = document.createElement('ul');
+        const paths = group.targets.map(target => getElementPath(target, inputHTML));
+        section.className = 'review-issue-group';
+        header.className = 'review-issue-group-header';
+        heading.textContent = group.label;
+        count.className = 'review-issue-group-count';
+        count.textContent = String(group.targets.length);
+        action.type = 'button';
+        action.className = 'btn btn-xs review-issue-action';
+        action.textContent = group.actionLabel;
+        action.addEventListener('click', () => runReviewIssueAction(group.action, paths));
+        header.append(heading, count, action);
+        section.append(header, list);
+        group.targets.forEach((target, index) => {
+            const item = document.createElement('li');
+            const row = document.createElement('button');
+            const pill = document.createElement('span');
+            const text = document.createElement('span');
+            const path = getElementPath(target, inputHTML);
+            const issueKey = getReviewIssueKey(group.label, path);
+            row.type = 'button';
+            row.className = 'report-issue-row';
+            row.dataset.reviewIssue = issueKey;
+            row.addEventListener('click', () => goToReviewError(path));
+            pill.className = `report-issue-pill report-issue-pill-${group.severity}`;
+            pill.textContent = group.severity === 'warning' ? 'Warning' : 'Error';
+            text.textContent = group.getMessage(target, index);
+            row.append(pill, text);
+            item.appendChild(row);
+            list.appendChild(item);
+        });
+        groupsContainer.appendChild(section);
+    });
+    documentIssues.replaceChildren(groupsContainer);
+}
+
+function getDocumentIssueGroups() {
+    const headings = Array.from(inputHTML.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+    const tables = Array.from(inputHTML.querySelectorAll('table'));
+    const figures = Array.from(inputHTML.querySelectorAll('figure'));
+    const images = Array.from(inputHTML.querySelectorAll('img'));
+    const links = Array.from(inputHTML.querySelectorAll('a'));
+    const missingIdTargets = [...headings, ...tables, ...figures]
+        .filter(element => !element.id)
+        .sort((first, second) => first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_PRECEDING ? 1 : -1);
+    const headingSkips = headings.filter((heading, index) => {
+        if (index === 0) return false;
+        const previousLevel = Number(headings[index - 1].tagName.substring(1));
+        return Number(heading.tagName.substring(1)) > previousLevel + 1;
+    });
+    const groups = [
+        { label: 'Empty links', severity: 'error', action: 'editCode', actionLabel: 'Fix link', targets: links.filter(link => !link.getAttribute('href') || link.getAttribute('href').trim() === ''), getMessage: target => `${describeReviewTarget(target, 'Link')} has an empty or missing href value.` },
+        { label: 'Missing IDs', severity: 'warning', action: 'addIds', actionLabel: 'Add IDs', targets: missingIdTargets, getMessage: target => `${describeReviewTarget(target, getReviewTargetType(target))} is missing an ID.` },
+        { label: 'Table cleanup', severity: 'error', action: 'tableCleanup', actionLabel: 'Table Cleanup', targets: tables.filter(table => !isCleanedTable(table)), getMessage: (target, index) => `${describeReviewTarget(target, `Table ${index + 1}`)} may not have been cleaned up yet. Open Table cleanup to review.` },
+        { label: 'Heading level skips', severity: 'error', action: 'edit', actionLabel: 'Fix heading', targets: headingSkips, getMessage: target => `${describeReviewTarget(target, target.tagName)} may skip a heading level.` },
+        { label: 'Missing image alt text', severity: 'error', action: 'editCode', actionLabel: 'Add alt text', targets: images.filter(image => !image.hasAttribute('alt')), getMessage: (target, index) => `${describeReviewTarget(target, `Image ${index + 1}`)} is missing an alt attribute. Empty alt may be valid for decorative images.` }
+    ];
+
+    return groups.filter(group => group.targets.length > 0);
+}
+
+function getReviewTargetType(target) {
+    if (target.matches('table')) return 'Table';
+    if (target.matches('figure')) return 'Figure';
+    return target.tagName;
+}
+
+function runReviewIssueAction(action, paths) {
+    const firstPath = paths.find(path => Array.isArray(path));
+    if (action === 'addIds') {
+        addIDsCommand();
+        return;
+    }
+    if (action === 'tableCleanup' && firstPath) {
+        syncActiveEditorToInputHTML();
+        const table = getElementByPath(inputHTML, firstPath);
+        const tableIndex = Array.from(inputHTML.querySelectorAll('table')).indexOf(table);
+        if (tableIndex >= 0) {
+            setActivityPanelOpen(false);
+            openTableEditor(tableIndex);
+            addProcessingLog(`Table cleanup opened from Review for table ${tableIndex + 1}.`, 'info');
+        }
+        return;
+    }
+    if (firstPath) {
+        setActivityPanelOpen(false);
+        goToReviewError(firstPath);
+        if (action === 'editCode') {
+            const codeEntry = getCodeEntryForPath(firstPath);
+            outputText?.focus({ preventScroll: true });
+            if (codeEntry) outputText?.setSelectionRange(codeEntry.startIndex, codeEntry.startIndex);
+        } else {
+            liveEditor?.focus({ preventScroll: true });
+        }
+    }
+}
+
+function describeReviewTarget(target, fallback) {
+    const text = (target.getAttribute?.('aria-label') || target.getAttribute?.('alt') || target.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!text) return fallback;
+    const summary = text.length > 42 ? `${text.substring(0, 39).trim()}…` : text;
+    return `${fallback} “${summary}”`;
+}
+
+function updateLiveReviewFlags() {
+    if (!liveEditor) return;
+
+    liveEditor.querySelectorAll('.review-flag-button').forEach(element => element.remove());
+    liveEditor.querySelectorAll('.review-flagged-component').forEach((element) => {
+        element.classList.remove('review-flagged-component', 'review-flag-error');
+        element.removeAttribute('data-review-issues');
+    });
+
+    const flaggedComponents = new Map();
+    getDocumentIssueGroups().forEach((group) => {
+        group.targets.forEach((target) => {
+            const path = getElementPath(target, inputHTML);
+            let liveTarget = path ? getElementByPath(liveEditor, path) : null;
+            if (!liveTarget) return;
+            if (liveTarget.matches('table') && liveTarget.parentElement?.matches('.table-responsive')) {
+                liveTarget = liveTarget.parentElement;
+            } else if (liveTarget.matches('img')) {
+                liveTarget = liveTarget.closest('figure') || liveTarget.parentElement;
+            }
+            if (!liveTarget || liveTarget === liveEditor) return;
+            const labels = (liveTarget.dataset.reviewIssues || '').split('|').filter(Boolean);
+            if (!labels.includes(group.label)) labels.push(group.label);
+            liveTarget.dataset.reviewIssues = labels.join('|');
+            liveTarget.classList.add('review-flagged-component');
+            if (group.severity === 'error') liveTarget.classList.add('review-flag-error');
+            const issueKey = getReviewIssueKey(group.label, path);
+            if (!flaggedComponents.has(liveTarget)) flaggedComponents.set(liveTarget, []);
+            flaggedComponents.get(liveTarget).push({ issueKey, label: group.label, severity: group.severity });
+        });
+    });
+
+    flaggedComponents.forEach((issues, liveTarget) => {
+        const flag = document.createElement('span');
+        const severity = issues.some(issue => issue.severity === 'error') ? 'error' : 'warning';
+        const summary = issues.map(issue => `${issue.severity === 'error' ? 'Error' : 'Warning'} — ${issue.label}`).join('; ');
+        flag.className = `review-flag-button review-flag-button-${severity}`;
+        flag.setAttribute('role', 'button');
+        flag.setAttribute('tabindex', '0');
+        flag.setAttribute('contenteditable', 'false');
+        flag.setAttribute('aria-label', `Open review: ${summary}`);
+        flag.setAttribute('title', summary);
+        flag.textContent = '⚑';
+        if (issues.length > 1) {
+            const count = document.createElement('span');
+            count.className = 'review-flag-count';
+            count.textContent = String(issues.length);
+            flag.appendChild(count);
+        }
+        flag.addEventListener('mousedown', event => event.preventDefault());
+        flag.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            openReviewIssue(issues[0].issueKey);
+        });
+        flag.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            event.stopPropagation();
+            openReviewIssue(issues[0].issueKey);
+        });
+        liveTarget.appendChild(flag);
+    });
+    updateLiveReviewFlagVisibility();
+}
+
+function updateLiveReviewFlagVisibility() {
+    if (!liveEditor) return;
+    const reviewIsActive = Boolean(document.getElementById('issuesPane')?.classList.contains('active'));
+    const shouldShow = isActivityPanelOpen() && reviewIsActive && (!reviewFlagsToggle || reviewFlagsToggle.checked);
+    liveEditor.classList.toggle('review-flags-visible', shouldShow);
+}
+
+function getReviewIssueKey(label, path) {
+    return `${label}:${Array.isArray(path) ? path.join('.') : ''}`;
+}
+
+function openReviewIssue(issueKey) {
+    setActivityPanelOpen(true);
+    switchReviewTab('issuesPane');
+    const row = Array.from(documentIssues?.querySelectorAll('[data-review-issue]') || [])
+        .find(item => item.dataset.reviewIssue === issueKey);
+    if (!row) return;
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.classList.remove('report-issue-row-target');
+    void row.offsetWidth;
+    row.classList.add('report-issue-row-target');
+    row.focus({ preventScroll: true });
+    window.setTimeout(() => row.classList.remove('report-issue-row-target'), 1800);
+}
+
+function goToReviewError(path) {
+    if (!path || !Array.isArray(path)) return;
+    scrollEditorsToElementPath(path);
+    let liveTarget = getElementByPath(liveEditor, path);
+    if (liveTarget?.matches('table') && liveTarget.parentElement?.matches('.table-responsive')) liveTarget = liveTarget.parentElement;
+    if (liveTarget?.matches('img')) liveTarget = liveTarget.closest('figure') || liveTarget.parentElement;
+    if (liveTarget) {
+        liveTarget.classList.remove('review-flag-target');
+        void liveTarget.offsetWidth;
+        liveTarget.classList.add('review-flag-target');
+        window.setTimeout(() => liveTarget.classList.remove('review-flag-target'), 1800);
+    }
 }
 
 function updateHtmlPreview() {
@@ -4953,6 +5236,7 @@ function setActivityPanelOpen(isOpen) {
     if (activityToggleBtn) {
         activityToggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
+    updateLiveReviewFlagVisibility();
 }
 
 function addProcessingLog(message, type = 'info') {
