@@ -1315,6 +1315,35 @@ textarea {
     stroke-linecap: round;
 }
 
+.table-tool-icon-grid {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.table-tool-icon-grid .icon-fill {
+    fill: currentColor;
+    stroke: none;
+}
+
+.table-tool-icon-grid .icon-fill-muted {
+    opacity: 0.32;
+}
+
+.table-tool-icon-grid .icon-accent {
+    stroke-dasharray: 1.5 1.5;
+    opacity: 0.45;
+}
+
+.table-tool-icon-grid .icon-arrow {
+    stroke-width: 1.25;
+    opacity: 0.72;
+}
+
 .table-tool-btn[aria-pressed="true"] {
     border-color: var(--primary);
     background: var(--primary);
