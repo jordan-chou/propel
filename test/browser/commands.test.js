@@ -179,7 +179,7 @@ test('complex scoping uses the next Add IDs table identifier', () => {
     applyTableScopes(table, { complex: true, idRoot: host, renameTag });
 
     equal(table.id, 't2');
-    equal(table.querySelector('th').id, 't2-header-1');
+    equal(table.querySelector('th').id, 't2-h1');
 });
 
 test('painted scoping relationships override automatic associations', () => {

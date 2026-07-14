@@ -153,7 +153,7 @@ function setIdList(cell, attribute, ids) {
 
 function ensureHeaderId(table, cell, ordinal) {
     if (cell.id) return cell.id;
-    const base = `${table.id || 'table'}-header-${ordinal}`.replace(/[^A-Za-z0-9_-]/g, '-');
+    const base = `${table.id || 'table'}-h${ordinal}`.replace(/[^A-Za-z0-9_-]/g, '-');
     let candidate = base;
     let suffix = 2;
     while (table.ownerDocument.getElementById(candidate)) candidate = `${base}-${suffix++}`;
