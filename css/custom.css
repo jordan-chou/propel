@@ -1518,7 +1518,9 @@ textarea {
 .table-editor-canvas .table-responsive {
     width: 100%;
     margin: 0;
-    overflow-x: auto;
+    /* Let the canvas own both axes so a wide table's horizontal scrollbar
+       stays at the bottom of the visible preview instead of below the table. */
+    overflow: visible;
 }
 
 .table-editor-canvas table,
