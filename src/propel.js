@@ -115,7 +115,7 @@ const tableEditorElements = {
         'tableEditorApplyNextBtn', 'tableEditorFirstBtn', 'tableEditorPrevBtn',
         'tableEditorNextBtn', 'tableEditorLastBtn', 'tableEditorPages',
         'tableEditorUndoBtn', 'tableEditorRedoBtn',
-        'tableEditorDeselectBtn', 'tableEditorHeaderBtn', 'tableEditorMergeRowBtn',
+        'tableEditorDeselectBtn', 'tableEditorScopingModeBtn', 'tableEditorHeaderBtn', 'tableEditorMergeRowBtn',
         'tableEditorMergeCellsBtn', 'tableEditorActiveBtn', 'tableEditorAddFooterBtn',
         'tableEditorTfootBtn', 'tableEditorIndentBtn', 'tableEditorOutdentBtn',
         'tableEditorBoldBtn', 'tableEditorLeftBtn', 'tableEditorCenterBtn',

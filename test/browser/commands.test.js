@@ -3,7 +3,12 @@ import { cleanupTable } from '../../src/commands/table-cleanup.js';
 import { fixNbspHTML } from '../../src/commands/nbsp.js';
 import { getCellsInRange } from '../../src/table-editor/model.js';
 import { toggleCellBold, toggleCellsBold, toggleRowsActive } from '../../src/table-editor/formatting.js';
-import { applyTableScopes } from '../../src/table-editor/scoping.js';
+import {
+    applyTableScopes,
+    hasHeaderRelationship,
+    preserveExistingHeaderRelationships,
+    setManualHeaderRelationship
+} from '../../src/table-editor/scoping.js';
 import { renameTag } from '../../src/commands/table-cleanup.js';
 
 const tests = [];
@@ -175,6 +180,34 @@ test('complex scoping uses the next Add IDs table identifier', () => {
 
     equal(table.id, 't2');
     equal(table.querySelector('th').id, 't2-header-1');
+});
+
+test('painted scoping relationships override automatic associations', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr class="active"><th colspan="2">Parent</th></tr><tr><th>Child</th><td>10</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    const parent = table.querySelector('tbody th');
+    const child = table.querySelector('tbody td');
+
+    equal(hasHeaderRelationship(parent, child), true);
+    setManualHeaderRelationship(parent, child, false);
+    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    equal(hasHeaderRelationship(parent, child), false);
+    setManualHeaderRelationship(parent, child, true);
+    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    equal(hasHeaderRelationship(parent, child), true);
+});
+
+test('existing explicit scoping is preserved when a table is reopened', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table id="t1"><thead><tr><th id="label">Label</th><th id="value">Value</th></tr></thead><tbody><tr class="active"><th id="parent" colspan="2">Parent</th></tr><tr><th id="child">Child</th><td headers="value child">10</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    const child = table.querySelector('td');
+    preserveExistingHeaderRelationships(table);
+    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+
+    equal(child.getAttribute('headers'), 'value child');
 });
 
 const output = document.getElementById('results');

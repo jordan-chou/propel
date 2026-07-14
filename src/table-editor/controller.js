@@ -1,6 +1,12 @@
 import { buildCellGrid, getCellPosition } from './model.js';
 import { toggleCellsBold, toggleRowsActive } from './formatting.js';
-import { applyTableScopes } from './scoping.js';
+import {
+    applyTableScopes,
+    hasHeaderRelationship,
+    MANUAL_SCOPE_ATTRIBUTES,
+    preserveExistingHeaderRelationships,
+    setManualHeaderRelationship
+} from './scoping.js';
 
 /**
  * Creates the stateful table-editor UI controller.
@@ -33,7 +39,7 @@ export function createTableEditorController(config) {
         tableEditorApplyBtn, tableEditorApplyNextBtn, tableEditorFirstBtn,
         tableEditorPrevBtn, tableEditorNextBtn, tableEditorLastBtn, tableEditorPages,
         tableEditorUndoBtn, tableEditorRedoBtn,
-        tableEditorDeselectBtn, tableEditorHeaderBtn, tableEditorMergeRowBtn,
+        tableEditorDeselectBtn, tableEditorScopingModeBtn, tableEditorHeaderBtn, tableEditorMergeRowBtn,
         tableEditorMergeCellsBtn, tableEditorActiveBtn, tableEditorAddFooterBtn,
         tableEditorTfootBtn, tableEditorIndentBtn, tableEditorOutdentBtn,
         tableEditorBoldBtn, tableEditorLeftBtn, tableEditorCenterBtn,
@@ -58,6 +64,9 @@ export function createTableEditorController(config) {
     let tableEditorPendingAction = null;
     let tableEditorCaptionSuggestions = {};
     let tableEditorAcceptedExternalCaptionNodes = new Set();
+    let tableEditorScopingMode = false;
+    let tableEditorScopeParent = null;
+    let tableEditorScopePaintEnabled = null;
     const tableEditorSizeStorageKey = 'tableEditorSize';
     const tableEditorBottomLayoutQuery = window.matchMedia('(orientation: portrait) and (min-width: 768px), (max-width: 767px)');
     const tableEditorMobileLayoutQuery = window.matchMedia('(max-width: 767px)');
@@ -121,6 +130,9 @@ export function createTableEditorController(config) {
         }
         if (tableEditorDeselectBtn) {
             tableEditorDeselectBtn.addEventListener('click', deselectTableEditorCells);
+        }
+        if (tableEditorScopingModeBtn) {
+            tableEditorScopingModeBtn.addEventListener('click', toggleTableEditorScopingMode);
         }
         if (tableEditorHeaderBtn) {
             tableEditorHeaderBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorHeaderRows, 'Header row'));
@@ -213,6 +225,7 @@ export function createTableEditorController(config) {
                         ? 'table.option.complexScoping'
                         : field === tableEditorFinancial ? 'table.option.financial' : 'table.option.french';
                     applyTableOptionChange(field, action);
+                    if (field === tableEditorComplexScoping && !field.checked) setTableEditorScopingMode(false);
                 });
             }
         });
@@ -504,6 +517,7 @@ export function createTableEditorController(config) {
         if (tableEditorCanvas) {
             tableEditorCanvas.innerHTML = '';
         }
+        setTableEditorScopingMode(false);
         tableEditorPreviewCleanup = false;
         if (tableEditorPreviousFocus && typeof tableEditorPreviousFocus.focus === 'function') {
             tableEditorPreviousFocus.focus();
@@ -647,6 +661,7 @@ export function createTableEditorController(config) {
         }
     
         const clone = tableEditorCanvas.cloneNode(true);
+        clearScopeVisualization(clone);
         clone.querySelectorAll('.selected').forEach((cell) => cell.classList.remove('selected'));
         return {
             html: clone.innerHTML,
@@ -828,6 +843,7 @@ export function createTableEditorController(config) {
         tableEditorHistoryRestoring = true;
         tableEditorHistoryIndex = index;
         tableEditorCanvas.innerHTML = snapshot.html;
+        tableEditorScopeParent = null;
         if (tableEditorComplexScoping) {
             tableEditorComplexScoping.checked = snapshot.complexScoping;
         }
@@ -843,6 +859,7 @@ export function createTableEditorController(config) {
         loadTableEditorCaptionSuggestions(getTableEditorItems()[tableEditorIndex], false);
         tableEditorHistoryRestoring = false;
         updateTableEditorHistoryButtons();
+        refreshScopeVisualization();
     }
     
     /** Refreshes table editor history buttons. */
@@ -970,10 +987,12 @@ export function createTableEditorController(config) {
         tableEditorIndex = Math.min(Math.max(index, 0), items.length - 1);
         const item = items[tableEditorIndex];
         const clone = item.container.cloneNode(true);
+        preserveExistingHeaderRelationships(clone.matches('table') ? clone : clone.querySelector('table'));
     
         clone.querySelectorAll('.selected').forEach((element) => element.classList.remove('selected'));
         tableEditorCanvas.innerHTML = '';
         tableEditorCanvas.appendChild(clone);
+        tableEditorScopeParent = null;
     
         if (tableEditorPreviewCleanup) {
             const table = getTableEditorTable();
@@ -988,6 +1007,7 @@ export function createTableEditorController(config) {
         updateTableEditorStatus(items.length);
         resetTableEditorHistory();
         scrollLiveToTableEditorTable();
+        refreshScopeVisualization();
     }
     
     /** Scrolls live to table editor table. */
@@ -1300,6 +1320,19 @@ export function createTableEditorController(config) {
         if (!cell || !tableEditorCanvas.contains(cell)) {
             return;
         }
+
+        if (tableEditorScopingMode) {
+            event.preventDefault();
+            if (!tableEditorScopeParent && cell.tagName.toLowerCase() === 'th') {
+                tableEditorScopeParent = cell;
+                refreshScopeVisualization();
+                showActivityToast('Parent selected. Paint child cells by clicking or dragging.', 'success', 'Scoping mode');
+            } else if (cell === tableEditorScopeParent) {
+                tableEditorScopeParent = null;
+                refreshScopeVisualization();
+            }
+            return;
+        }
     
         if (tableEditorIsDragging) {
             return;
@@ -1329,6 +1362,16 @@ export function createTableEditorController(config) {
         if (!cell || !tableEditorCanvas.contains(cell)) {
             return;
         }
+
+        if (tableEditorScopingMode) {
+            event.preventDefault();
+            if (!tableEditorScopeParent || cell === tableEditorScopeParent) return;
+            tableEditorScopePaintEnabled = !hasHeaderRelationship(tableEditorScopeParent, cell);
+            paintTableEditorScopeCell(cell);
+            tableEditorDragStartCell = cell;
+            tableEditorIsDragging = false;
+            return;
+        }
     
         tableEditorDragStartCell = cell;
         tableEditorIsDragging = false;
@@ -1339,6 +1382,13 @@ export function createTableEditorController(config) {
         const cell = event.target && event.target.closest ? event.target.closest('th, td') : null;
     
         if (!cell || !tableEditorDragStartCell || !tableEditorCanvas.contains(cell)) {
+            return;
+        }
+
+        if (tableEditorScopingMode) {
+            event.preventDefault();
+            tableEditorIsDragging = true;
+            paintTableEditorScopeCell(cell);
             return;
         }
     
@@ -1355,7 +1405,14 @@ export function createTableEditorController(config) {
     
     /** Handles table editor document mouse up. */
     function handleTableEditorDocumentMouseUp() {
+        const paintedScope = tableEditorScopingMode && tableEditorScopePaintEnabled !== null;
         tableEditorDragStartCell = null;
+        tableEditorScopePaintEnabled = null;
+
+        if (paintedScope) {
+            commitTableEditorHistory('Paint scoping relationship');
+            refreshScopeVisualization();
+        }
     
         if (!tableEditorIsDragging) {
             return;
@@ -1365,6 +1422,76 @@ export function createTableEditorController(config) {
             tableEditorIsDragging = false;
             clearTableEditorTextSelectionForMultiCellSelection();
         }, 0);
+    }
+
+    /** Enables or disables relationship painting in the table preview. */
+    function toggleTableEditorScopingMode() {
+        setTableEditorScopingMode(!tableEditorScopingMode);
+    }
+
+    function setTableEditorScopingMode(enabled) {
+        tableEditorScopingMode = Boolean(enabled);
+        tableEditorScopeParent = null;
+        tableEditorScopePaintEnabled = null;
+        if (tableEditorScopingMode) {
+            if (tableEditorComplexScoping && !tableEditorComplexScoping.checked) {
+                tableEditorComplexScoping.checked = true;
+                commitTableEditorHistory('Turn on complex scoping');
+            }
+            applyCurrentTableScopes(getTableEditorTable());
+        }
+        if (tableEditorScopingModeBtn) tableEditorScopingModeBtn.setAttribute('aria-pressed', String(tableEditorScopingMode));
+        if (tableEditorCanvas) {
+            tableEditorCanvas.classList.toggle('scoping-mode', tableEditorScopingMode);
+            tableEditorCanvas.setAttribute('contenteditable', String(!tableEditorScopingMode));
+            tableEditorCanvas.setAttribute('aria-label', tableEditorScopingMode
+                ? 'Table scoping editor. Select a parent header, then paint child cells.'
+                : 'Editable table');
+        }
+        refreshScopeVisualization();
+    }
+
+    function paintTableEditorScopeCell(cell) {
+        if (!tableEditorScopeParent || cell === tableEditorScopeParent) return;
+        setManualHeaderRelationship(tableEditorScopeParent, cell, tableEditorScopePaintEnabled);
+        refreshScopeVisualization();
+    }
+
+    function refreshScopeVisualization() {
+        if (!tableEditorCanvas) return;
+        clearScopeVisualization(tableEditorCanvas);
+        if (!tableEditorScopingMode) return;
+
+        const cells = Array.from(tableEditorCanvas.querySelectorAll('th, td'));
+        if (!tableEditorScopeParent) {
+            cells.filter((cell) => cell.tagName.toLowerCase() === 'th').forEach((cell, index) => {
+                cell.classList.add('scope-parent-candidate');
+                cell.style.setProperty('--scope-color', getScopeColor(index));
+            });
+            return;
+        }
+
+        const headers = Array.from(tableEditorCanvas.querySelectorAll('th'));
+        const color = getScopeColor(headers.indexOf(tableEditorScopeParent));
+        cells.forEach((cell) => {
+            cell.style.setProperty('--scope-color', color);
+            cell.classList.add(hasHeaderRelationship(tableEditorScopeParent, cell) ? 'scope-child' : 'scope-unrelated');
+        });
+        tableEditorScopeParent.classList.remove('scope-child', 'scope-unrelated');
+        tableEditorScopeParent.classList.add('scope-parent');
+    }
+
+    function clearScopeVisualization(root) {
+        root.querySelectorAll('.scope-parent, .scope-parent-candidate, .scope-child, .scope-unrelated').forEach((cell) => {
+            cell.classList.remove('scope-parent', 'scope-parent-candidate', 'scope-child', 'scope-unrelated');
+            cell.style.removeProperty('--scope-color');
+            if (!cell.getAttribute('style')) cell.removeAttribute('style');
+        });
+    }
+
+    function getScopeColor(index) {
+        const colors = ['#2563eb', '#7c3aed', '#db2777', '#c2410c', '#047857', '#0369a1'];
+        return colors[Math.max(0, index) % colors.length];
     }
     
     /** Clears selection from table editor cells. */
@@ -1764,6 +1891,10 @@ export function createTableEditorController(config) {
         applyCurrentTableScopes(getTableEditorTable());
     
         const cleanClone = editedContainer.cloneNode(true);
+        clearScopeVisualization(cleanClone);
+        cleanClone.querySelectorAll(MANUAL_SCOPE_ATTRIBUTES.map((attribute) => `[${attribute}]`).join(',')).forEach((cell) => {
+            MANUAL_SCOPE_ATTRIBUTES.forEach((attribute) => cell.removeAttribute(attribute));
+        });
         cleanClone.querySelectorAll('.selected').forEach((element) => {
             element.classList.remove('selected');
             if (element.classList.length === 0) {

@@ -1,6 +1,7 @@
 import { addGenericID } from '../commands/anchors-aweigh.js';
 
 const INDENT_CLASSES = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
+export const MANUAL_SCOPE_ATTRIBUTES = ['data-propel-scope-add', 'data-propel-scope-remove'];
 
 /** Applies either explicit complex-table associations or simple scope attributes. */
 export function applyTableScopes(table, options = {}) {
@@ -94,9 +95,60 @@ function addAssociation(associations, header) {
 }
 
 function setHeaders(cell, associations) {
-    const ids = associations.map((header) => header.id).filter(Boolean);
+    const removed = getIdList(cell, MANUAL_SCOPE_ATTRIBUTES[1]);
+    const added = getIdList(cell, MANUAL_SCOPE_ATTRIBUTES[0]);
+    const ids = associations.map((header) => header.id).filter((id) => id && !removed.includes(id));
+    added.forEach((id) => {
+        if (!ids.includes(id)) ids.push(id);
+    });
     if (ids.length) cell.setAttribute('headers', ids.join(' '));
     else cell.removeAttribute('headers');
+}
+
+/** Adds or removes a manually painted parent relationship. */
+export function setManualHeaderRelationship(parent, child, enabled) {
+    if (!parent || !child || parent === child || !parent.id) return false;
+    const addAttribute = MANUAL_SCOPE_ATTRIBUTES[0];
+    const removeAttribute = MANUAL_SCOPE_ATTRIBUTES[1];
+    const additions = getIdList(child, addAttribute).filter((id) => id !== parent.id);
+    const removals = getIdList(child, removeAttribute).filter((id) => id !== parent.id);
+
+    if (enabled) additions.push(parent.id);
+    else removals.push(parent.id);
+    setIdList(child, addAttribute, additions);
+    setIdList(child, removeAttribute, removals);
+
+    const headers = getIdList(child, 'headers').filter((id) => id !== parent.id);
+    if (enabled) headers.push(parent.id);
+    setIdList(child, 'headers', headers);
+    return true;
+}
+
+export function hasHeaderRelationship(parent, child) {
+    return Boolean(parent && parent.id && getIdList(child, 'headers').includes(parent.id));
+}
+
+/** Captures existing explicit associations as exact editor overrides before recalculation. */
+export function preserveExistingHeaderRelationships(table) {
+    if (!table || !table.querySelector('[headers]')) return;
+    const headerIds = Array.from(table.querySelectorAll('th[id]')).map((header) => header.id);
+    if (!headerIds.length) return;
+
+    table.querySelectorAll('th, td').forEach((cell) => {
+        const existing = getIdList(cell, 'headers');
+        setIdList(cell, MANUAL_SCOPE_ATTRIBUTES[0], existing);
+        setIdList(cell, MANUAL_SCOPE_ATTRIBUTES[1], headerIds.filter((id) => !existing.includes(id)));
+    });
+}
+
+function getIdList(cell, attribute) {
+    return (cell.getAttribute(attribute) || '').trim().split(/\s+/).filter(Boolean);
+}
+
+function setIdList(cell, attribute, ids) {
+    const uniqueIds = Array.from(new Set(ids));
+    if (uniqueIds.length) cell.setAttribute(attribute, uniqueIds.join(' '));
+    else cell.removeAttribute(attribute);
 }
 
 function ensureHeaderId(table, cell, ordinal) {

@@ -1310,6 +1310,19 @@ textarea {
     color: currentColor;
 }
 
+.table-tool-icon-stroke {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+
+.table-tool-btn[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+}
+
 .table-tool-icon::before,
 .table-tool-icon::after {
     position: absolute;
@@ -1629,6 +1642,33 @@ textarea {
 .table-editor-canvas .selected {
     outline: 3px solid rgba(37, 87, 214, 0.45);
     outline-offset: -3px;
+}
+
+.table-editor-canvas.scoping-mode th,
+.table-editor-canvas.scoping-mode td {
+    cursor: crosshair;
+    transition: opacity .12s ease, background-color .12s ease, box-shadow .12s ease;
+    user-select: none;
+}
+
+.table-editor-canvas.scoping-mode .scope-parent-candidate {
+    box-shadow: inset 0 0 0 3px var(--scope-color);
+    cursor: pointer;
+}
+
+.table-editor-canvas.scoping-mode .scope-parent {
+    background: var(--scope-color) !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.65);
+}
+
+.table-editor-canvas.scoping-mode .scope-child {
+    background: color-mix(in srgb, var(--scope-color) 22%, white) !important;
+    box-shadow: inset 0 0 0 2px var(--scope-color);
+}
+
+.table-editor-canvas.scoping-mode .scope-unrelated {
+    opacity: .38;
 }
 
 .table-editor-actions {
