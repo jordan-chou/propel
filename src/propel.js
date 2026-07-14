@@ -164,18 +164,30 @@ const inputHTML = document.createElement('div');
 const documentStore = new DocumentStore(inputHTML);
 let pendingTypingView = null;
 const deferredTypingRefresh = createDeferredWork(() => {
-    if (pendingTypingView === 'live') {
-        updateCodeView();
-    } else if (pendingTypingView === 'code') {
-        updateLiveView();
-    }
+    const sourceView = pendingTypingView;
     pendingTypingView = null;
+    if (sourceView === 'live') {
+        syncLiveToInputHTML();
+        scheduleDocumentHistoryCommit('typing');
+        updateCodeView();
+    } else if (sourceView === 'code') {
+        syncEditorToInputHTML();
+        scheduleDocumentHistoryCommit('typing');
+        updateLiveView();
+        updateCodeHighlight();
+    }
     refreshReviewPanel();
 });
 
 function scheduleTypingRefresh(sourceView) {
     pendingTypingView = sourceView;
     deferredTypingRefresh.schedule();
+}
+
+function cancelPendingTypingRefresh() {
+    if (pendingTypingView === null) return;
+    pendingTypingView = null;
+    deferredTypingRefresh.cancel();
 }
 const commandRegistry = new CommandRegistry()
     .register('document.standardCleanup', { label: 'Standard cleanup', execute: standardCleanupCommand })
@@ -392,8 +404,6 @@ function createModernDashboardListeners() {
         });
 
         liveEditor.addEventListener('input', () => {
-            syncLiveToInputHTML();
-            scheduleDocumentHistoryCommit('typing');
             scheduleTypingRefresh('live');
             rememberLiveSelection();
             updateBlockFormatSelect();
@@ -458,7 +468,6 @@ function createModernDashboardListeners() {
         });
 
         liveEditor.addEventListener('blur', () => {
-            syncLiveToInputHTML();
             deferredTypingRefresh.flush();
         });
     }
@@ -822,11 +831,7 @@ function createListeners() {
 
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
-        syncEditorToInputHTML();
-        scheduleDocumentHistoryCommit('typing');
-        // The textarea text is transparent over this highlighted layer, so it
-        // must stay current even while heavier dependent views are deferred.
-        updateCodeHighlight();
+        codeEditor?.classList.add('is-typing');
         scheduleTypingRefresh('code');
     });
     outputText.addEventListener('focus', () => {
@@ -2617,6 +2622,7 @@ function getHTMLForCopy() {
 
 /** Commits Code view content to the canonical document and refreshes dependent views. */
 function syncEditorToInputHTML() {
+    cancelPendingTypingRefresh();
     Array.from(inputHTML.attributes).forEach(attribute => inputHTML.removeAttribute(attribute.name));
     inputHTML.innerHTML = outputText.value;
     adoptSingleOuterDiv();
@@ -2660,6 +2666,7 @@ function syncLiveToInputHTML() {
         return;
     }
 
+    cancelPendingTypingRefresh();
     const clone = liveEditor.cloneNode(true);
     clone.querySelectorAll('.review-flag-button').forEach(element => element.remove());
     clone.querySelectorAll('.review-flagged-component, .review-flag-target').forEach((element) => {
@@ -2898,6 +2905,7 @@ function updateCodeHighlight() {
 
     const code = codeHighlight.querySelector('code') || codeHighlight;
     code.innerHTML = highlightHTML(outputText.value);
+    codeEditor?.classList.remove('is-typing');
     syncCodeHighlightScroll();
 }
 
