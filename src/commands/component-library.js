@@ -35,7 +35,7 @@ export const defaultComponentLibrary = Object.freeze({
             name: 'Charts and Figures',
             description: 'Uses the first image as the chart and preserves the table as its accessible text version.',
             conversion: 'chart',
-            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{heading}}</figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n<p class="small">Notes</p>\n<p class="small">Sources</p>\n<details class="mrgn-tp-sm">\n<summary>Text version</summary>\n{{content}}\n</details>\n</footer>\n</figure>'
+            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{heading}}</figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n<p class="small">{{notesLabel}}</p>\n<p class="small">{{sourcesLabel}}</p>\n<details class="mrgn-tp-sm">\n<summary>{{textVersionLabel}}</summary>\n{{content}}\n</details>\n</footer>\n</figure>'
         }),
         Object.freeze({
             id: 'charts-double',
@@ -147,6 +147,60 @@ function getFirstHeading(html) {
     return match ? { heading: match[1].trim(), content: html.replace(match[0], '').trim() } : null;
 }
 
+function getTextContent(html) {
+    return html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function unwrapTextBlock(html) {
+    const match = html.trim().match(/^<(?:p|h[1-6])\b[^>]*>([\s\S]*?)<\/(?:p|h[1-6])>$/i);
+    return match ? match[1].trim() : html.trim();
+}
+
+function splitHeadingCell(cell, hasFollowingCells, fallbackHeading) {
+    const explicitHeading = cell.match(/<h[1-6]\b[^>]*>([\s\S]*?)<\/h[1-6]>/i);
+    if (explicitHeading) {
+        return { heading: explicitHeading[1].trim(), content: cell.replace(explicitHeading[0], '').trim() };
+    }
+
+    const blocks = Array.from(cell.matchAll(/<(?:p|h[1-6])\b[^>]*>[\s\S]*?<\/(?:p|h[1-6])>/gi), match => match[0]);
+    if (blocks.length > 1) {
+        return { heading: unwrapTextBlock(blocks[0]), content: cell.replace(blocks[0], '').trim() };
+    }
+
+    const singleBlock = blocks.length === 1 ? blocks[0] : cell;
+    const blockInner = unwrapTextBlock(singleBlock);
+    const leadingEmphasis = blockInner.match(/^<(?:strong|b)\b[^>]*>([\s\S]*?)<\/(?:strong|b)>\s*(?:<br\s*\/?>)?\s*([\s\S]*)$/i);
+    if (leadingEmphasis && leadingEmphasis[2].trim()) {
+        return { heading: leadingEmphasis[1].trim(), content: asParagraph(leadingEmphasis[2].trim()) };
+    }
+
+    const lineBreak = blockInner.match(/^([\s\S]*?)<br\s*\/?>\s*([\s\S]+)$/i);
+    if (lineBreak) {
+        return { heading: lineBreak[1].trim(), content: asParagraph(lineBreak[2].trim()) };
+    }
+
+    const text = getTextContent(blockInner);
+    const looksLikeHeading = text.length > 0 && text.length <= 80 && !/[.!?](?:\s|$)/.test(text);
+    if (hasFollowingCells || looksLikeHeading) {
+        return { heading: blockInner, content: '' };
+    }
+
+    return { heading: fallbackHeading, content: singleBlock.trim() };
+}
+
+function getHeadingContent(html, cells, fallbackHeading) {
+    if (cells.length > 0) {
+        const firstCell = splitHeadingCell(cells[0], cells.length > 1, fallbackHeading);
+        const body = [firstCell.content, ...cells.slice(1).map(asParagraph)].filter(Boolean).join('\n');
+        return { heading: firstCell.heading, content: body || '<p></p>' };
+    }
+
+    const headingMatch = getFirstHeading(html);
+    if (headingMatch) return { heading: headingMatch.heading, content: headingMatch.content || '<p></p>' };
+    const split = splitHeadingCell(html, false, fallbackHeading);
+    return { heading: split.heading, content: split.content || '<p></p>' };
+}
+
 function asParagraph(html) {
     return /^<(?:p|ul|ol|div|section|table)\b/i.test(html.trim()) ? html : `<p>${html}</p>`;
 }
@@ -155,8 +209,8 @@ function fillTemplate(template, values) {
     return Object.entries(values).reduce((result, [name, value]) => result.replaceAll(`{{${name}}}`, value), template);
 }
 
-function chartFigure({ heading, image, content }) {
-    return `<figure class="panel panel-default">\n<figcaption class="panel-heading">${heading}</figcaption>\n<div class="panel-body">${image}</div>\n<footer class="panel-footer"><p class="small">Notes</p><p class="small">Sources</p><details class="mrgn-tp-sm"><summary>Text version</summary>${content}</details></footer>\n</figure>`;
+function chartFigure({ heading, image, content, labels }) {
+    return `<figure class="panel panel-default">\n<figcaption class="panel-heading">${heading}</figcaption>\n<div class="panel-body">${image}</div>\n<footer class="panel-footer"><p class="small">${labels.notes}</p><p class="small">${labels.sources}</p><details class="mrgn-tp-sm"><summary>${labels.textVersion}</summary>${content}</details></footer>\n</figure>`;
 }
 
 function normalizeChartImage(image) {
@@ -166,43 +220,57 @@ function normalizeChartImage(image) {
     return image.replace(/^<img\b/i, '<img class="img-responsive full-width"');
 }
 
-export function applySmartComponent(component, selectedHTML) {
+export function applySmartComponent(component, selectedHTML, { language = 'en' } = {}) {
+    const isFrench = language === 'fr';
+    const labels = {
+        heading: isFrench ? 'Titre' : 'Heading',
+        chartHeading: isFrench ? 'Graphique no<br><b>Titre du graphique</b>' : 'Chart #<br><b>Chart title</b>',
+        notes: 'Notes',
+        sources: 'Sources',
+        textVersion: isFrench ? 'Version texte' : 'Text version',
+        author: isFrench ? 'Nom de l’auteur' : 'Author’s name',
+        citation: isFrench ? 'Titre du contenu cité' : 'Title of cited source content'
+    };
     const componentSourceHTML = selectedHTML.replace(/<table\b/gi, '<table data-propel-component-source="true"');
     const cells = getTableCells(selectedHTML);
-    const headingMatch = getFirstHeading(selectedHTML);
-    const heading = cells[0] || headingMatch?.heading || 'Heading';
-    const remaining = cells.length ? cells.slice(1).map(asParagraph).join('\n') : headingMatch?.content || selectedHTML;
 
     if (component.conversion === 'heading-content') {
-        return fillTemplate(component.template, { heading, content: remaining || '<p></p>' });
+        return fillTemplate(component.template, getHeadingContent(selectedHTML, cells, labels.heading));
     }
     if (component.conversion === 'quote') {
         return fillTemplate(component.template, {
             content: asParagraph(cells[0] || selectedHTML),
-            author: cells[1] || 'Author’s name',
-            citation: cells[2] || 'Title of cited source content'
+            author: cells[1] || labels.author,
+            citation: cells[2] || labels.citation
         });
     }
     if (component.conversion === 'chart' || component.conversion === 'double-chart') {
         const images = Array.from(selectedHTML.matchAll(/<img\b[^>]*>/gi), match => normalizeChartImage(match[0]));
         const textVersion = /<table\b/i.test(selectedHTML) ? componentSourceHTML : asParagraph(selectedHTML);
         if (component.conversion === 'double-chart') {
-            const figureOne = chartFigure({ heading: cells[0] || 'Chart #<br><b>Chart title</b>', image: images[0] || '', content: textVersion });
-            const figureTwo = chartFigure({ heading: cells[1] || 'Chart #<br><b>Chart title</b>', image: images[1] || images[0] || '', content: textVersion });
+            const figureOne = chartFigure({ heading: cells[0] || labels.chartHeading, image: images[0] || '', content: textVersion, labels });
+            const figureTwo = chartFigure({ heading: cells[1] || labels.chartHeading, image: images[1] || images[0] || '', content: textVersion, labels });
             return fillTemplate(component.template, { figureOne, figureTwo, content: textVersion });
         }
-        return fillTemplate(component.template, { heading: cells[0] || 'Chart #<br><b>Chart title</b>', image: images[0] || '', content: textVersion });
+        return fillTemplate(component.template, {
+            heading: cells[0] || labels.chartHeading,
+            image: images[0] || '',
+            content: textVersion,
+            notesLabel: labels.notes,
+            sourcesLabel: labels.sources,
+            textVersionLabel: labels.textVersion
+        });
     }
     return applyComponentTemplate(component.template, componentSourceHTML);
 }
 
-export function convertSelectionToComponent({ html, selectionStart, selectionEnd, component }) {
+export function convertSelectionToComponent({ html, selectionStart, selectionEnd, component, language = 'en' }) {
     if (typeof html !== 'string' || !component) throw new TypeError('HTML and a component are required.');
     if (!Number.isInteger(selectionStart) || !Number.isInteger(selectionEnd) || selectionStart < 0 || selectionEnd <= selectionStart || selectionEnd > html.length) {
         throw new Error('Select text or HTML before converting it to a component.');
     }
     const selectedHTML = html.slice(selectionStart, selectionEnd);
-    const converted = applySmartComponent(component, selectedHTML);
+    const converted = applySmartComponent(component, selectedHTML, { language });
     return createCommandResult({
         html: `${html.slice(0, selectionStart)}${converted}${html.slice(selectionEnd)}`,
         summary: `Converted selection to ${component.name}.`,

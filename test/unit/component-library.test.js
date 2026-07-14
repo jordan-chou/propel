@@ -60,6 +60,35 @@ test('smart heading components promote the first table cell to a heading', () =>
     assert.doesNotMatch(html, /<table/);
 });
 
+test('smart heading components split a heading and body stored in one table cell', () => {
+    const component = defaultComponentLibrary.components.find(item => item.id === 'box-heading-panel');
+    const html = applySmartComponent(component, '<table><tr><td><p><strong>Program title</strong></p><p>First paragraph.</p><ul><li>More detail</li></ul></td></tr></table>');
+    assert.match(html, /panel-title[^>]*><strong>Program title<\/strong>/);
+    assert.match(html, /panel-body[\s\S]*<p>First paragraph.<\/p>[\s\S]*<ul>/);
+    assert.doesNotMatch(html.match(/<div class="panel-title[^>]*>[\s\S]*?<\/div>/)[0], /First paragraph/);
+});
+
+test('smart heading components keep a lone long paragraph in the body', () => {
+    const component = defaultComponentLibrary.components.find(item => item.id === 'box-gray');
+    const paragraph = '<p>This is a complete paragraph with enough detail that it should remain body content rather than becoming the heading.</p>';
+    const html = applySmartComponent(component, `<table><tr><td>${paragraph}</td></tr></table>`);
+    assert.match(html, /<h4 class="mrgn-tp-0 h4">Heading<\/h4>/);
+    assert.match(html, new RegExp(paragraph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
+test('smart component fallbacks follow the selected French command language', () => {
+    const box = defaultComponentLibrary.components.find(item => item.id === 'box-gray');
+    const chart = defaultComponentLibrary.components.find(item => item.id === 'chart-figure');
+    const quote = defaultComponentLibrary.components.find(item => item.id === 'quote');
+    const longFrenchParagraph = '<table><tr><td><p>Ce paragraphe complet contient suffisamment de détails pour demeurer dans le corps du composant.</p></td></tr></table>';
+
+    assert.match(applySmartComponent(box, longFrenchParagraph, { language: 'fr' }), />Titre<\/h4>/);
+    assert.match(applySmartComponent(chart, '<p>Texte</p>', { language: 'fr' }), /<summary>Version texte<\/summary>/);
+    const quoteHTML = applySmartComponent(quote, '<table><tr><td>Une citation.<\/td></tr></table>', { language: 'fr' });
+    assert.match(quoteHTML, /Nom de l’auteur/);
+    assert.match(quoteHTML, /Titre du contenu cité/);
+});
+
 test('smart quote components map table cells to quote attribution fields', () => {
     const component = defaultComponentLibrary.components.find(item => item.id === 'quote');
     const html = applySmartComponent(component, '<table><tr><td>Words</td><td>Author</td><td>Source</td></tr></table>');

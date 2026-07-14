@@ -10,6 +10,8 @@ Each template must contain exactly one `{{content}}` slot. The selected HTML rep
 
 Built-in components may also declare a `conversion` mode. `heading-content` promotes the first table cell or heading, `quote` maps the first three cells to quote/author/citation, and the chart modes lift images while retaining the source table as an accessible text version. Custom libraries may use these modes and the corresponding `{{heading}}`, `{{author}}`, `{{citation}}`, `{{image}}`, `{{figureOne}}`, and `{{figureTwo}}` template slots.
 
+Structural detection is language-neutral and does not search for English keywords. When content does not supply a label, built-in heading, chart, text-version, author, and citation defaults follow Propel’s current English or French command language.
+
 ```json
 {
   "format": "propel-component-library",

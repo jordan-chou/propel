@@ -1079,7 +1079,7 @@ function closeComponentLibraryOptions() {
 function previewComponent(component) {
     activeComponentId = component.id;
     if (!component || !pendingComponentSelection?.html || !componentPreviewFrame) return;
-    const converted = applySmartComponent(component, pendingComponentSelection.html);
+    const converted = applySmartComponent(component, pendingComponentSelection.html, { language: isEngLang ? 'en' : 'fr' });
     renderComponentPreview(converted, component.name);
 }
 
@@ -2462,13 +2462,14 @@ function convertToComponentCommand() {
         activeDocumentCommandLabel = `Convert to ${component.name}`;
 
         if (pendingComponentSelection.view === 'table') {
-            pendingComponentSelection.apply(applySmartComponent(component, pendingComponentSelection.html));
+            pendingComponentSelection.apply(applySmartComponent(component, pendingComponentSelection.html, { language: isEngLang ? 'en' : 'fr' }));
         } else if (pendingComponentSelection.view === 'code') {
             const result = convertSelectionToComponent({
                 html: outputText.value,
                 selectionStart: pendingComponentSelection.start,
                 selectionEnd: pendingComponentSelection.end,
-                component
+                component,
+                language: isEngLang ? 'en' : 'fr'
             });
             outputText.value = result.html;
             syncEditorToInputHTML();
@@ -2477,7 +2478,7 @@ function convertToComponentCommand() {
             if (!range || range.collapsed || !liveEditor.contains(range.commonAncestorContainer)) {
                 throw new Error('The Live view selection is no longer available. Select it again.');
             }
-            const converted = applySmartComponent(component, pendingComponentSelection.html);
+            const converted = applySmartComponent(component, pendingComponentSelection.html, { language: isEngLang ? 'en' : 'fr' });
             const fragment = range.createContextualFragment(converted);
             range.deleteContents();
             range.insertNode(fragment);
