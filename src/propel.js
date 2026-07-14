@@ -831,7 +831,7 @@ function createListeners() {
 
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
-        codeEditor?.classList.add('is-typing');
+        updateCodeHighlight();
         scheduleTypingRefresh('code');
     });
     outputText.addEventListener('focus', () => {

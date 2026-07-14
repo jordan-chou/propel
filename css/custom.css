@@ -2533,17 +2533,6 @@ textarea {
     -webkit-text-fill-color: transparent;
 }
 
-/* Avoid rebuilding the full syntax-highlight DOM for every keystroke. */
-.code-editor.is-typing #codeHighlight {
-    visibility: hidden;
-}
-
-.code-editor.is-typing #outputText {
-    background: #111b35;
-    color: #dce7ff;
-    -webkit-text-fill-color: #dce7ff;
-}
-
 .syntax-tag,
 .syntax-bracket {
     color: #7dd3fc;
