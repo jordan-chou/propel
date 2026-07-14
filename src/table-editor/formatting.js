@@ -55,3 +55,20 @@ export function toggleCellsBold(cells) {
 
     selectedCells.forEach((cell) => setCellBold(cell, shouldBeBold));
 }
+
+export function toggleRowsActive(rows) {
+    Array.from(rows || []).forEach((row) => {
+        if (!row || row.closest('thead')) {
+            return;
+        }
+
+        const isActive = row.classList.toggle('active');
+        const cells = Array.from(row.querySelectorAll('th, td'));
+
+        cells.forEach((cell) => setCellBold(cell, isActive));
+
+        if (cells[0]) {
+            cells[0].setAttribute('scope', isActive ? 'colgroup' : 'row');
+        }
+    });
+}

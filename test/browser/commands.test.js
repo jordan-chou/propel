@@ -2,7 +2,7 @@ import { createBodyFtnTags, replaceFootnoteSection } from '../../src/commands/fo
 import { cleanupTable } from '../../src/commands/table-cleanup.js';
 import { fixNbspHTML } from '../../src/commands/nbsp.js';
 import { getCellsInRange } from '../../src/table-editor/model.js';
-import { toggleCellBold, toggleCellsBold } from '../../src/table-editor/formatting.js';
+import { toggleCellBold, toggleCellsBold, toggleRowsActive } from '../../src/table-editor/formatting.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -85,6 +85,35 @@ test('table editor bold unbolds every cell when the full selection is bold', () 
     equal(cells[0].classList.contains('fnt-nrml'), true);
     equal(cells[0].querySelector('strong'), null);
     equal(cells[1].innerHTML, 'Value');
+});
+
+test('table editor active row applies bold to every cell', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><th class="fnt-nrml">Heading</th><td>Value</td></tr></tbody></table>';
+    const row = host.querySelector('tr');
+    const cells = row.querySelectorAll('th, td');
+
+    toggleRowsActive([row]);
+
+    equal(row.classList.contains('active'), true);
+    equal(cells[0].classList.contains('fnt-nrml'), false);
+    equal(cells[0].getAttribute('scope'), 'colgroup');
+    equal(cells[1].innerHTML, '<strong>Value</strong>');
+});
+
+test('table editor inactive row removes bold from every cell', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr class="active"><th>Heading</th><td><strong>Value</strong></td></tr></tbody></table>';
+    const row = host.querySelector('tr');
+    const cells = row.querySelectorAll('th, td');
+
+    toggleRowsActive([row]);
+
+    equal(row.classList.contains('active'), false);
+    equal(cells[0].classList.contains('fnt-nrml'), true);
+    equal(cells[0].getAttribute('scope'), 'row');
+    equal(cells[1].innerHTML, 'Value');
+    equal(cells[1].classList.contains('fnt-nrml'), true);
 });
 
 const output = document.getElementById('results');

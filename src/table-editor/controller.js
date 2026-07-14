@@ -1,5 +1,5 @@
 import { buildCellGrid, getCellPosition } from './model.js';
-import { toggleCellsBold } from './formatting.js';
+import { toggleCellsBold, toggleRowsActive } from './formatting.js';
 
 /**
  * Creates the stateful table-editor UI controller.
@@ -1510,18 +1510,7 @@ export function createTableEditorController(config) {
     
     /** Toggles table editor active rows. */
     function toggleTableEditorActiveRows() {
-        getTableEditorSelectedRows().forEach((row) => {
-            if (row.closest('thead')) {
-                return;
-            }
-    
-            row.classList.toggle('active');
-            const firstCell = row.querySelector('th, td');
-    
-            if (firstCell) {
-                firstCell.setAttribute('scope', row.classList.contains('active') ? 'colgroup' : 'row');
-            }
-        });
+        toggleRowsActive(getTableEditorSelectedRows());
     }
     
     /** Merges table editor rows. */
