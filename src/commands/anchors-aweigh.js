@@ -313,3 +313,10 @@ function displayModifiedComponents() {
         preview.appendChild(clone);
     }
 }
+
+/** Adds the next available generic ID using the same sequence as the Add IDs command. */
+export function addGenericID(inputHTML, component, prefix, startingCount = 0) {
+    const counter = { num: startingCount };
+    addIDToComponent(inputHTML, component, counter, prefix);
+    return component.id;
+}

@@ -1,5 +1,6 @@
 import { buildCellGrid, getCellPosition } from './model.js';
 import { toggleCellsBold, toggleRowsActive } from './formatting.js';
+import { applyTableScopes } from './scoping.js';
 
 /**
  * Creates the stateful table-editor UI controller.
@@ -39,7 +40,7 @@ export function createTableEditorController(config) {
         tableEditorRightBtn, tableEditorDeleteRowBtn, tableEditorStatus,
         tableEditorCanvas, tableEditorNumber, tableEditorCaption, tableEditorUnit,
         tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
-        tableEditorUnitSuggestion, tableEditorFinancial, tableEditorFrench,
+        tableEditorUnitSuggestion, tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
         optionHelpButtons, optionTooltip, toastRegion, liveTableEditPopover
     } = elements;
 
@@ -205,10 +206,12 @@ export function createTableEditorController(config) {
             }
         });
     
-        [tableEditorFinancial, tableEditorFrench].forEach((field) => {
+        [tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench].forEach((field) => {
             if (field) {
                 field.addEventListener('change', () => {
-                    const action = field === tableEditorFinancial ? 'table.option.financial' : 'table.option.french';
+                    const action = field === tableEditorComplexScoping
+                        ? 'table.option.complexScoping'
+                        : field === tableEditorFinancial ? 'table.option.financial' : 'table.option.french';
                     applyTableOptionChange(field, action);
                 });
             }
@@ -647,6 +650,7 @@ export function createTableEditorController(config) {
         clone.querySelectorAll('.selected').forEach((cell) => cell.classList.remove('selected'));
         return {
             html: clone.innerHTML,
+            complexScoping: Boolean(tableEditorComplexScoping && tableEditorComplexScoping.checked),
             financial: Boolean(tableEditorFinancial && tableEditorFinancial.checked),
             french: Boolean(tableEditorFrench && tableEditorFrench.checked),
             acceptedExternalCaptionNodes: Array.from(tableEditorAcceptedExternalCaptionNodes)
@@ -663,6 +667,7 @@ export function createTableEditorController(config) {
         const secondAccepted = second.acceptedExternalCaptionNodes || [];
     
         return first.html === second.html
+            && first.complexScoping === second.complexScoping
             && first.financial === second.financial
             && first.french === second.french
             && firstAccepted.length === secondAccepted.length
@@ -792,6 +797,11 @@ export function createTableEditorController(config) {
                 name: 'Financial table',
                 enabled: Boolean(tableEditorFinancial && tableEditorFinancial.checked)
             }
+            : action === 'table.option.complexScoping'
+                ? {
+                    name: 'Complex scoping',
+                    enabled: Boolean(tableEditorComplexScoping && tableEditorComplexScoping.checked)
+                }
             : action === 'table.option.french'
                 ? {
                     name: 'French number format',
@@ -818,6 +828,9 @@ export function createTableEditorController(config) {
         tableEditorHistoryRestoring = true;
         tableEditorHistoryIndex = index;
         tableEditorCanvas.innerHTML = snapshot.html;
+        if (tableEditorComplexScoping) {
+            tableEditorComplexScoping.checked = snapshot.complexScoping;
+        }
         if (tableEditorFinancial) {
             tableEditorFinancial.checked = snapshot.financial;
         }
@@ -966,6 +979,7 @@ export function createTableEditorController(config) {
             const table = getTableEditorTable();
             if (table) {
                 cleanupTable(table, getTableEditorOptions());
+                applyCurrentTableScopes(table);
             }
         }
     
@@ -1461,6 +1475,16 @@ export function createTableEditorController(config) {
     
         updateTableEditorCaption();
         cleanupTable(table, getTableEditorOptions());
+        applyCurrentTableScopes(table);
+    }
+
+    /** Applies the selected simple or complex header association strategy. */
+    function applyCurrentTableScopes(table) {
+        applyTableScopes(table, {
+            complex: tableEditorComplexScoping ? tableEditorComplexScoping.checked : true,
+            idRoot: inputHTML,
+            renameTag
+        });
     }
     
     /** Toggles table editor header rows. */
@@ -1726,45 +1750,6 @@ export function createTableEditorController(config) {
         getTableEditorSelectedRows().forEach((row) => row.remove());
     }
     
-    /** Applies table editor scopes. */
-    function applyTableEditorScopes(table) {
-        if (!table) {
-            return;
-        }
-    
-        table.querySelectorAll('thead tr').forEach((row) => {
-            row.classList.add('bg-dark', 'text-white');
-            row.classList.remove('active');
-    
-            Array.from(row.querySelectorAll('th, td')).forEach((cell) => {
-                const headerCell = renameTag(cell, 'th');
-                headerCell.setAttribute('scope', 'col');
-            });
-        });
-    
-        table.querySelectorAll('tbody tr').forEach((row) => {
-            const firstCell = row.querySelector('th, td');
-    
-            if (!firstCell) {
-                return;
-            }
-    
-            const rowHeader = renameTag(firstCell, 'th');
-    
-            if (rowHeader.hasAttribute('colspan') || row.classList.contains('active')) {
-                rowHeader.setAttribute('scope', 'colgroup');
-                return;
-            }
-    
-            if (rowHeader.hasAttribute('rowspan')) {
-                rowHeader.setAttribute('scope', 'rowgroup');
-                return;
-            }
-    
-            rowHeader.setAttribute('scope', 'row');
-        });
-    }
-    
     /** Commits the active table edit to canonical document state and optionally advances. */
     function applyTableEditorChanges(moveNext) {
         const items = getTableEditorItems();
@@ -1776,7 +1761,7 @@ export function createTableEditorController(config) {
         }
     
         updateTableEditorCaption();
-        applyTableEditorScopes(getTableEditorTable());
+        applyCurrentTableScopes(getTableEditorTable());
     
         const cleanClone = editedContainer.cloneNode(true);
         cleanClone.querySelectorAll('.selected').forEach((element) => {

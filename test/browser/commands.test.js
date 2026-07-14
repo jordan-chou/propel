@@ -3,6 +3,8 @@ import { cleanupTable } from '../../src/commands/table-cleanup.js';
 import { fixNbspHTML } from '../../src/commands/nbsp.js';
 import { getCellsInRange } from '../../src/table-editor/model.js';
 import { toggleCellBold, toggleCellsBold, toggleRowsActive } from '../../src/table-editor/formatting.js';
+import { applyTableScopes } from '../../src/table-editor/scoping.js';
+import { renameTag } from '../../src/commands/table-cleanup.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -114,6 +116,65 @@ test('table editor inactive row removes bold from every cell', () => {
     equal(cells[0].getAttribute('scope'), 'row');
     equal(cells[1].innerHTML, 'Value');
     equal(cells[1].classList.contains('fnt-nrml'), true);
+});
+
+test('complex scoping associates active parent, row, and column headers', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table id="expenses"><thead><tr><th>Trip</th><th>Cost</th></tr></thead><tbody><tr class="active"><th colspan="2">Toronto</th></tr><tr><th>Meals</th><td>$20</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: true, renameTag });
+    const headers = table.querySelectorAll('th');
+    const value = table.querySelector('td');
+
+    equal(value.getAttribute('headers'), `${headers[1].id} ${headers[2].id} ${headers[3].id}`);
+});
+
+test('complex scoping uses an indented row as a child of a merged row', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th colspan="2">Assets</th></tr><tr><th><div class="mrgn-lft-md">Cash</div></th><td>10</td></tr><tr><th>Unrelated</th><td>20</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: true, renameTag });
+    const bodyHeaders = table.querySelectorAll('tbody th');
+    const values = table.querySelectorAll('tbody td');
+
+    equal(values[0].getAttribute('headers').includes(bodyHeaders[0].id), true);
+    equal(values[1].getAttribute('headers').includes(bodyHeaders[0].id), false);
+    equal(table.id, 't1');
+});
+
+test('complex scoping follows md, lg, and xl indentation levels', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr class="active"><th colspan="2">Total</th></tr><tr><th><div class="mrgn-lft-md">Group</div></th><td>1</td></tr><tr><th><div class="mrgn-lft-lg">Subgroup</div></th><td>2</td></tr><tr><th><div class="mrgn-lft-xl">Item</div></th><td>3</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: true, renameTag });
+    const bodyHeaders = table.querySelectorAll('tbody th');
+    const item = table.querySelectorAll('tbody td')[2];
+    const associations = item.getAttribute('headers').split(' ');
+
+    equal(associations.includes(bodyHeaders[0].id), true);
+    equal(associations.includes(bodyHeaders[1].id), true);
+    equal(associations.includes(bodyHeaders[2].id), true);
+    equal(associations.includes(bodyHeaders[3].id), true);
+});
+
+test('simple scoping omits explicit headers associations', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th>Cash</th><td headers="old">10</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: false, renameTag });
+
+    equal(table.querySelector('td').hasAttribute('headers'), false);
+    equal(table.querySelector('tbody th').getAttribute('scope'), 'row');
+});
+
+test('complex scoping uses the next Add IDs table identifier', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<div id="t1"></div><table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th>Cash</th><td>10</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+
+    equal(table.id, 't2');
+    equal(table.querySelector('th').id, 't2-header-1');
 });
 
 const output = document.getElementById('results');
