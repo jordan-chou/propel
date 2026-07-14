@@ -86,6 +86,9 @@ const reviewTabs = document.querySelectorAll('[data-review-tab]');
 const workflowTabs = document.querySelectorAll('[data-workflow-tab]');
 const standardCleanupBtn = document.getElementById('standardCleanupBtn');
 const fileDropZone = document.getElementById('fileDropZone');
+const railUploadBtn = document.getElementById('railUploadBtn');
+const onboardingUploadBtn = document.getElementById('onboardingUploadBtn');
+const editorOnboarding = document.getElementById('editorOnboarding');
 const liveEditorHost = document.getElementById('liveEditor');
 const liveEditor = createWetLiveEditor(liveEditorHost);
 const editorDropZone = document.getElementById('editorDropZone');
@@ -683,12 +686,6 @@ function createModernDashboardListeners() {
     }
 
     if (fileDropZone && file) {
-        fileDropZone.addEventListener('click', (event) => {
-            if (event.target !== file) {
-                file.click();
-            }
-        });
-
         ['dragenter', 'dragover'].forEach((eventName) => {
             fileDropZone.addEventListener(eventName, (event) => {
                 event.preventDefault();
@@ -892,6 +889,12 @@ function createListeners() {
         file.addEventListener('change', handleFileInputChange);
     }
     updateFileDropZoneState(false);
+
+    [railUploadBtn, onboardingUploadBtn].forEach((button) => {
+        if (button && file) {
+            button.addEventListener('click', () => file.click());
+        }
+    });
 
     copyBtn.addEventListener('click', async () => {
         try {
@@ -1952,12 +1955,13 @@ function processSelectedFile(selectedFile) {
 }
 
 function updateFileDropZoneState(hasFile) {
-    if (!fileDropZone) {
-        return;
+    if (fileDropZone) {
+        fileDropZone.classList.toggle('has-file', hasFile);
     }
 
-    fileDropZone.classList.toggle('needs-file', !hasFile);
-    fileDropZone.classList.toggle('has-file', hasFile);
+    if (editorOnboarding) {
+        editorOnboarding.hidden = hasFile;
+    }
 }
 
 /**
@@ -4337,6 +4341,7 @@ function updateCodeView() {
     }
 
     outputText.value = hasInput() ? Utils.formattedHTML(inputHTML) : '';
+    updateFileDropZoneState(hasInput());
     updateElementSyncLineMap();
     updateCodeHighlight();
 }
@@ -4349,6 +4354,7 @@ function updateLiveView() {
     const clone = inputHTML.cloneNode(true);
     clone.querySelectorAll('script, style, link').forEach(element => element.remove());
     liveEditor.innerHTML = hasInput() ? clone.innerHTML : '';
+    updateFileDropZoneState(hasInput());
 }
 
 function scrollCodeToLiveElement(target) {

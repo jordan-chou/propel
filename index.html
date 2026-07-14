@@ -57,24 +57,9 @@
                     <div class="rail-scroll">
                         <div class="rail-command-group">
                         <section class="workflow-section" id="outputSection">
-                            <p class="section-kicker">Upload</p>
-                            <!-- <div class="pipeline wb-inv" aria-label="Conversion workflow">
-                                <div class="pipeline-step">Word document</div>
-                                <div class="pipeline-arrow">↓</div>
-                                <div class="pipeline-step">Mammoth.js conversion</div>
-                                <div class="pipeline-arrow">↓</div>
-                                <div class="pipeline-step">Initial cleanup pipeline</div>
-                                <div class="pipeline-arrow">↓</div>
-                                <div class="pipeline-step">Canonical HTML state</div>
-                                <div class="pipeline-arrow">↓</div>
-                                <div class="pipeline-step">Live view / Code view / Commands / Export</div>
-                            </div> -->
                             <div class="form-row">
-                                <!-- <label for="file">Word document</label> -->
-                                <div class="drop-zone upload-drop-zone needs-file" id="fileDropZone">
-                                    <div>
-                                        <strong>Upload Word document</strong>
-                                    </div>
+                                <div class="upload-control" id="fileDropZone">
+                                    <button type="button" class="btn btn-sm btn-full" id="railUploadBtn">Open Word file</button>
                                     <input type="file" id="file" accept=".doc,.docx" class="file-input">
                                 </div>
                             </div>
@@ -218,6 +203,15 @@
                         </div>
                         <div class="code-toolbar" aria-label="Code view">
                             <span>Code</span>
+                        </div>
+                        <div class="editor-onboarding" id="editorOnboarding">
+                            <div class="editor-onboarding-card">
+                                <span class="editor-onboarding-kicker">Start a document</span>
+                                <h2>Turn a Word document into clean HTML</h2>
+                                <p>Open a .doc or .docx file, or drop it anywhere in this editor.</p>
+                                <button type="button" class="btn btn-primary" id="onboardingUploadBtn">Choose Word document</button>
+                                <span class="editor-onboarding-alternative">You can also paste HTML into Code view.</span>
+                            </div>
                         </div>
                         <div class="drop-hint">Drop a Word document to convert it</div>
                         <div class="pane-snap-guide" data-snap-ratio="0.5" data-label="50/50" aria-hidden="true"></div>

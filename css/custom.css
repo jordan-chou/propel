@@ -535,54 +535,11 @@ textarea {
     transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
-.upload-drop-zone {
+.upload-control {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 210px;
-    min-height: 46px;
-    padding: 9px 12px;
-    border-width: 1px;
-    border-color: rgba(37,87,214,0.28);
-    border-radius: 8px;
-    background: #f5f8ff;
-    text-align: left;
 }
 
-.upload-drop-zone.needs-file {
-    min-width: 250px;
-    border-color: rgba(37,87,214,0.58);
-    background: linear-gradient(180deg, #ffffff 0%, #eef4ff 100%);
-    box-shadow: 0 0 0 3px rgba(37,87,214,0.11), 0 6px 16px rgba(37,87,214,0.12);
-}
-
-.upload-drop-zone.needs-file::before {
-    content: "";
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--primary);
-    box-shadow: 0 0 0 4px rgba(37,87,214,0.13);
-    animation: uploadStartPulse 1.7s ease-out infinite;
-}
-
-.upload-drop-zone.has-file {
-    min-width: 190px;
-    border-color: rgba(19,121,91,0.32);
-    background: #f6fef9;
-}
-
-.upload-drop-zone strong {
-    font-size: 0.88rem;
-    color: var(--primary-dark);
-}
-
-.upload-drop-zone.has-file strong {
-    color: var(--success);
-}
-
-.upload-drop-zone .file-input {
+.upload-control .file-input {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -2284,6 +2241,56 @@ textarea {
     z-index: 1000;
 }
 
+.editor-onboarding {
+    z-index: 4;
+    grid-column: 1;
+    grid-row: 2;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    background: linear-gradient(145deg, rgba(248, 251, 255, 0.98), rgba(236, 243, 255, 0.96));
+    text-align: center;
+}
+
+.editor-onboarding[hidden] { display: none; }
+
+.editor-onboarding-card {
+    max-width: 420px;
+    padding: 34px;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 18px 42px rgba(30, 58, 110, 0.12);
+}
+
+.editor-onboarding-kicker {
+    color: var(--primary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.editor-onboarding h2 {
+    margin: 8px 0 10px;
+    color: #1f3157;
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    line-height: 1.18;
+}
+
+.editor-onboarding p {
+    margin: 0 0 20px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.editor-onboarding-alternative {
+    display: block;
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
 .editor-panel.drag-active .drop-hint {
     display: grid;
 }
@@ -2888,27 +2895,6 @@ textarea {
     }
 }
 
-@keyframes uploadStartPulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(37,87,214,0.34);
-        transform: scale(1);
-    }
-    70% {
-        box-shadow: 0 0 0 8px rgba(37,87,214,0);
-        transform: scale(1.08);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(37,87,214,0);
-        transform: scale(1);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .upload-drop-zone.needs-file::before {
-        animation: none;
-    }
-}
-
 #qaHelperResults {
     margin-top: 12px;
     padding: 12px;
@@ -3290,28 +3276,6 @@ body {
     letter-spacing: 0.12em;
 }
 
-.upload-drop-zone,
-.upload-drop-zone.needs-file {
-    min-height: 43px;
-    border-color: rgba(37, 99, 235, 0.42);
-    border-radius: 3px;
-    background: #f1f6ff;
-    box-shadow: none;
-}
-
-.upload-drop-zone.needs-file {
-    background: linear-gradient(90deg, rgba(37,99,235,0.09), transparent 54%), #f7f9ff;
-}
-
-.upload-drop-zone strong { color: #1e4fae; }
-
-.upload-drop-zone.needs-file::before {
-    border-radius: 2px;
-    background: #38bdf8;
-    box-shadow: none;
-    animation: uploadStartPulse 2.2s ease-out infinite;
-}
-
 .btn {
     border-color: #afbdd2;
     border-radius: 4px;
@@ -3634,9 +3598,6 @@ textarea:focus {
     .main-grid { padding: 6px; }
 
     .left-rail .rail-scroll { padding: 5px; }
-
-    .upload-drop-zone,
-    .upload-drop-zone.needs-file { min-width: 210px; }
 
     .editor-panel { border-radius: 3px; }
 }
