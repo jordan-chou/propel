@@ -29,6 +29,31 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000/` and upload a Word document. No `npm install` is required for the current application or unit tests.
 
+## Component libraries
+
+Select content in Live or Code view and choose **Convert to component** to preview and apply a reusable HTML component. Tables can also be converted from their Live view hover control or with **Convert current table to component** in the table editor. Converted source tables are removed from the table-editor pagination list, including tables retained inside chart text versions for accessibility.
+
+The starter library includes boxes, chart and figure layouts, a two-chart layout, and a quote. The component modal can also:
+
+- Create components from a name, description, and HTML template containing exactly one `{{content}}` slot.
+- Preview highlighted content and component output before conversion.
+- Delete components while preserving at least one library entry.
+- Import and export versioned JSON libraries from the ellipsis menu.
+
+Custom libraries and locally created components are stored in browser `localStorage` under `propel.componentLibrary`, so they persist between sessions for the same browser and origin. Clearing site data removes this saved library. See [docs/component-libraries.md](docs/component-libraries.md) for the file format and supported smart-conversion modes.
+
+## Local browser storage
+
+Propel stores the following JSON-encoded values in `localStorage`. They remain on the current browser and origin between sessions; they are not transmitted by Propel.
+
+| Key | Purpose |
+| --- | --- |
+| `propel.componentLibrary` | The active imported or locally edited component library, including created and deleted components. Invalid stored data falls back to the starter library. |
+| `propel.livePaneWidthRatio` | The selected width ratio between the synchronized Live and Code editor panes. |
+| `propel.tableEditorSize` | The table editor’s saved width or height for its current responsive layout. |
+
+Clearing the site’s browser data removes all three values and restores their defaults. Propel currently does not use cookies or `sessionStorage`.
+
 ## Philosophy
 
 Propel is intended to keep document conversion and editing simple, understandable, and under the user's control. It should never perform destructive or drastic changes without explicit user intervention. When a change could significantly alter content or structure, Propel should make the action clear and leave the decision to the user.
@@ -68,8 +93,6 @@ docs/                      Architecture, testing, legacy, and vendor notes
 ```
 
 See [docs/architecture.md](docs/architecture.md) for dependency direction and architectural rules. Third-party distributions are described in [docs/vendor.md](docs/vendor.md); they should not be reformatted or mixed into application refactors.
-
-Component libraries use a versioned JSON format documented in [docs/component-libraries.md](docs/component-libraries.md).
 
 ## Architecture principles
 
