@@ -12,6 +12,7 @@ The application runs locally in the browser and currently has no production buil
 - Adds stable IDs to headings, tables, and figures.
 - Generates publishing markup for footnotes.
 - Corrects language-specific non-breaking spaces.
+- Converts selected Live or Code content with previewable, importable component libraries.
 - Cleans and interactively edits complex tables.
 - Reports structural issues such as missing IDs, empty links, heading-level skips, unclean tables, and missing image `alt` attributes.
 - Supports document and table-editor undo/redo.
@@ -67,6 +68,8 @@ docs/                      Architecture, testing, legacy, and vendor notes
 ```
 
 See [docs/architecture.md](docs/architecture.md) for dependency direction and architectural rules. Third-party distributions are described in [docs/vendor.md](docs/vendor.md); they should not be reformatted or mixed into application refactors.
+
+Component libraries use a versioned JSON format documented in [docs/component-libraries.md](docs/component-libraries.md).
 
 ## Architecture principles
 

@@ -121,6 +121,36 @@
                                 </div>
 
                                 <div class="command-card">
+                                    <strong>Components</strong>
+                                    <p>Convert selected text or HTML using a component library.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="componentLibraryBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="componentLibraryDialog">Convert to component</button>
+                                    <div id="componentLibraryDialog" class="settings-box command-dialog component-library-dialog" role="dialog" aria-labelledby="componentLibraryTitle">
+                                        <div class="dialog-header">
+                                            <strong id="componentLibraryTitle">Component library</strong>
+                                            <button type="button" class="btn btn-xs" id="componentLibraryCloseBtn" aria-label="Close component library">Close</button>
+                                        </div>
+                                        <p id="componentLibraryName" class="component-library-name"></p>
+                                        <label for="componentLibrarySelect">Component</label>
+                                        <select class="form-control" id="componentLibrarySelect"></select>
+                                        <p id="componentLibraryDescription" class="component-library-description"></p>
+                                        <div class="component-library-actions">
+                                            <button type="button" class="btn btn-default" id="componentPreviewBtn">Preview</button>
+                                            <button type="button" class="btn btn-primary" id="componentApplyBtn">Convert selection</button>
+                                        </div>
+                                        <div id="componentPreviewPanel" class="component-preview-panel" hidden>
+                                            <strong>Preview</strong>
+                                            <iframe id="componentPreviewFrame" sandbox="" title="Converted component preview"></iframe>
+                                        </div>
+                                        <div class="component-library-file-actions">
+                                            <button type="button" class="btn btn-default btn-sm" id="componentImportBtn">Import library</button>
+                                            <button type="button" class="btn btn-default btn-sm" id="componentExportBtn">Export library</button>
+                                            <input type="file" id="componentImportFile" accept="application/json,.json" class="file-input">
+                                        </div>
+                                        <p class="component-library-hint">Libraries use versioned JSON templates with one <code>{{content}}</code> slot.</p>
+                                    </div>
+                                </div>
+
+                                <div class="command-card">
                                     <strong>Tables</strong>
                                     <p>Convert tables to Canada.ca/WET markup.</p>
                                     <button type="button" class="btn btn-primary btn-full" id="tableCleanupBtn" title="Table cleanup">Table cleanup</button>

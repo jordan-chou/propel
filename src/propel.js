@@ -18,6 +18,13 @@ import { DocumentStore } from './document/document-store.js';
 import { runStandardCleanup } from './document/cleanup.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { CommandRegistry } from './commands/command-registry.js';
+import {
+    applyComponentTemplate,
+    convertSelectionToComponent,
+    defaultComponentLibrary,
+    parseComponentLibrary,
+    serializeComponentLibrary
+} from './commands/component-library.js';
 import { createTableEditorController } from './table-editor/controller.js';
 import { readFileAsArrayBuffer, getMammothLibrary, convertWithMammoth } from './conversion/mammoth-adapter.js';
 import { getLanguageResultFromDocxXml } from './conversion/docx-language.js';
@@ -50,6 +57,19 @@ const addIDsBtn = document.getElementById('addIDsBtn');
 const footnotesBtn = document.getElementById('footnotesBtn');
 const nbspBtn = document.getElementById('nbspBtn');
 const tableCleanupBtn = document.getElementById('tableCleanupBtn');
+const componentLibraryBtn = document.getElementById('componentLibraryBtn');
+const componentLibraryDialog = document.getElementById('componentLibraryDialog');
+const componentLibraryCloseBtn = document.getElementById('componentLibraryCloseBtn');
+const componentLibrarySelect = document.getElementById('componentLibrarySelect');
+const componentLibraryName = document.getElementById('componentLibraryName');
+const componentLibraryDescription = document.getElementById('componentLibraryDescription');
+const componentPreviewBtn = document.getElementById('componentPreviewBtn');
+const componentApplyBtn = document.getElementById('componentApplyBtn');
+const componentPreviewPanel = document.getElementById('componentPreviewPanel');
+const componentPreviewFrame = document.getElementById('componentPreviewFrame');
+const componentImportBtn = document.getElementById('componentImportBtn');
+const componentExportBtn = document.getElementById('componentExportBtn');
+const componentImportFile = document.getElementById('componentImportFile');
 const addIDsSettingsBtn = document.getElementById('addIDsSettingsBtn');
 const addIDsSettingsCloseBtn = document.getElementById('addIDsSettingsCloseBtn');
 const addIDsApplyBtn = document.getElementById('addIDsApplyBtn');
@@ -135,6 +155,7 @@ const commandRegistry = new CommandRegistry()
     .register('document.addIds', { label: 'Add IDs', execute: addIDsCommand })
     .register('document.generateFootnotes', { label: 'Generate footnotes', execute: generateFootnotesCommand })
     .register('document.fixSpacing', { label: 'Validate non-breaking spaces', execute: validateNbspCommand })
+    .register('document.convertSelectionToComponent', { label: 'Convert to component', execute: convertToComponentCommand })
     .register('table.openCleanup', { label: 'Table cleanup', execute: tableCleanupCommand });
 
 /* Global Variables */
@@ -159,6 +180,9 @@ let documentHistoryLastSource = null;
 let documentHistoryLastTime = 0;
 let activeDocumentCommandLabel = null;
 const uiPreferences = createJSONStorage(window.localStorage, 'propel');
+const componentLibraryStorageKey = 'componentLibrary';
+let activeComponentLibrary = loadComponentLibrary();
+let pendingComponentSelection = null;
 const paneSplitterStorageKey = 'livePaneWidthRatio';
 const paneSplitterSnapRatios = [1 / 2, 2 / 3];
 const paneSplitterSnapZone = 24;
@@ -228,6 +252,7 @@ if (tagText) {
 }
 
 refreshReviewPanel();
+renderComponentLibrary();
 updateLanguageSwitch();
 
 /* Functions */
@@ -734,6 +759,27 @@ function createListeners() {
 
     updateAddIDsSettingsState();
 
+    if (componentLibraryBtn && componentLibraryDialog) {
+        componentLibraryBtn.addEventListener('pointerdown', captureComponentSelection);
+        componentLibraryBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            openComponentLibrary();
+        });
+        componentLibraryDialog.addEventListener('click', event => event.stopPropagation());
+        componentLibraryCloseBtn?.addEventListener('click', closeComponentLibrary);
+        componentLibrarySelect?.addEventListener('change', () => {
+            renderSelectedComponent();
+            hideComponentPreview();
+        });
+        componentPreviewBtn?.addEventListener('click', previewSelectedComponent);
+        componentApplyBtn?.addEventListener('click', () => commandRegistry.execute('document.convertSelectionToComponent'));
+        componentImportBtn?.addEventListener('click', () => componentImportFile?.click());
+        componentImportFile?.addEventListener('change', importComponentLibrary);
+        componentExportBtn?.addEventListener('click', exportComponentLibrary);
+        document.addEventListener('click', closeComponentLibrary);
+        window.addEventListener('resize', positionComponentLibrary);
+    }
+
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
         syncEditorToInputHTML();
@@ -794,6 +840,135 @@ function createListeners() {
     collapseBtn.addEventListener('click', collapseAll);
     lightTheme.addEventListener('click', setCodeTheme);
     darkTheme.addEventListener('click', setCodeTheme);
+}
+
+/** Loads the last imported component library, falling back to the starter library. */
+function loadComponentLibrary() {
+    const stored = uiPreferences.get(componentLibraryStorageKey);
+    if (!stored) return defaultComponentLibrary;
+    try {
+        return parseComponentLibrary(JSON.stringify(stored));
+    } catch {
+        return defaultComponentLibrary;
+    }
+}
+
+/** Populates the component library dropdown. */
+function renderComponentLibrary() {
+    if (!componentLibrarySelect) return;
+    componentLibraryName.textContent = activeComponentLibrary.name;
+    componentLibrarySelect.replaceChildren(...activeComponentLibrary.components.map(component => {
+        const option = document.createElement('option');
+        option.value = component.id;
+        option.textContent = component.name;
+        return option;
+    }));
+    renderSelectedComponent();
+}
+
+function getSelectedComponent() {
+    return activeComponentLibrary.components.find(component => component.id === componentLibrarySelect?.value) || null;
+}
+
+function renderSelectedComponent() {
+    const component = getSelectedComponent();
+    if (componentLibraryDescription) componentLibraryDescription.textContent = component?.description || '';
+}
+
+/** Captures a selection before focus moves into the component menu. */
+function captureComponentSelection() {
+    if (activeEditorView === 'code') {
+        pendingComponentSelection = {
+            view: 'code',
+            start: outputText.selectionStart,
+            end: outputText.selectionEnd,
+            html: outputText.value.slice(outputText.selectionStart, outputText.selectionEnd)
+        };
+        return;
+    }
+    const selection = getEditorSelection(liveEditor);
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    pendingComponentSelection = range && !range.collapsed && liveEditor.contains(range.commonAncestorContainer)
+        ? { view: 'live', range: range.cloneRange(), html: getRangeHTML(range) }
+        : null;
+}
+
+function getRangeHTML(range) {
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+    return container.innerHTML;
+}
+
+function openComponentLibrary() {
+    if (!pendingComponentSelection?.html) {
+        addProcessingLog('Select text or HTML before opening the component library.', 'warning');
+        showActivityToast('Select content to convert first.', 'warning');
+        return;
+    }
+    componentLibraryDialog.classList.add('open');
+    componentLibraryBtn.setAttribute('aria-expanded', 'true');
+    hideComponentPreview();
+    positionComponentLibrary();
+    componentLibrarySelect.focus();
+}
+
+function closeComponentLibrary() {
+    if (!componentLibraryDialog?.classList.contains('open')) return;
+    componentLibraryDialog.classList.remove('open');
+    componentLibraryBtn?.setAttribute('aria-expanded', 'false');
+    hideComponentPreview();
+}
+
+function positionComponentLibrary() {
+    if (!componentLibraryDialog?.classList.contains('open') || !componentLibraryBtn) return;
+    const trigger = componentLibraryBtn.getBoundingClientRect();
+    const width = componentLibraryDialog.offsetWidth;
+    const height = componentLibraryDialog.offsetHeight;
+    const left = Math.min(window.innerWidth - width - 16, Math.max(16, trigger.right + 10));
+    const top = Math.min(window.innerHeight - height - 16, Math.max(16, trigger.top));
+    componentLibraryDialog.style.left = `${left}px`;
+    componentLibraryDialog.style.top = `${top}px`;
+}
+
+function previewSelectedComponent() {
+    const component = getSelectedComponent();
+    if (!component || !pendingComponentSelection?.html || !componentPreviewFrame) return;
+    const converted = applyComponentTemplate(component.template, pendingComponentSelection.html);
+    componentPreviewFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;padding:12px;margin:0} .alert{padding:12px;border:1px solid #9ec5fe;background:#e7f1ff}.well{padding:12px;background:#f5f5f5;border:1px solid #ddd}</style></head><body>${converted}</body></html>`;
+    componentPreviewPanel.hidden = false;
+    positionComponentLibrary();
+}
+
+function hideComponentPreview() {
+    if (componentPreviewPanel) componentPreviewPanel.hidden = true;
+    if (componentPreviewFrame) componentPreviewFrame.removeAttribute('srcdoc');
+}
+
+async function importComponentLibrary() {
+    const selectedFile = componentImportFile?.files?.[0];
+    if (!selectedFile) return;
+    try {
+        activeComponentLibrary = parseComponentLibrary(await selectedFile.text());
+        uiPreferences.set(componentLibraryStorageKey, activeComponentLibrary);
+        renderComponentLibrary();
+        hideComponentPreview();
+        addProcessingLog(`Imported component library “${activeComponentLibrary.name}” with ${activeComponentLibrary.components.length} component(s).`, 'success');
+    } catch (error) {
+        addProcessingLog(`Could not import component library: ${error.message}`, 'danger');
+    } finally {
+        componentImportFile.value = '';
+    }
+}
+
+function exportComponentLibrary() {
+    const blob = new Blob([serializeComponentLibrary(activeComponentLibrary)], { type: 'application/json' });
+    const link = document.createElement('a');
+    const filename = activeComponentLibrary.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'component-library';
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    addProcessingLog(`Exported component library “${activeComponentLibrary.name}”.`, 'success');
 }
 
 /**
@@ -1873,6 +2048,7 @@ function handleGlobalKeydown(event) {
     }
 
     if (event.key === 'Escape') {
+        closeComponentLibrary();
         drawers.shortcuts.close();
         tableEditor.handleEscape();
     }
@@ -2113,6 +2289,48 @@ function validateNbspCommand() {
     } catch (e) {
         addProcessingLog('Error for Validate &nbsp;. Check console for details.', 'danger');
         console.error(e);
+    }
+}
+
+/** Converts the captured Live or Code selection with the chosen component template. */
+function convertToComponentCommand() {
+    const component = getSelectedComponent();
+    try {
+        if (!component || !pendingComponentSelection?.html) {
+            throw new Error('Select text or HTML before converting it to a component.');
+        }
+        commitDocumentHistory('typing');
+        activeDocumentCommandLabel = `Convert to ${component.name}`;
+
+        if (pendingComponentSelection.view === 'code') {
+            const result = convertSelectionToComponent({
+                html: outputText.value,
+                selectionStart: pendingComponentSelection.start,
+                selectionEnd: pendingComponentSelection.end,
+                component
+            });
+            outputText.value = result.html;
+            syncEditorToInputHTML();
+        } else {
+            const range = pendingComponentSelection.range;
+            if (!range || range.collapsed || !liveEditor.contains(range.commonAncestorContainer)) {
+                throw new Error('The Live view selection is no longer available. Select it again.');
+            }
+            const converted = applyComponentTemplate(component.template, pendingComponentSelection.html);
+            const fragment = range.createContextualFragment(converted);
+            range.deleteContents();
+            range.insertNode(fragment);
+            syncLiveToInputHTML();
+        }
+
+        updateOutputText();
+        addProcessingLog(`Converted selection to ${component.name}.`, 'success');
+        closeComponentLibrary();
+        pendingComponentSelection = null;
+    } catch (error) {
+        activeDocumentCommandLabel = null;
+        addProcessingLog(`Could not convert selection: ${error.message}`, 'danger');
+        console.error(error);
     }
 }
 
