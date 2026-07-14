@@ -11,6 +11,7 @@ import {
 } from '../../src/table-editor/scoping.js';
 import { renameTag } from '../../src/commands/table-cleanup.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
+import { createTableEditorController } from '../../src/table-editor/controller.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -73,6 +74,33 @@ test('table cleanup creates WET structure', () => {
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr><tr><td>A</td><td>1</td></tr></tbody></table>';
     const result = cleanupTable(host.querySelector('table'));
     equal(result.querySelectorAll('thead').length, 1);
+});
+
+test('live table hover shows the edit table pill', () => {
+    const liveEditorHost = document.createElement('div');
+    const liveEditor = document.createElement('div');
+    const popover = document.createElement('button');
+    liveEditor.innerHTML = '<table><tbody><tr><td>Value</td></tr></tbody></table>';
+    liveEditorHost.append(liveEditor, popover);
+    document.body.append(liveEditorHost);
+
+    const controller = createTableEditorController({
+        elements: { liveTableEditPopover: popover },
+        inputHTML: document.createElement('div'),
+        liveEditor,
+        liveEditorHost,
+        getEditorSelection: () => null,
+        getClosestElement: (target, root, selector) => {
+            const match = target.closest(selector);
+            return match && root.contains(match) ? match : null;
+        },
+        isLiveEditorSelectingText: () => false,
+        isEnglish: () => true
+    });
+
+    controller.handleLiveTableHover({ target: liveEditor.querySelector('td') });
+    equal(popover.classList.contains('visible'), true);
+    liveEditorHost.remove();
 });
 
 test('table cleanup does not make colspan rows active automatically', () => {

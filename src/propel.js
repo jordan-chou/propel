@@ -188,6 +188,7 @@ const tableEditor = createTableEditorController({
         activeDocumentCommandLabel = 'Apply table edits';
         updateOutputText();
     },
+    isLiveEditorSelectingText: () => liveEditorIsSelectingText,
     isEnglish: () => isEngLang
 });
 

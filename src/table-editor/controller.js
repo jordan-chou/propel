@@ -31,6 +31,7 @@ export function createTableEditorController(config) {
         syncLiveToInputHTML,
         scrollLiveElementIntoView,
         commitTableChanges,
+        isLiveEditorSelectingText,
         isEnglish
     } = config;
     const {
@@ -907,7 +908,7 @@ export function createTableEditorController(config) {
     
     /** Handles live editor table hover. */
     function handleLiveEditorTableHover(event) {
-        if (liveEditorIsSelectingText || hasLiveEditorTextSelection()) {
+        if (isLiveEditorSelectingText() || hasLiveEditorTextSelection()) {
             hideLiveTableEditPopover();
             return;
         }
