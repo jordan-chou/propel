@@ -20,6 +20,7 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
     const host = document.createElement('div');
     host.innerHTML = `
         <button data-toggle>Help</button>
+        <button data-instructions>View instructions</button>
         <div data-backdrop></div>
         <section data-dialog hidden>
             <button data-close>Close</button>
@@ -36,6 +37,7 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
         shortcuts: {
             dialog,
             toggleButton,
+            instructionsButton: host.querySelector('[data-instructions]'),
             closeButton: host.querySelector('[data-close]'),
             backdrop: host.querySelector('[data-backdrop]')
         }
@@ -50,6 +52,10 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
     controller.shortcuts.open();
     equal(host.querySelector('[data-cheatsheet-tab="tips"]').getAttribute('aria-selected'), 'true');
     equal(host.querySelector('[data-cheatsheet-panel="tips"]').hidden, false);
+    controller.shortcuts.close();
+    host.querySelector('[data-instructions]').click();
+    equal(host.querySelector('[data-cheatsheet-tab="instructions"]').getAttribute('aria-selected'), 'true');
+    equal(host.querySelector('[data-cheatsheet-panel="instructions"]').hidden, false);
     host.remove();
 });
 

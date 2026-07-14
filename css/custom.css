@@ -680,7 +680,7 @@ textarea {
     z-index: 70;
     display: grid;
     gap: 14px;
-    width: min(620px, calc(100vw - 32px));
+    width: min(760px, calc(100vw - 32px));
     max-height: min(720px, calc(100vh - 32px));
     padding: 16px;
     border: 1px solid var(--border);
@@ -758,6 +758,26 @@ textarea {
     display: block;
     margin-top: 2px;
     color: var(--muted);
+}
+
+.cheatsheet-about {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+}
+
+.cheatsheet-about div {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 12px;
+}
+
+.cheatsheet-about dt {
+    font-weight: 700;
+}
+
+.cheatsheet-about dd {
+    margin: 0;
 }
 
 .table-editor-dialog {
@@ -1678,6 +1698,8 @@ textarea {
 
 .shortcut-groups {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     gap: 16px;
 }
 
@@ -1689,7 +1711,7 @@ textarea {
 
 .shortcut-list div {
     display: grid;
-    grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.4fr);
+    grid-template-columns: minmax(132px, 1fr) minmax(0, 1.3fr);
     align-items: center;
     gap: 12px;
     padding-bottom: 8px;
@@ -2341,6 +2363,13 @@ textarea {
     margin: 0 0 20px;
     color: var(--muted);
     line-height: 1.5;
+}
+
+.editor-onboarding-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
 }
 
 .editor-onboarding-alternative {
@@ -3033,6 +3062,10 @@ textarea {
     .shortcut-list div {
         grid-template-columns: 1fr;
         gap: 4px;
+    }
+
+    .shortcut-groups {
+        grid-template-columns: 1fr;
     }
 
     .main-grid {

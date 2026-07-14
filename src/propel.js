@@ -88,6 +88,7 @@ const standardCleanupBtn = document.getElementById('standardCleanupBtn');
 const fileDropZone = document.getElementById('fileDropZone');
 const railUploadBtn = document.getElementById('railUploadBtn');
 const onboardingUploadBtn = document.getElementById('onboardingUploadBtn');
+const onboardingInstructionsBtn = document.getElementById('onboardingInstructionsBtn');
 const editorOnboarding = document.getElementById('editorOnboarding');
 const documentLoader = document.getElementById('loader');
 const liveEditorHost = document.getElementById('liveEditor');
@@ -199,6 +200,7 @@ const drawers = createDrawerControllers({
     shortcuts: {
         dialog: shortcutHelpDialog,
         toggleButton: shortcutHelpBtn,
+        instructionsButton: onboardingInstructionsBtn,
         closeButton: shortcutHelpCloseBtn,
         backdrop: shortcutHelpBackdrop
     },

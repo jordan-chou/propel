@@ -198,7 +198,10 @@
                                 <span class="editor-onboarding-kicker">Start a document</span>
                                 <h2>Turn a Word document into clean HTML</h2>
                                 <p>Open a .doc or .docx file, or drop it anywhere in this editor.</p>
-                                <button type="button" class="btn btn-primary" id="onboardingUploadBtn">Choose Word document</button>
+                                <div class="editor-onboarding-actions">
+                                    <button type="button" class="btn btn-primary" id="onboardingUploadBtn">Choose Word document</button>
+                                    <button type="button" class="btn btn-default" id="onboardingInstructionsBtn">View instructions</button>
+                                </div>
                                 <span class="editor-onboarding-alternative">You can also paste HTML into Code view.</span>
                             </div>
                         </div>
@@ -256,13 +259,14 @@
     <div class="modal-backdrop" id="shortcutHelpBackdrop"></div>
     <section class="shortcut-dialog" id="shortcutHelpDialog" role="dialog" aria-modal="true" aria-labelledby="shortcutHelpTitle" hidden>
         <div class="dialog-header">
-            <h2 id="shortcutHelpTitle">Propel cheatsheet</h2>
+            <h2 id="shortcutHelpTitle">Information</h2>
             <button type="button" class="btn btn-xs" id="shortcutHelpCloseBtn">Close</button>
         </div>
         <div class="cheatsheet-tabs" role="tablist" aria-label="Cheatsheet sections">
             <button type="button" id="cheatsheetInstructionsTab" role="tab" aria-selected="true" aria-controls="cheatsheetInstructionsPanel" tabindex="0" data-cheatsheet-tab="instructions">Instructions</button>
             <button type="button" id="cheatsheetTipsTab" role="tab" aria-selected="false" aria-controls="cheatsheetTipsPanel" tabindex="-1" data-cheatsheet-tab="tips">Tips</button>
             <button type="button" id="cheatsheetShortcutsTab" role="tab" aria-selected="false" aria-controls="cheatsheetShortcutsPanel" tabindex="-1" data-cheatsheet-tab="shortcuts">Keyboard shortcuts</button>
+            <button type="button" id="cheatsheetAboutTab" role="tab" aria-selected="false" aria-controls="cheatsheetAboutPanel" tabindex="-1" data-cheatsheet-tab="about">About</button>
         </div>
         <section class="cheatsheet-panel" id="cheatsheetInstructionsPanel" role="tabpanel" aria-labelledby="cheatsheetInstructionsTab" data-cheatsheet-panel="instructions">
             <ol class="cheatsheet-steps">
@@ -287,8 +291,8 @@
             <section>
                 <h3>History</h3>
                 <dl class="shortcut-list">
-                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></span>Undo in active editor</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Z</kbd></dd></div>
-                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></span>Redo in active editor</span></dt><dd><span data-shortcut-platform="non-apple"><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Y</kbd></span><span data-shortcut-platform="apple"><kbd data-shortcut-key="primary">Cmd</kbd><kbd>Shift</kbd><kbd>Z</kbd></span></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></span>Undo</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Z</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></span>Redo</span></dt><dd><span data-shortcut-platform="non-apple"><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Y</kbd></span><span data-shortcut-platform="apple"><kbd data-shortcut-key="primary">Cmd</kbd><kbd>Shift</kbd><kbd>Z</kbd></span></dd></div>
                 </dl>
             </section>
             <section>
@@ -325,6 +329,18 @@
                 </dl>
             </section>
             </div>
+        </section>
+        <section class="cheatsheet-panel" id="cheatsheetAboutPanel" role="tabpanel" aria-labelledby="cheatsheetAboutTab" data-cheatsheet-panel="about" hidden>
+            <dl class="cheatsheet-about">
+                <div>
+                    <dt>Contact</dt>
+                    <dd><a href="mailto:web@fin.gc.ca">web@fin.gc.ca</a></dd>
+                </div>
+                <div>
+                    <dt>Author</dt>
+                    <dd>Jordan Chou</dd>
+                </div>
+            </dl>
         </section>
     </section>
 

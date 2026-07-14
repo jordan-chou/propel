@@ -67,9 +67,10 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
         selectCheatsheetTab(tabs[nextIndex].dataset.cheatsheetTab, { focus: true });
     }
 
-    function openShortcuts() {
+    function openShortcuts(tabName = null) {
         if (!shortcuts.dialog) return;
         shortcutPreviousFocus = document.activeElement;
+        if (tabName) selectCheatsheetTab(tabName);
         shortcuts.dialog.hidden = false;
         shortcuts.backdrop?.classList.add('open');
         shortcuts.toggleButton?.setAttribute('aria-expanded', 'true');
@@ -109,7 +110,8 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
         activity.toggleButton?.addEventListener('click', () => setActivityOpen(!isActivityOpen()));
         activity.closeButton?.addEventListener('click', () => setActivityOpen(false));
         document.addEventListener('keydown', handleActivityKeydown, true);
-        shortcuts.toggleButton?.addEventListener('click', openShortcuts);
+        shortcuts.toggleButton?.addEventListener('click', () => openShortcuts());
+        shortcuts.instructionsButton?.addEventListener('click', () => openShortcuts('instructions'));
         shortcuts.closeButton?.addEventListener('click', closeShortcuts);
         shortcuts.backdrop?.addEventListener('click', closeShortcuts);
         shortcuts.dialog?.addEventListener('keydown', handleShortcutKeydown);
