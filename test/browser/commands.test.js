@@ -12,6 +12,7 @@ import {
 import { renameTag } from '../../src/commands/table-cleanup.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
 import { createTableEditorController } from '../../src/table-editor/controller.js';
+import { moveRowsToTableFooter } from '../../src/table-editor/footer.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -111,6 +112,47 @@ test('table cleanup does not make colspan rows active automatically', () => {
 
     equal(groupRow.classList.contains('active'), false);
     equal(groupRow.querySelector('th').getAttribute('scope'), 'colgroup');
+});
+
+test('moving row content creates a full-width table footer', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><th>Source:</th><td><strong>Finance</strong></td></tr><tr><td>A</td><td>1</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    const sourceRow = table.querySelector('tbody tr');
+
+    const result = moveRowsToTableFooter(table, [sourceRow]);
+
+    equal(result.movedRows, 1);
+    equal(table.querySelectorAll('tbody tr').length, 1);
+    equal(table.querySelector('tfoot td').getAttribute('colspan'), '2');
+    equal(table.querySelector('tfoot p'), null);
+    equal(table.querySelector('tfoot td').innerHTML, 'Source: <strong>Finance</strong>');
+});
+
+test('moving another row appends a new paragraph to the existing footer', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td>Second note</td></tr></tbody><tfoot><tr class="small"><td><p>&nbsp;</p><p>First note</p></td></tr></tfoot></table>';
+    const table = host.querySelector('table');
+
+    moveRowsToTableFooter(table, [table.querySelector('tbody tr')]);
+
+    const paragraphs = table.querySelectorAll('tfoot p');
+    equal(paragraphs.length, 2);
+    equal(paragraphs[0].textContent, 'First note');
+    equal(paragraphs[1].textContent, 'Second note');
+});
+
+test('adding a second footer note wraps direct content into paragraphs', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td>Second note</td></tr></tbody><tfoot><tr class="small"><td>First <strong>note</strong></td></tr></tfoot></table>';
+    const table = host.querySelector('table');
+
+    moveRowsToTableFooter(table, [table.querySelector('tbody tr')]);
+
+    const paragraphs = table.querySelectorAll('tfoot p');
+    equal(paragraphs.length, 2);
+    equal(paragraphs[0].innerHTML, 'First <strong>note</strong>');
+    equal(paragraphs[1].textContent, 'Second note');
 });
 
 test('NBSP correction leaves image alt spaces intact', () => {

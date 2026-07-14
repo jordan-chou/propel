@@ -1,5 +1,6 @@
 import { buildCellGrid, getCellPosition } from './model.js';
 import { toggleCellsBold, toggleRowsActive } from './formatting.js';
+import { moveRowsToTableFooter } from './footer.js';
 import {
     applyTableScopes,
     hasHeaderRelationship,
@@ -151,7 +152,7 @@ export function createTableEditorController(config) {
             tableEditorAddFooterBtn.addEventListener('click', () => runTableEditorMutation(addEmptyTableEditorFooter, 'Add empty footer'));
         }
         if (tableEditorTfootBtn) {
-            tableEditorTfootBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorRowsInTfoot, 'Move rows to or from footer'));
+            tableEditorTfootBtn.addEventListener('click', () => runTableEditorMutation(moveTableEditorRowsToFooter, 'Move row content to footer'));
         }
         if (tableEditorIndentBtn) {
             tableEditorIndentBtn.addEventListener('click', () => runTableEditorMutation(() => changeTableEditorIndent(1), 'Indent'));
@@ -1736,34 +1737,12 @@ export function createTableEditorController(config) {
         tfoot.appendChild(footerRow);
     }
     
-    /** Toggles table editor rows in tfoot. */
-    function toggleTableEditorRowsInTfoot() {
+    /** Moves selected table row contents into footer paragraphs. */
+    function moveTableEditorRowsToFooter() {
         const table = getTableEditorTable();
         const selectedRows = getTableEditorSelectedRows();
-    
-        if (!table || selectedRows.length === 0) {
-            return;
-        }
-    
-        const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
-        const tfoot = ensureTableEditorTfoot(table);
-    
-        selectedRows.forEach((row) => {
-            if (row.closest('tfoot')) {
-                row.classList.remove('small');
-                tbody.appendChild(row);
-                return;
-            }
-    
-            if (row.closest('thead')) {
-                return;
-            }
-    
-            row.classList.add('small');
-            tfoot.appendChild(row);
-        });
-    
-        refreshTableEditorFooterColspans(table);
+
+        moveRowsToTableFooter(table, selectedRows);
     }
     
     /** Returns the table footer, creating it after the body when necessary. */
@@ -1776,19 +1755,6 @@ export function createTableEditorController(config) {
         }
     
         return tfoot;
-    }
-    
-    /** Updates footer cell spans to match the current table width. */
-    function refreshTableEditorFooterColspans(table) {
-        const width = getTableEditorWidth(table);
-    
-        table.querySelectorAll('tfoot tr').forEach((row) => {
-            const cells = Array.from(row.querySelectorAll('th, td'));
-    
-            if (cells.length === 1) {
-                cells[0].setAttribute('colspan', String(width));
-            }
-        });
     }
     
     /** Changes table editor indent. */
