@@ -17,6 +17,7 @@ import * as Utils from './util.js';
 import { DocumentStore } from './document/document-store.js';
 import { runStandardCleanup } from './document/cleanup.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
+import { createDeferredWork } from './app/deferred-work.js';
 import { CommandRegistry } from './commands/command-registry.js';
 import {
     applySmartComponent,
@@ -161,6 +162,21 @@ const tableEditorElements = {
 // Local HTML for input
 const inputHTML = document.createElement('div');
 const documentStore = new DocumentStore(inputHTML);
+let pendingTypingView = null;
+const deferredTypingRefresh = createDeferredWork(() => {
+    if (pendingTypingView === 'live') {
+        updateCodeView();
+    } else if (pendingTypingView === 'code') {
+        updateLiveView();
+    }
+    pendingTypingView = null;
+    refreshReviewPanel();
+});
+
+function scheduleTypingRefresh(sourceView) {
+    pendingTypingView = sourceView;
+    deferredTypingRefresh.schedule();
+}
 const commandRegistry = new CommandRegistry()
     .register('document.standardCleanup', { label: 'Standard cleanup', execute: standardCleanupCommand })
     .register('document.addIds', { label: 'Add IDs', execute: addIDsCommand })
@@ -378,8 +394,7 @@ function createModernDashboardListeners() {
         liveEditor.addEventListener('input', () => {
             syncLiveToInputHTML();
             scheduleDocumentHistoryCommit('typing');
-            updateCodeView();
-            refreshReviewPanel();
+            scheduleTypingRefresh('live');
             rememberLiveSelection();
             updateBlockFormatSelect();
         });
@@ -444,7 +459,7 @@ function createModernDashboardListeners() {
 
         liveEditor.addEventListener('blur', () => {
             syncLiveToInputHTML();
-            updateCodeView();
+            deferredTypingRefresh.flush();
         });
     }
 
@@ -809,13 +824,15 @@ function createListeners() {
         activeEditorView = 'code';
         syncEditorToInputHTML();
         scheduleDocumentHistoryCommit('typing');
-        updateLiveView();
-        refreshReviewPanel();
+        // The textarea text is transparent over this highlighted layer, so it
+        // must stay current even while heavier dependent views are deferred.
         updateCodeHighlight();
+        scheduleTypingRefresh('code');
     });
     outputText.addEventListener('focus', () => {
         activeEditorView = 'code';
     });
+    outputText.addEventListener('blur', () => deferredTypingRefresh.flush());
     outputText.addEventListener('keydown', handleCodeEditorKeydown);
     outputText.addEventListener('scroll', () => {
         syncCodeHighlightScroll();
