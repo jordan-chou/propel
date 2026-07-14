@@ -240,6 +240,8 @@ function asSmallParagraph(cell) {
 
 function getChartFields(cells, labels) {
     const metadataCells = cells.filter(cell => isNotesCell(cell) || isSourcesCell(cell));
+    const notesCell = metadataCells.find(isNotesCell);
+    const sourcesCell = metadataCells.find(isSourcesCell);
     const headingCells = cells.filter(cell => !/<img\b/i.test(cell) && !isNotesCell(cell) && !isSourcesCell(cell));
     const firstParts = headingCells[0] ? getCellParts(headingCells[0]) : [];
     let chartNumber = firstParts[0] || labels.chartNumber;
@@ -255,7 +257,14 @@ function getChartFields(cells, labels) {
     const footerMetadata = metadataCells.length > 0
         ? metadataCells.map(asSmallParagraph).join('\n')
         : `<p class="small">${labels.notes}</p>\n<p class="small">${labels.sources}</p>`;
-    return { chartNumber, chartTitle, footerMetadata };
+    return {
+        chartNumber,
+        chartTitle,
+        heading: `${chartNumber}<br>\n<b>${chartTitle}</b>`,
+        footerMetadata,
+        notesLabel: notesCell ? unwrapTextBlock(notesCell) : labels.notes,
+        sourcesLabel: sourcesCell ? unwrapTextBlock(sourcesCell) : labels.sources
+    };
 }
 
 export function applySmartComponent(component, selectedHTML, { language = 'en' } = {}) {

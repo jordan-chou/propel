@@ -120,3 +120,18 @@ test('French chart conversion recognizes French metadata labels', () => {
     assert.match(html, /Graphique 2<br>\s*<b>Revenus annuels<\/b>/);
     assert.match(html, /Remarque : Valeurs arrondies.[\s\S]*Source : Données ministérielles[\s\S]*<summary>Version texte/);
 });
+
+test('chart conversion remains compatible with previously stored chart templates', () => {
+    const legacyComponent = {
+        id: 'chart-figure',
+        name: 'Charts and Figures',
+        conversion: 'chart',
+        template: '<figure><figcaption>{{heading}}</figcaption><div>{{image}}</div><footer><p>{{notesLabel}}</p><p>{{sourcesLabel}}</p><details><summary>{{textVersionLabel}}</summary>{{content}}</details></footer></figure>'
+    };
+    const source = '<table><tr><td>Chart 3</td><td>Employment growth</td><td><img src="chart.png" alt=""></td><td>Notes: Preliminary.</td><td>Source: Survey data.</td></tr></table>';
+    const html = applySmartComponent(legacyComponent, source);
+    assert.match(html, /<figcaption>Chart 3<br>\s*<b>Employment growth<\/b><\/figcaption>/);
+    assert.match(html, /<p>Notes: Preliminary.<\/p>/);
+    assert.match(html, /<p>Source: Survey data.<\/p>/);
+    assert.doesNotMatch(html, /{{\w+}}/);
+});
