@@ -19,7 +19,7 @@ import { runStandardCleanup } from './document/cleanup.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { CommandRegistry } from './commands/command-registry.js';
 import {
-    applyComponentTemplate,
+    applySmartComponent,
     convertSelectionToComponent,
     defaultComponentLibrary,
     parseComponentLibrary,
@@ -58,18 +58,27 @@ const footnotesBtn = document.getElementById('footnotesBtn');
 const nbspBtn = document.getElementById('nbspBtn');
 const tableCleanupBtn = document.getElementById('tableCleanupBtn');
 const componentLibraryBtn = document.getElementById('componentLibraryBtn');
+const componentLibraryModal = document.getElementById('componentLibraryModal');
 const componentLibraryDialog = document.getElementById('componentLibraryDialog');
 const componentLibraryCloseBtn = document.getElementById('componentLibraryCloseBtn');
-const componentLibrarySelect = document.getElementById('componentLibrarySelect');
+const componentLibraryOptionsBtn = document.getElementById('componentLibraryOptionsBtn');
+const componentLibraryOptionsMenu = document.getElementById('componentLibraryOptionsMenu');
+const componentLibraryList = document.getElementById('componentLibraryList');
 const componentLibraryName = document.getElementById('componentLibraryName');
-const componentLibraryDescription = document.getElementById('componentLibraryDescription');
-const componentPreviewBtn = document.getElementById('componentPreviewBtn');
-const componentApplyBtn = document.getElementById('componentApplyBtn');
 const componentPreviewPanel = document.getElementById('componentPreviewPanel');
+const componentPreviewTitle = document.getElementById('componentPreviewTitle');
 const componentPreviewFrame = document.getElementById('componentPreviewFrame');
 const componentImportBtn = document.getElementById('componentImportBtn');
 const componentExportBtn = document.getElementById('componentExportBtn');
 const componentImportFile = document.getElementById('componentImportFile');
+const componentCreatorToggleBtn = document.getElementById('componentCreatorToggleBtn');
+const componentCreatorForm = document.getElementById('componentCreatorForm');
+const componentCreatorName = document.getElementById('componentCreatorName');
+const componentCreatorDescription = document.getElementById('componentCreatorDescription');
+const componentCreatorTemplate = document.getElementById('componentCreatorTemplate');
+const componentCreatorError = document.getElementById('componentCreatorError');
+const componentCreatorCancelBtn = document.getElementById('componentCreatorCancelBtn');
+const componentCreatorSaveBtn = document.getElementById('componentCreatorSaveBtn');
 const addIDsSettingsBtn = document.getElementById('addIDsSettingsBtn');
 const addIDsSettingsCloseBtn = document.getElementById('addIDsSettingsCloseBtn');
 const addIDsApplyBtn = document.getElementById('addIDsApplyBtn');
@@ -126,12 +135,14 @@ const documentUndoBtn = document.getElementById('documentUndoBtn');
 const documentRedoBtn = document.getElementById('documentRedoBtn');
 const tableEditorElements = {
     liveTableEditPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null,
+    liveTableComponentPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableComponentPopover') : null,
     tableEditorSnapGuides: document.querySelectorAll('.table-editor-snap-guide'),
     optionHelpButtons: document.querySelectorAll('.option-help[data-tooltip]'),
     toastRegion,
     ...Object.fromEntries([
         'tableEditorDialog', 'tableEditorResizeHandle', 'tableEditorFullscreenBtn',
         'tableEditorCloseBtn', 'tableEditorCancelBtn', 'tableEditorApplyBtn',
+        'tableEditorComponentBtn',
         'tableEditorApplyNextBtn', 'tableEditorFirstBtn', 'tableEditorPrevBtn',
         'tableEditorNextBtn', 'tableEditorLastBtn', 'tableEditorPages',
         'tableEditorUndoBtn', 'tableEditorRedoBtn',
@@ -182,6 +193,7 @@ let activeDocumentCommandLabel = null;
 const uiPreferences = createJSONStorage(window.localStorage, 'propel');
 const componentLibraryStorageKey = 'componentLibrary';
 let activeComponentLibrary = loadComponentLibrary();
+let activeComponentId = activeComponentLibrary.components[0]?.id || null;
 let pendingComponentSelection = null;
 const paneSplitterStorageKey = 'livePaneWidthRatio';
 const paneSplitterSnapRatios = [1 / 2, 2 / 3];
@@ -212,6 +224,7 @@ const tableEditor = createTableEditorController({
         activeDocumentCommandLabel = 'Apply table edits';
         updateOutputText();
     },
+    openComponentLibraryForTable,
     isLiveEditorSelectingText: () => liveEditorIsSelectingText,
     isEnglish: () => isEngLang
 });
@@ -387,7 +400,7 @@ function createModernDashboardListeners() {
         liveEditor.addEventListener('mousemove', tableEditor.handleLiveTableHover);
         liveEditor.addEventListener('scroll', tableEditor.positionLiveTablePopover);
         liveEditor.addEventListener('mouseleave', (event) => {
-            if (tableEditorElements.liveTableEditPopover && event.relatedTarget === tableEditorElements.liveTableEditPopover) {
+            if ([tableEditorElements.liveTableEditPopover, tableEditorElements.liveTableComponentPopover].includes(event.relatedTarget)) {
                 return;
             }
             tableEditor.hideLiveTablePopover();
@@ -402,6 +415,12 @@ function createModernDashboardListeners() {
                 tableEditor.hideLiveTablePopover();
             });
         }
+        if (tableEditorElements.liveTableComponentPopover) {
+            tableEditorElements.liveTableComponentPopover.addEventListener('mouseleave', (event) => {
+                if (liveEditor.contains(event.relatedTarget)) return;
+                tableEditor.hideLiveTablePopover();
+            });
+        }
 
         liveEditor.addEventListener('dblclick', (event) => {
             if (tableEditor.isOpen()) {
@@ -413,9 +432,14 @@ function createModernDashboardListeners() {
                 return;
             }
 
+            const tableIndex = tableEditor.getLiveTableIndex(table);
+            if (tableIndex < 0) {
+                return;
+            }
+
             event.preventDefault();
             syncLiveToInputHTML();
-            tableEditor.open(tableEditor.getLiveTableIndex(table));
+            tableEditor.open(tableIndex);
         });
 
         liveEditor.addEventListener('blur', () => {
@@ -766,18 +790,19 @@ function createListeners() {
             openComponentLibrary();
         });
         componentLibraryDialog.addEventListener('click', event => event.stopPropagation());
+        componentPreviewPanel?.addEventListener('click', event => event.stopPropagation());
+        componentLibraryModal?.addEventListener('click', closeComponentLibrary);
         componentLibraryCloseBtn?.addEventListener('click', closeComponentLibrary);
-        componentLibrarySelect?.addEventListener('change', () => {
-            renderSelectedComponent();
-            hideComponentPreview();
-        });
-        componentPreviewBtn?.addEventListener('click', previewSelectedComponent);
-        componentApplyBtn?.addEventListener('click', () => commandRegistry.execute('document.convertSelectionToComponent'));
+        componentLibraryOptionsBtn?.addEventListener('click', toggleComponentLibraryOptions);
         componentImportBtn?.addEventListener('click', () => componentImportFile?.click());
         componentImportFile?.addEventListener('change', importComponentLibrary);
         componentExportBtn?.addEventListener('click', exportComponentLibrary);
-        document.addEventListener('click', closeComponentLibrary);
-        window.addEventListener('resize', positionComponentLibrary);
+        componentCreatorToggleBtn?.addEventListener('click', toggleComponentCreator);
+        componentCreatorCancelBtn?.addEventListener('click', closeComponentCreator);
+        componentCreatorSaveBtn?.addEventListener('click', saveNewComponent);
+        document.querySelectorAll('[data-component-snippet]').forEach(button => {
+            button.addEventListener('click', () => insertComponentSnippet(button.getAttribute('data-component-snippet') || ''));
+        });
     }
 
     outputText.addEventListener('input', () => {
@@ -853,26 +878,73 @@ function loadComponentLibrary() {
     }
 }
 
-/** Populates the component library dropdown. */
+/** Renders every component as an immediately visible action card. */
 function renderComponentLibrary() {
-    if (!componentLibrarySelect) return;
+    if (!componentLibraryList) return;
     componentLibraryName.textContent = activeComponentLibrary.name;
-    componentLibrarySelect.replaceChildren(...activeComponentLibrary.components.map(component => {
-        const option = document.createElement('option');
-        option.value = component.id;
-        option.textContent = component.name;
-        return option;
+    if (!activeComponentLibrary.components.some(component => component.id === activeComponentId)) {
+        activeComponentId = activeComponentLibrary.components[0]?.id || null;
+    }
+    componentLibraryList.replaceChildren(...activeComponentLibrary.components.map(component => {
+        const card = document.createElement('section');
+        card.className = 'component-library-card';
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'component-library-delete-btn';
+        deleteButton.title = `Delete ${component.name}`;
+        deleteButton.setAttribute('aria-label', `Delete ${component.name}`);
+        deleteButton.innerHTML = '<svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#trash-can"></use></svg>';
+        deleteButton.addEventListener('click', () => deleteComponent(component));
+        const label = document.createElement('strong');
+        label.textContent = component.name;
+        const description = document.createElement('p');
+        description.textContent = component.description || '';
+        const actions = document.createElement('div');
+        actions.className = 'component-library-card-actions';
+        const previewButton = document.createElement('button');
+        previewButton.type = 'button';
+        previewButton.className = 'btn btn-default btn-sm component-preview-button';
+        previewButton.title = `Preview ${component.name}`;
+        previewButton.setAttribute('aria-label', `Preview ${component.name}`);
+        previewButton.innerHTML = '<svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M1.5 9s2.7-4.5 7.5-4.5S16.5 9 16.5 9 13.8 13.5 9 13.5 1.5 9 1.5 9Z"></path><circle cx="9" cy="9" r="2.25"></circle></svg>';
+        previewButton.addEventListener('click', () => previewComponent(component));
+        const convertButton = document.createElement('button');
+        convertButton.type = 'button';
+        convertButton.className = 'btn btn-primary btn-sm';
+        convertButton.textContent = 'Convert';
+        convertButton.addEventListener('click', () => {
+            activeComponentId = component.id;
+            commandRegistry.execute('document.convertSelectionToComponent');
+        });
+        actions.append(previewButton, convertButton);
+        card.append(deleteButton, label, description, actions);
+        return card;
     }));
-    renderSelectedComponent();
 }
 
 function getSelectedComponent() {
-    return activeComponentLibrary.components.find(component => component.id === componentLibrarySelect?.value) || null;
+    return activeComponentLibrary.components.find(component => component.id === activeComponentId) || null;
 }
 
-function renderSelectedComponent() {
-    const component = getSelectedComponent();
-    if (componentLibraryDescription) componentLibraryDescription.textContent = component?.description || '';
+function deleteComponent(component) {
+    if (activeComponentLibrary.components.length <= 1) {
+        showActivityToast('A component library must contain at least one component.', 'warning');
+        return;
+    }
+    if (!window.confirm(`Delete “${component.name}” from this component library?`)) return;
+    const remainingComponents = activeComponentLibrary.components.filter(item => item.id !== component.id);
+    const nextLibrary = {
+        format: activeComponentLibrary.format,
+        version: activeComponentLibrary.version,
+        name: activeComponentLibrary === defaultComponentLibrary ? 'My component library' : activeComponentLibrary.name,
+        components: remainingComponents
+    };
+    activeComponentLibrary = parseComponentLibrary(JSON.stringify(nextLibrary));
+    activeComponentId = remainingComponents[0]?.id || null;
+    uiPreferences.set(componentLibraryStorageKey, activeComponentLibrary);
+    renderComponentLibrary();
+    showHighlightedContentPreview();
+    addProcessingLog(`Deleted component “${component.name}”.`, 'success');
 }
 
 /** Captures a selection before focus moves into the component menu. */
@@ -905,42 +977,124 @@ function openComponentLibrary() {
         showActivityToast('Select content to convert first.', 'warning');
         return;
     }
-    componentLibraryDialog.classList.add('open');
+    componentLibraryModal.classList.add('open');
     componentLibraryBtn.setAttribute('aria-expanded', 'true');
-    hideComponentPreview();
-    positionComponentLibrary();
-    componentLibrarySelect.focus();
+    showHighlightedContentPreview();
+    componentLibraryList.querySelector('button')?.focus();
+}
+
+/** Opens the shared chooser with a whole table as its conversion context. */
+function openComponentLibraryForTable({ html, apply }) {
+    pendingComponentSelection = { view: 'table', html, apply };
+    openComponentLibrary();
 }
 
 function closeComponentLibrary() {
-    if (!componentLibraryDialog?.classList.contains('open')) return;
-    componentLibraryDialog.classList.remove('open');
+    if (!componentLibraryModal?.classList.contains('open')) return;
+    componentLibraryModal.classList.remove('open');
     componentLibraryBtn?.setAttribute('aria-expanded', 'false');
+    closeComponentLibraryOptions();
+    closeComponentCreator();
     hideComponentPreview();
 }
 
-function positionComponentLibrary() {
-    if (!componentLibraryDialog?.classList.contains('open') || !componentLibraryBtn) return;
-    const trigger = componentLibraryBtn.getBoundingClientRect();
-    const width = componentLibraryDialog.offsetWidth;
-    const height = componentLibraryDialog.offsetHeight;
-    const left = Math.min(window.innerWidth - width - 16, Math.max(16, trigger.right + 10));
-    const top = Math.min(window.innerHeight - height - 16, Math.max(16, trigger.top));
-    componentLibraryDialog.style.left = `${left}px`;
-    componentLibraryDialog.style.top = `${top}px`;
+function toggleComponentCreator() {
+    if (!componentCreatorForm || !componentCreatorToggleBtn) return;
+    const willOpen = componentCreatorForm.hidden;
+    componentCreatorForm.hidden = !willOpen;
+    componentCreatorToggleBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (willOpen) componentCreatorName?.focus();
 }
 
-function previewSelectedComponent() {
-    const component = getSelectedComponent();
+function closeComponentCreator() {
+    if (componentCreatorForm) componentCreatorForm.hidden = true;
+    componentCreatorToggleBtn?.setAttribute('aria-expanded', 'false');
+    if (componentCreatorError) {
+        componentCreatorError.hidden = true;
+        componentCreatorError.textContent = '';
+    }
+}
+
+function insertComponentSnippet(snippet) {
+    if (!componentCreatorTemplate) return;
+    const start = componentCreatorTemplate.selectionStart;
+    const end = componentCreatorTemplate.selectionEnd;
+    componentCreatorTemplate.setRangeText(snippet, start, end, 'end');
+    componentCreatorTemplate.focus();
+}
+
+function getUniqueComponentId(name) {
+    const base = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'component';
+    const ids = new Set(activeComponentLibrary.components.map(component => component.id));
+    let id = base;
+    let suffix = 2;
+    while (ids.has(id)) id = `${base}-${suffix++}`;
+    return id;
+}
+
+function saveNewComponent() {
+    const name = componentCreatorName?.value.trim() || '';
+    const template = componentCreatorTemplate?.value.trim() || '';
+    const component = {
+        id: getUniqueComponentId(name),
+        name,
+        description: componentCreatorDescription?.value.trim() || '',
+        template
+    };
+    const nextLibrary = {
+        format: activeComponentLibrary.format,
+        version: activeComponentLibrary.version,
+        name: activeComponentLibrary === defaultComponentLibrary ? 'My component library' : activeComponentLibrary.name,
+        components: [...activeComponentLibrary.components, component]
+    };
+    try {
+        activeComponentLibrary = parseComponentLibrary(JSON.stringify(nextLibrary));
+        activeComponentId = component.id;
+        uiPreferences.set(componentLibraryStorageKey, activeComponentLibrary);
+        renderComponentLibrary();
+        componentCreatorName.value = '';
+        componentCreatorDescription.value = '';
+        componentCreatorTemplate.value = '';
+        closeComponentCreator();
+        addProcessingLog(`Created component “${component.name}”.`, 'success');
+    } catch (error) {
+        componentCreatorError.textContent = error.message;
+        componentCreatorError.hidden = false;
+    }
+}
+
+function toggleComponentLibraryOptions() {
+    if (!componentLibraryOptionsMenu || !componentLibraryOptionsBtn) return;
+    const willOpen = componentLibraryOptionsMenu.hidden;
+    componentLibraryOptionsMenu.hidden = !willOpen;
+    componentLibraryOptionsBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (willOpen) componentLibraryOptionsMenu.querySelector('button')?.focus();
+}
+
+function closeComponentLibraryOptions() {
+    if (componentLibraryOptionsMenu) componentLibraryOptionsMenu.hidden = true;
+    componentLibraryOptionsBtn?.setAttribute('aria-expanded', 'false');
+}
+
+function previewComponent(component) {
+    activeComponentId = component.id;
     if (!component || !pendingComponentSelection?.html || !componentPreviewFrame) return;
-    const converted = applyComponentTemplate(component.template, pendingComponentSelection.html);
-    componentPreviewFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;padding:12px;margin:0} .alert{padding:12px;border:1px solid #9ec5fe;background:#e7f1ff}.well{padding:12px;background:#f5f5f5;border:1px solid #ddd}</style></head><body>${converted}</body></html>`;
-    componentPreviewPanel.hidden = false;
-    positionComponentLibrary();
+    const converted = applySmartComponent(component, pendingComponentSelection.html);
+    renderComponentPreview(converted, component.name);
+}
+
+function showHighlightedContentPreview() {
+    if (!pendingComponentSelection?.html) return;
+    renderComponentPreview(pendingComponentSelection.html, '');
+}
+
+function renderComponentPreview(html, title) {
+    if (componentPreviewTitle) componentPreviewTitle.textContent = title;
+    componentPreviewFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;padding:12px;margin:0} .alert{padding:12px;border:1px solid #9ec5fe;background:#e7f1ff}.well{padding:12px;background:#f5f5f5;border:1px solid #ddd}</style></head><body>${html}</body></html>`;
 }
 
 function hideComponentPreview() {
-    if (componentPreviewPanel) componentPreviewPanel.hidden = true;
+    if (componentPreviewTitle) componentPreviewTitle.textContent = '';
     if (componentPreviewFrame) componentPreviewFrame.removeAttribute('srcdoc');
 }
 
@@ -951,8 +1105,9 @@ async function importComponentLibrary() {
         activeComponentLibrary = parseComponentLibrary(await selectedFile.text());
         uiPreferences.set(componentLibraryStorageKey, activeComponentLibrary);
         renderComponentLibrary();
-        hideComponentPreview();
+        showHighlightedContentPreview();
         addProcessingLog(`Imported component library “${activeComponentLibrary.name}” with ${activeComponentLibrary.components.length} component(s).`, 'success');
+        closeComponentLibraryOptions();
     } catch (error) {
         addProcessingLog(`Could not import component library: ${error.message}`, 'danger');
     } finally {
@@ -969,6 +1124,7 @@ function exportComponentLibrary() {
     link.click();
     URL.revokeObjectURL(link.href);
     addProcessingLog(`Exported component library “${activeComponentLibrary.name}”.`, 'success');
+    closeComponentLibraryOptions();
 }
 
 /**
@@ -2048,7 +2204,10 @@ function handleGlobalKeydown(event) {
     }
 
     if (event.key === 'Escape') {
-        closeComponentLibrary();
+        if (componentLibraryModal?.classList.contains('open')) {
+            closeComponentLibrary();
+            return;
+        }
         drawers.shortcuts.close();
         tableEditor.handleEscape();
     }
@@ -2302,7 +2461,9 @@ function convertToComponentCommand() {
         commitDocumentHistory('typing');
         activeDocumentCommandLabel = `Convert to ${component.name}`;
 
-        if (pendingComponentSelection.view === 'code') {
+        if (pendingComponentSelection.view === 'table') {
+            pendingComponentSelection.apply(applySmartComponent(component, pendingComponentSelection.html));
+        } else if (pendingComponentSelection.view === 'code') {
             const result = convertSelectionToComponent({
                 html: outputText.value,
                 selectionStart: pendingComponentSelection.start,
@@ -2316,7 +2477,7 @@ function convertToComponentCommand() {
             if (!range || range.collapsed || !liveEditor.contains(range.commonAncestorContainer)) {
                 throw new Error('The Live view selection is no longer available. Select it again.');
             }
-            const converted = applyComponentTemplate(component.template, pendingComponentSelection.html);
+            const converted = applySmartComponent(component, pendingComponentSelection.html);
             const fragment = range.createContextualFragment(converted);
             range.deleteContents();
             range.insertNode(fragment);

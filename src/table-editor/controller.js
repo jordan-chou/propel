@@ -32,12 +32,13 @@ export function createTableEditorController(config) {
         syncLiveToInputHTML,
         scrollLiveElementIntoView,
         commitTableChanges,
+        openComponentLibraryForTable,
         isLiveEditorSelectingText,
         isEnglish
     } = config;
     const {
         tableEditorDialog, tableEditorResizeHandle, tableEditorSnapGuides,
-        tableEditorFullscreenBtn, tableEditorCloseBtn, tableEditorCancelBtn,
+        tableEditorFullscreenBtn, tableEditorCloseBtn, tableEditorCancelBtn, tableEditorComponentBtn,
         tableEditorApplyBtn, tableEditorApplyNextBtn, tableEditorFirstBtn,
         tableEditorPrevBtn, tableEditorNextBtn, tableEditorLastBtn, tableEditorPages,
         tableEditorUndoBtn, tableEditorRedoBtn,
@@ -49,7 +50,7 @@ export function createTableEditorController(config) {
         tableEditorCanvas, tableEditorNumber, tableEditorCaption, tableEditorUnit,
         tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
         tableEditorUnitSuggestion, tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
-        optionHelpButtons, optionTooltip, toastRegion, liveTableEditPopover
+        optionHelpButtons, optionTooltip, toastRegion, liveTableEditPopover, liveTableComponentPopover
     } = elements;
 
     let tableEditorIndex = 0;
@@ -117,6 +118,12 @@ export function createTableEditorController(config) {
         }
         if (tableEditorApplyNextBtn) {
             tableEditorApplyNextBtn.addEventListener('click', () => applyTableEditorChanges(true));
+        }
+        if (tableEditorComponentBtn) {
+            tableEditorComponentBtn.addEventListener('click', openActiveTableComponentLibrary);
+        }
+        if (liveTableComponentPopover) {
+            liveTableComponentPopover.addEventListener('click', openHoveredLiveTableComponentLibrary);
         }
         if (tableEditorFirstBtn) {
             tableEditorFirstBtn.addEventListener('click', () => renderTableEditor(0));
@@ -888,9 +895,19 @@ export function createTableEditorController(config) {
         closeTableEditor();
     }
     
+    /** Reports whether a table is retained only as part of a converted component. */
+    function isConvertedComponentTable(table) {
+        return Boolean(table?.matches('[data-propel-component-source="true"]') || table?.closest('figure.panel.panel-default, .component-text-version'));
+    }
+
+    /** Returns tables that remain available to the table editor. */
+    function getEditableTables(root) {
+        return Array.from(root?.querySelectorAll('table') || []).filter(table => !isConvertedComponentTable(table));
+    }
+
     /** Returns table editor items. */
     function getTableEditorItems() {
-        return Array.from(inputHTML.querySelectorAll('table')).map((table) => {
+        return getEditableTables(inputHTML).map((table) => {
             return {
                 table,
                 container: table.closest('div.table-responsive') || table
@@ -904,7 +921,7 @@ export function createTableEditorController(config) {
             return 0;
         }
     
-        return Math.max(0, Array.from(liveEditor.querySelectorAll('table')).indexOf(liveTable));
+        return getEditableTables(liveEditor).indexOf(liveTable);
     }
     
     /** Handles live editor table hover. */
@@ -915,8 +932,8 @@ export function createTableEditorController(config) {
         }
     
         const table = getClosestElement(event.target, liveEditor, 'table');
-    
-        if (!table) {
+
+        if (!table || isConvertedComponentTable(table)) {
             hideLiveTableEditPopover();
             return;
         }
@@ -951,6 +968,11 @@ export function createTableEditorController(config) {
     
         liveTableEditPopover.style.top = `${top}px`;
         liveTableEditPopover.style.left = `${left}px`;
+        if (liveTableComponentPopover) {
+            liveTableComponentPopover.classList.add('visible');
+            liveTableComponentPopover.style.top = `${top + liveTableEditPopover.offsetHeight + 6}px`;
+            liveTableComponentPopover.style.left = `${Math.max(8, tableRect.right - hostRect.left - liveTableComponentPopover.offsetWidth - 8)}px`;
+        }
     }
     
     /** Hides live table edit popover. */
@@ -962,6 +984,7 @@ export function createTableEditorController(config) {
         }
     
         liveTableEditPopover.classList.remove('visible');
+        liveTableComponentPopover?.classList.remove('visible');
     }
     
     /** Opens hovered live table editor. */
@@ -976,6 +999,26 @@ export function createTableEditorController(config) {
         syncLiveToInputHTML();
         openTableEditor(getLiveTableIndex(liveTableEditTarget));
         hideLiveTableEditPopover();
+    }
+
+    /** Opens the shared component library for the hovered table. */
+    function openHoveredLiveTableComponentLibrary(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!liveTableEditTarget || typeof openComponentLibraryForTable !== 'function') return;
+        const target = liveTableEditTarget;
+        openComponentLibraryForTable({
+            html: target.outerHTML,
+            anchor: liveTableComponentPopover,
+            apply(convertedHTML) {
+                target.outerHTML = convertedHTML;
+                syncLiveToInputHTML();
+                commitTableChanges();
+            }
+        });
+        liveTableEditTarget = null;
+        liveTableEditPopover?.classList.remove('visible');
+        liveTableComponentPopover?.classList.remove('visible');
     }
     
     /** Renders table editor. */
@@ -1018,7 +1061,7 @@ export function createTableEditorController(config) {
             return;
         }
     
-        const liveTable = liveEditor.querySelectorAll('table')[tableEditorIndex];
+        const liveTable = getEditableTables(liveEditor)[tableEditorIndex];
         if (liveTable) {
             scrollLiveElementIntoView(liveTable);
         }
@@ -1885,6 +1928,30 @@ export function createTableEditorController(config) {
         }
     
         closeTableEditor();
+    }
+
+    /** Opens the shared component chooser for the table currently being edited. */
+    function openActiveTableComponentLibrary() {
+        const item = getTableEditorItems()[tableEditorIndex];
+        const editedContainer = getTableEditorContainer();
+        if (!item || !editedContainer || typeof openComponentLibraryForTable !== 'function') return;
+        const cleanClone = editedContainer.cloneNode(true);
+        clearScopeVisualization(cleanClone);
+        cleanClone.querySelectorAll('.selected').forEach(element => element.classList.remove('selected'));
+        openComponentLibraryForTable({
+            html: cleanClone.outerHTML,
+            anchor: tableEditorComponentBtn,
+            apply(convertedHTML) {
+                item.container.outerHTML = convertedHTML;
+                commitTableChanges();
+                const remainingItems = getTableEditorItems();
+                if (remainingItems.length === 0) {
+                    closeTableEditor();
+                    return;
+                }
+                renderTableEditor(Math.min(tableEditorIndex, remainingItems.length - 1));
+            }
+        });
     }
 
     return {

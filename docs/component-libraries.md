@@ -8,6 +8,8 @@ Select text or HTML in Live or Code view, open the command, choose a component, 
 
 Each template must contain exactly one `{{content}}` slot. The selected HTML replaces that slot without being escaped, so elements selected in Code view remain elements.
 
+Built-in components may also declare a `conversion` mode. `heading-content` promotes the first table cell or heading, `quote` maps the first three cells to quote/author/citation, and the chart modes lift images while retaining the source table as an accessible text version. Custom libraries may use these modes and the corresponding `{{heading}}`, `{{author}}`, `{{citation}}`, `{{image}}`, `{{figureOne}}`, and `{{figureTwo}}` template slots.
+
 ```json
 {
   "format": "propel-component-library",

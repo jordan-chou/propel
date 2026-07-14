@@ -192,6 +192,10 @@ export function createWetLiveEditor(host) {
             <span class="table-edit-popover-icon" aria-hidden="true"></span>
             <span>Edit table</span>
         </button>
+        <button type="button" id="tableComponentPopover" class="table-edit-popover table-component-popover" aria-label="Convert table to component">
+            <span aria-hidden="true">◇</span>
+            <span>Convert</span>
+        </button>
     `;
 
     const editor = shadow.getElementById('wetLiveEditor');

@@ -124,29 +124,68 @@
                                     <strong>Components</strong>
                                     <p>Convert selected text or HTML using a component library.</p>
                                     <button type="button" class="btn btn-primary btn-full" id="componentLibraryBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="componentLibraryDialog">Convert to component</button>
-                                    <div id="componentLibraryDialog" class="settings-box command-dialog component-library-dialog" role="dialog" aria-labelledby="componentLibraryTitle">
-                                        <div class="dialog-header">
-                                            <strong id="componentLibraryTitle">Component library</strong>
-                                            <button type="button" class="btn btn-xs" id="componentLibraryCloseBtn" aria-label="Close component library">Close</button>
+                                    <div id="componentLibraryModal" class="component-library-modal">
+                                        <div id="componentLibraryDialog" class="settings-box component-library-dialog" role="dialog" aria-modal="true" aria-labelledby="componentLibraryTitle">
+                                            <div class="dialog-header">
+                                                <strong id="componentLibraryTitle">Component library</strong>
+                                                <div class="component-library-header-actions">
+                                                    <div class="component-library-options">
+                                                        <button type="button" class="btn btn-xs component-library-options-btn" id="componentLibraryOptionsBtn" aria-label="Component library options" aria-haspopup="menu" aria-expanded="false">&hellip;</button>
+                                                        <div class="component-library-options-menu" id="componentLibraryOptionsMenu" role="menu" hidden>
+                                                            <button type="button" id="componentImportBtn" role="menuitem">Import library</button>
+                                                            <button type="button" id="componentExportBtn" role="menuitem">Export library</button>
+                                                            <input type="file" id="componentImportFile" accept="application/json,.json" class="wb-inv" tabindex="-1">
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-xs" id="componentLibraryCloseBtn" aria-label="Close component library">Close</button>
+                                                </div>
+                                            </div>
+                                            <p id="componentLibraryName" class="component-library-name"></p>
+                                            <div id="componentLibraryList" class="component-library-list" aria-label="Available components"></div>
+                                            <div class="component-creator">
+                                                <button type="button" class="btn btn-default btn-sm btn-full" id="componentCreatorToggleBtn" aria-expanded="false" aria-controls="componentCreatorForm">Create new component</button>
+                                                <div id="componentCreatorForm" class="component-creator-form" hidden>
+                                                    <div class="form-row">
+                                                        <label for="componentCreatorName">Component name</label>
+                                                        <input type="text" class="form-control" id="componentCreatorName" maxlength="80" placeholder="Example: Warning box">
+                                                    </div>
+                                                    <div class="form-row">
+                                                        <label for="componentCreatorDescription">Description <span class="text-muted">(optional)</span></label>
+                                                        <input type="text" class="form-control" id="componentCreatorDescription" maxlength="180" placeholder="Explain when to use this component">
+                                                    </div>
+                                                    <div class="form-row">
+                                                        <label for="componentCreatorTemplate">HTML template</label>
+                                                        <textarea class="form-control component-creator-template" id="componentCreatorTemplate" rows="8" spellcheck="false" placeholder="&lt;section class=&quot;well&quot;&gt;&#10;{{content}}&#10;&lt;/section&gt;"></textarea>
+                                                    </div>
+                                                    <div class="component-creator-snippets" aria-label="Insert template snippet">
+                                                        <span>Insert snippet:</span>
+                                                        <button type="button" class="btn btn-default btn-xs" data-component-snippet="{{content}}">Content slot</button>
+                                                        <button type="button" class="btn btn-default btn-xs" data-component-snippet="&lt;section class=&quot;well&quot;&gt;&#10;{{content}}&#10;&lt;/section&gt;">Box</button>
+                                                        <button type="button" class="btn btn-default btn-xs" data-component-snippet="&lt;div class=&quot;panel panel-default&quot;&gt;&#10;&lt;div class=&quot;panel-body&quot;&gt;&#10;{{content}}&#10;&lt;/div&gt;&#10;&lt;/div&gt;">Panel</button>
+                                                    </div>
+                                                    <details class="component-creator-guide">
+                                                        <summary>Template syntax guide</summary>
+                                                        <ul>
+                                                            <li>Include exactly one <code>{{content}}</code> slot. Highlighted HTML is inserted there.</li>
+                                                            <li>Write normal HTML around the slot. Use double quotes for attributes.</li>
+                                                            <li>Scripts, inline event handlers, embedded pages, and JavaScript URLs are not allowed.</li>
+                                                            <li>Preview the saved component before converting document content.</li>
+                                                        </ul>
+                                                    </details>
+                                                    <p id="componentCreatorError" class="component-creator-error" role="alert" hidden></p>
+                                                    <div class="component-creator-actions">
+                                                        <button type="button" class="btn btn-default btn-sm" id="componentCreatorCancelBtn">Cancel</button>
+                                                        <button type="button" class="btn btn-primary btn-sm" id="componentCreatorSaveBtn">Save component</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p class="component-library-hint">Libraries use versioned JSON templates with one <code>{{content}}</code> slot.</p>
                                         </div>
-                                        <p id="componentLibraryName" class="component-library-name"></p>
-                                        <label for="componentLibrarySelect">Component</label>
-                                        <select class="form-control" id="componentLibrarySelect"></select>
-                                        <p id="componentLibraryDescription" class="component-library-description"></p>
-                                        <div class="component-library-actions">
-                                            <button type="button" class="btn btn-default" id="componentPreviewBtn">Preview</button>
-                                            <button type="button" class="btn btn-primary" id="componentApplyBtn">Convert selection</button>
-                                        </div>
-                                        <div id="componentPreviewPanel" class="component-preview-panel" hidden>
-                                            <strong>Preview</strong>
+                                        <aside id="componentPreviewPanel" class="component-preview-panel" aria-label="Component preview">
+                                            <span class="component-preview-kicker">Preview</span>
+                                            <strong id="componentPreviewTitle"></strong>
                                             <iframe id="componentPreviewFrame" sandbox="" title="Converted component preview"></iframe>
-                                        </div>
-                                        <div class="component-library-file-actions">
-                                            <button type="button" class="btn btn-default btn-sm" id="componentImportBtn">Import library</button>
-                                            <button type="button" class="btn btn-default btn-sm" id="componentExportBtn">Export library</button>
-                                            <input type="file" id="componentImportFile" accept="application/json,.json" class="file-input">
-                                        </div>
-                                        <p class="component-library-hint">Libraries use versioned JSON templates with one <code>{{content}}</code> slot.</p>
+                                        </aside>
                                     </div>
                                 </div>
 
@@ -404,6 +443,8 @@
                     </div>
                     <div class="table-editor-pages" id="tableEditorPages" aria-label="Jump to table"></div>
                 </div>
+
+                <button type="button" class="btn btn-default btn-sm table-editor-component-action" id="tableEditorComponentBtn" title="Convert only the table currently open in the table editor">Convert current table to component</button>
 
                 <div class="form-row">
                     <label for="tableEditorNumber">Table number</label>
