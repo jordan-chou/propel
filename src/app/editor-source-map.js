@@ -1,5 +1,6 @@
 const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
 
+/** Maps rendered element paths to their opening and closing ranges in HTML source. */
 export function buildElementSourceMap(html) {
     const entries = [];
     const documentFrame = { path: null, childCount: 0, entry: null };
@@ -47,6 +48,7 @@ export function buildElementSourceMap(html) {
     return entries;
 }
 
+/** Returns element path. */
 export function getElementPath(element, root) {
     if (!element || !root || element === root || !root.contains(element)) return null;
     const path = [];
@@ -60,12 +62,14 @@ export function getElementPath(element, root) {
     return path;
 }
 
+/** Returns element by path. */
 export function getElementByPath(root, path) {
     return path.reduce((current, index) => {
         return current?.children?.[index] || null;
     }, root);
 }
 
+/** Closes source map entry. */
 function closeSourceMapEntry(stack, tagName, endIndex) {
     for (let index = stack.length - 1; index > 0; index -= 1) {
         const frame = stack[index];
@@ -75,6 +79,7 @@ function closeSourceMapEntry(stack, tagName, endIndex) {
     }
 }
 
+/** Returns tag end index. */
 function getTagEndIndex(html, tagStart) {
     let quote = null;
     for (let index = tagStart + 1; index < html.length; index += 1) {

@@ -1,3 +1,4 @@
+/** Creates the isolated WET-styled contenteditable surface inside the supplied host. */
 export function createWetLiveEditor(host) {
     if (!host) {
         return null;

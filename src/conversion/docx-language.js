@@ -1,3 +1,4 @@
+/** Resolves the document language from explicit run text and DOCX defaults. */
 export function getLanguageResultFromDocxXml(xmlParts, decodeXmlText = decodeBasicXmlText) {
     const documentCounts = getLanguageCountsFromXml(xmlParts.documentXml || '', decodeXmlText);
     const defaultLanguage = getDefaultDocxLanguage(xmlParts.stylesXml || '') ||
@@ -8,6 +9,7 @@ export function getLanguageResultFromDocxXml(xmlParts, decodeXmlText = decodeBas
     return language ? { language, counts: documentCounts, defaultLanguage, explicitLanguage } : null;
 }
 
+/** Returns explicit document language. */
 export function getExplicitDocumentLanguage(languageText, defaultLanguage) {
     const total = languageText.en + languageText.fr;
     if (total === 0) return null;
@@ -20,6 +22,7 @@ export function getExplicitDocumentLanguage(languageText, defaultLanguage) {
     return winningCount >= 200 && winningShare >= 0.75 ? language : null;
 }
 
+/** Returns default DOCX language. */
 export function getDefaultDocxLanguage(xml) {
     const docDefaultsMatch = xml.match(/<w:docDefaults\b[\s\S]*?<\/w:docDefaults>/i);
     const defaultLanguage = getFirstPrimaryLanguageFromXml(docDefaultsMatch ? docDefaultsMatch[0] : '');
@@ -29,6 +32,7 @@ export function getDefaultDocxLanguage(xml) {
     return themeLanguageMatch ? getSupportedLanguageCode(getXmlAttribute(themeLanguageMatch[0], 'w:val')) : null;
 }
 
+/** Returns language counts from XML. */
 export function getLanguageCountsFromXml(xml, decodeXmlText = decodeBasicXmlText) {
     const counts = { en: 0, fr: 0 };
     const paragraphPattern = /<w:p\b[\s\S]*?<\/w:p>/gi;
@@ -51,6 +55,7 @@ export function getLanguageCountsFromXml(xml, decodeXmlText = decodeBasicXmlText
     return counts;
 }
 
+/** Returns first primary language from XML. */
 function getFirstPrimaryLanguageFromXml(xml) {
     const languageTagPattern = /<w:lang\b[^>]*>/gi;
     let tagMatch;
@@ -61,6 +66,7 @@ function getFirstPrimaryLanguageFromXml(xml) {
     return null;
 }
 
+/** Removes drawing and embedded-object markup from language analysis. */
 function stripNonBodyLanguageXml(xml) {
     return xml
         .replace(/<w:drawing\b[\s\S]*?<\/w:drawing>/gi, '')
@@ -69,11 +75,13 @@ function stripNonBodyLanguageXml(xml) {
         .replace(/<w:object\b[\s\S]*?<\/w:object>/gi, '');
 }
 
+/** Returns first XML block. */
 function getFirstXmlBlock(xml, tagName) {
     const match = xml.match(new RegExp(`<${tagName}\\b[\\s\\S]*?<\\/${tagName}>`, 'i'));
     return match ? match[0] : '';
 }
 
+/** Returns word text length. */
 function getWordTextLength(xml, decodeXmlText) {
     const textPattern = /<w:t\b[^>]*>([\s\S]*?)<\/w:t>/gi;
     let textLength = 0;
@@ -84,6 +92,7 @@ function getWordTextLength(xml, decodeXmlText) {
     return textLength;
 }
 
+/** Decodes XML character references used in Word text. */
 function decodeBasicXmlText(text) {
     return text
         .replace(/&#x([0-9a-f]+);/gi, (_, value) => String.fromCodePoint(parseInt(value, 16)))
@@ -95,11 +104,13 @@ function decodeBasicXmlText(text) {
         .replace(/&amp;/g, '&');
 }
 
+/** Returns XML attribute. */
 function getXmlAttribute(tag, attributeName) {
     const match = tag.match(new RegExp(`\\s${attributeName}="([^"]+)"`, 'i'));
     return match ? match[1] : '';
 }
 
+/** Returns supported language code. */
 function getSupportedLanguageCode(languageCode) {
     const normalized = (languageCode || '').toLowerCase();
     if (normalized === 'en' || normalized.startsWith('en-')) return 'en';

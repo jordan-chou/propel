@@ -12,3 +12,9 @@ Conversion adapter -> document store
 ```
 
 Third-party browser distributions remain isolated from application modules and should be upgraded independently with their version and license recorded.
+
+## UI controllers
+
+`src/table-editor/controller.js` owns table-editor UI state, selection, sizing, caption suggestions, and table-editor history. It consumes table transformations and commits through callbacks supplied by `propel.js`; it does not own canonical document state or register document commands.
+
+`src/ui/drawers.js` owns activity-drawer and shortcut-dialog visibility, focus restoration, keyboard trapping, and accessibility state. Review analysis and rendering remain outside the drawer controller.

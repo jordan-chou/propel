@@ -2091,6 +2091,7 @@ textarea {
     resize: none;
     background: transparent;
     color: transparent;
+    -webkit-text-fill-color: transparent;
     caret-color: #f8fafc;
 }
 
@@ -2101,6 +2102,8 @@ textarea {
 
 #outputText::selection {
     background: rgba(110, 168, 254, 0.35);
+    color: transparent;
+    -webkit-text-fill-color: transparent;
 }
 
 .syntax-tag,
