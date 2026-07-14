@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <!-- Web Experience Toolkit (WET) / Boîte à outils de l'expérience Web (BOEW)
+		wet-boew.github.io/wet-boew/License-en.html / wet-boew.github.io/wet-boew/Licence-fr.html -->
+    <title>Web Components Guide
+    </title>
+    <meta content="width=device-width,initial-scale=1" name="viewport">
+    <meta name="description"
+        content="Web Experience Toolkit (WET) includes reusable components for building and maintaining innovative Web sites that are accessible, usable, and interoperable. These reusable components are open source software and free for use by departments and external Web communities">
+    <link rel="alternate" hreflang="fr" href="content-fr.html">
+    <link href="https://authoring.finb.gc.ca/prototype/img/toolbox.svg" rel="icon" type="image/x-icon">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+        integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link rel="stylesheet" href="/fes-eea/2020/GCWeb/css/theme.min.css">
+
+
+
+    <link rel="stylesheet" href="css/stylesheet.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
+
+    <noscript>
+        <link rel="stylesheet" href="/fes-eea/2020/wet-boew/css/noscript.min.css" />
+    </noscript>
+    <style>
+        /*NEW MEASURE*/
+.custom-bullets ul{
+  margin-top: 0.8rem;
+}
+    .custom-bullets {
+  list-style: none;
+  padding-left: 0;
+}
+
+.custom-bullets > li {
+  position: relative;
+  padding-left: 30px; /* space for your image */
+}
+
+.custom-bullets > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+
+  width: 24px;   /* control size */
+  height: 24px;
+
+  background-image: url('icons/blue-maple-leaf.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+    </style>
+</head>
+
+<body vocab="http://schema.org/" typeof="WebPage">
+    <div class="colour-band" style="height: 292px;"></div>
+    <span class="navBtn"><span class="glyphicon glyphicon-list"></span></span>
+
+    <main property="mainContentOfPage" class="container" typeof="WebPageElement">
+
+        <div id="page-container" class="">
+            <div class="page-heading">
+                <h1><img width="80px" style="display:inline-block;margin:-30px 20px 0 0;" src="img/toolbox.svg">Web
+                    Components Guide<span>version 1.4</span></h1>
+            </div>
+            <div id="mySidenav" class="sidenav">
+                <h3>Components</h3>
+                <a class="toggleAllExampleBtns">Show all examples</a>
+
+            </div>
+
+
+            <div class="main-content">
+                <!-- <section class="alert alert-info">
+                    <h3>Changes to Tables</h3>
+                    <p>We have simplified the way we will be creating tables. Please take some time to go over the new changes.</p>
+                </section> -->
+                <h2>Box: Heading panel</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <section class="panel panel-default mrgn-tp-md mrgn-bttm-md">
+                            <header class="panel-heading">
+                                <div class="panel-title mrgn-tp-0 h4">Heading</div>
+                            </header>
+                            <div class="panel-body">
+                                <p>Nunc condimentum, erat quis vestibulum vestibulum, nulla lacus egestas urna, eu
+                                    imperdiet urna sapien
+                                    eget
+                                    ex. Ut finibus, ante a congue pulvinar, est justo hendrerit metus, ac venenatis erat
+                                    quam at risus.
+                                    In hac
+                                    habitasse platea dictumst. Cum sociis natoque penatibus et magnis dis parturient
+                                    montes, nascetur
+                                    ridiculus
+                                    mus. Maecenas mollis velit.</p>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Change the heading to the proper header level</li>
+                                <li>Content goes inside the
+                                    <code>&lt;div class=&quot;panel-body&quot;&gt;&lt;/div&gt;</code> element</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+                            <span class="wb-prettify all-pre"></span>
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- <h2>Box: Diversity</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                   
+                    <div class="example-content">
+                        <section class="panel panel-default mrgn-tp-md mrgn-bttm-md">
+                            <header class="panel-heading">
+                              <h5 class="panel-title mrgn-tp-0 h4">Gender and Diversity Expected Impacts</h5>
+                            </header>
+                            <div class="panel-body">
+                              <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquid omnis totam porro dolorum corporis aliquam debitis earum, exercitationem beatae commodi, obcaecati labore nostrum? Nesciunt quia a rem, dolore veniam natus?</p>
+                              <h6 class="h5">Gender Results Framework</h6>
+                              <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Exercitationem eos sapiente neque, cupiditate suscipit necessitatibus quisquam ducimus amet hic. Cumque nemo tempora perferendis quae non distinctio sit nihil adipisci quam? lorem</p>
+                              <h6 class="h5">Note on Terminology</h6>
+                              <p class="small">In this section, the term    "visible minorities" is&nbsp;occasionally used because it is the official    demographic category defined by the Employment Equity Act and used by Statistics    Canada in their surveys. With the commitment to support a task force on    modernizing the Employment Equity Act, the question of appropriate terminology    will be taken up by the members. </p>
+                            </div>
+                            </section>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Change the heading to the proper header level</li>
+                                <li>Content goes inside the <code>&lt;div class=&quot;panel-body&quot;&gt;&lt;/div&gt;</code> element</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <a class="copyBtn"></a>
+
+                           
+                            <span class="wb-prettify all-pre"></span>
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section> -->
+
+
+                <h2>Box: Gray</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+
+                        <section class="well mrgn-tp-md mrgn-bttm-md">
+                            <h4 class="mrgn-tp-0 h4">Heading</h4>
+
+                            <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Est aspernatur ullam
+                                consectetur accusamus,
+                                obcaecati
+                                sed repudiandae iure molestiae nisi, facere debitis officiis doloremque cumque,
+                                temporibus ab eveniet
+                                excepturi
+                                incidunt tempora!</p>
+                        </section>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Change the heading to the proper header level</li>
+                                <li>Add content below the header</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+                <h2>Box: White</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+
+                        <section class="panel panel-default mrgn-tp-md mrgn-bttm-md">
+                            <div class="panel-body">
+                                <h4 class="mrgn-tp-0 h4">Heading</h4>
+
+                                <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Facere sint molestiae nisi,
+                                    eum error natus vero
+                                    voluptas similique omnis asperiores laboriosam ad! Dolore, dicta! Consequuntur qui
+                                    facere temporibus nihil
+                                    blanditiis.</p>
+
+                            </div>
+                        </section>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Change the heading to the proper header level</li>
+                                <li>Add content below the header</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+
+
+
+                <h2>Charts and Figures</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content"> 
+                        <figure class="panel panel-default">
+                            <figcaption class="panel-heading">
+                                Chart #<br>
+                                <b>Chart Title</b>
+                            </figcaption>
+                            <div class="panel-body">
+                                <img class="img-responsive full-width" alt="Chart #: Chart Title"
+                                    src="https://via.placeholder.com/300x150">
+                            </div>
+                            <footer class="panel-footer">
+                                <p class="small">Notes</p>
+                                <p class="small">Sources</p>
+                                <details class="mrgn-tp-sm">
+                                    <summary>Text version</summary>
+                                    <!--Text version goes here-->
+
+
+                                </details>
+                            </footer>
+                        </figure>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <div class="alert alert-info">
+                                <p>Use the <a target="_blank" href="https://authoring.finb.gc.ca/tools/charts-and-figures-converter/index.html">Charts & Figures Converter</a> to help format charts and figures from MS Word HTML <code>&lt;table&gt;</code> to proper HTML code. 
+                                 The tool might not convert charts and figures that do not follow the Word template guide.</p>
+                            </div>
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>The chart number and title belongs in the
+                                    <code>&lt;figcaption class=&quot;panel-heading&quot;&gt;</code> element. Make sure
+                                    you use the <code>&lt;br&gt;</code> after the chart number and that the chart title
+                                    is wrapped in a <code>&lt;b&gt;</code></li>
+                                <li>The <code>&lt;img&gt;</code> element must have the <code>img-responsive</code> and
+                                    <code>full-width</code> classes. Include the chart title in the <code>alt</code>
+                                    property</li>
+                                <li>Notes, Sources and the Text Version expand/collapse go in the
+                                    <code>&lt;footer class=&quot;panel-footer&quot;&gt;</code> element</li>
+                                <li>Notes and Sources should be in a <code>&lt;p class=&quot;small&quot;&gt;</code>
+                                    element</li>
+                                <li>Do not remove the column system around the <code>&lt;figure&gt;</code>. This column
+                                    system ensures the table dosnt take up to much space on the page.</li>
+
+                            </ul>
+
+                            <h4>Text version expand/collapse</h4>
+                            <ul class="lst-spcd">
+                                <li>if in and English page, add the text "Text Version" in the
+                                    <code>&lt;summary&gt;</code> element. If in a French page add the text "Version
+                                    texte"</li>
+                                <li>The expand/collapse needs to contain a text or table explaination of that
+                                    chart/figure for accesibility reasons.</li>
+                                <li>If using a table for the Text Version, it will be a very basic table and will only
+                                    get the <code>table</code> class. Basic example below.</li>
+                            </ul>
+                            <p>Example:</p>
+                            <pre class="mini"><code class="">
+&lt;details class=&quot;mrgn-tp-sm&quot;&gt;
+    &lt;summary&gt;Text version&lt;/summary&gt;
+    &lt;div class=&quot;table-responsive&quot;&gt;
+        &lt;table class=&quot;table&quot;&gt;
+        &lt;/table&gt;
+    &lt;/div&gt;
+&lt;/details&gt;
+</code></pre>
+
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+                <h2>Charts: Double</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <figure class="panel panel-default">
+                                    <figcaption class="panel-heading">
+                                        Chart #<br>
+                                        <b>Chart Title</b>
+                                    </figcaption>
+                                    <div class="panel-body">
+                                        <img class="img-responsive full-width" alt="Chart #: Chart Title"
+                                            src="https://via.placeholder.com/300x150">
+                                    </div>
+                                    <footer class="panel-footer">
+                                        <p class="small">Notes</p>
+                                        <p class="small">Sources</p>
+                                        <details class="mrgn-tp-sm">
+                                            <summary>Text version</summary>
+                                            <!--Text version goes here-->
+
+
+                                        </details>
+                                    </footer>
+                                </figure>
+                            </div>
+                            <div class="col-md-6">
+                                <figure class="panel panel-default">
+                                    <figcaption class="panel-heading">
+                                        Chart #<br>
+                                        <b>Chart Title</b>
+                                    </figcaption>
+                                    <div class="panel-body">
+                                        <img class="img-responsive full-width" alt="Chart #: Chart Title"
+                                            src="https://via.placeholder.com/300x150">
+                                    </div>
+                                    <footer class="panel-footer">
+                                        <p class="small">Notes</p>
+                                        <p class="small">Sources</p>
+                                        <details class="mrgn-tp-sm">
+                                            <summary>Text version</summary>
+                                            <!--Text version goes here-->
+
+
+                                        </details>
+                                    </footer>
+                                </figure>
+
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+
+                            <p>Double charts are done the same as single charts. This style can be used for quadruple
+                                charts as well, just use 2 of them.</p>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+                <h2>Charts: Tripple</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <div class="row">
+                            <div class="col-md-6 col-lg-4">
+                                <figure class="panel panel-default">
+                                    <figcaption class="panel-heading">
+                                        Chart #<br>
+                                        <b>Chart Title</b>
+                                    </figcaption>
+                                    <div class="panel-body">
+                                        <img class="img-responsive full-width" alt="Chart #: Chart Title"
+                                            src="https://via.placeholder.com/300x150">
+                                    </div>
+                                    <footer class="panel-footer">
+                                        <p class="small">Notes</p>
+                                        <p class="small">Sources</p>
+                                        <details class="mrgn-tp-sm">
+                                            <summary>Text version</summary>
+                                            <!--Text version goes here-->
+
+
+                                        </details>
+                                    </footer>
+                                </figure>
+
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <figure class="panel panel-default">
+                                    <figcaption class="panel-heading">
+                                        Chart #<br>
+                                        <b>Chart Title</b>
+                                    </figcaption>
+                                    <div class="panel-body">
+                                        <img class="img-responsive full-width" alt="Chart #: Chart Title"
+                                            src="https://via.placeholder.com/300x150">
+                                    </div>
+                                    <footer class="panel-footer">
+                                        <p class="small">Notes</p>
+                                        <p class="small">Sources</p>
+                                        <details class="mrgn-tp-sm">
+                                            <summary>Text version</summary>
+                                            <!--Text version goes here-->
+
+
+                                        </details>
+                                    </footer>
+                                </figure>
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <figure class="panel panel-default">
+                                    <figcaption class="panel-heading">
+                                        Chart #<br>
+                                        <b>Chart Title</b>
+                                    </figcaption>
+                                    <div class="panel-body">
+                                        <img class="img-responsive full-width" alt="Chart #: Chart Title"
+                                            src="https://via.placeholder.com/300x150">
+                                    </div>
+                                    <footer class="panel-footer">
+                                        <p class="small">Notes</p>
+                                        <p class="small">Sources</p>
+                                        <details class="mrgn-tp-sm">
+                                            <summary>Text version</summary>
+                                            <!--Text version goes here-->
+
+
+                                        </details>
+                                    </footer>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+
+                                <li>Text ontent goes inside the
+                                    <code>&lt;div class=&quot;panel-body&quot;&gt;&lt;/div&gt;</code> element</li>
+                                <li>To add another figure, it must be wrapped in a column and added to the row</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+                            <span class="wb-prettify all-pre"></span>
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+                <h2>Quote</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <div class="row">
+                            <div class="col-lg-10 col-lg-offset-1">
+                                <blockquote>
+                                    <p>Nunc condimentum, erat quis vestibulum vestibulum, nulla lacus egestas urna, eu
+                                        imperdiet
+                                        urna sapien eget
+                                        ex. Ut finibus, ante a congue pulvinar, est justo hendrerit metus, ac venenatis
+                                        erat
+                                        quam at risus.</p>
+                                    <footer class="text-right">Author's name<br>
+                                        <cite>Title of cited source content</cite>
+                                    </footer>
+                                </blockquote>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+
+                                <li>Text content goes inside of the <code>&lt;blockquote&gt;</code> element</li>
+                                <li>Author of quote and citation goes in the
+                                    <code>&lt;footer class=&quot;text-right&quot;&gt;</code> element. Authors name comes
+                                    first, then a <code>&lt;br&gt;</code>. The citation goes in the
+                                    <code>&lt;cite&gt;</code> element</li>
+                                <li>Do not add a dash in front of the authors name, this is added automatically with
+                                    CSS.</li>
+                            </ul>
+
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+                <h2>Tables</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <caption class="text-left fnt-nrml">
+                                    Table #<br>
+                                    <b>Table Title</b><br>
+                                    <small>(Units)</small>
+                                </caption>
+                                <thead>
+                                    <tr class="bg-dark text-white">
+                                        <th class="text-right"></th>
+                                        <th class="text-right"><strong>Column Heading </strong></th>
+                                        <th class="text-right"><strong>Column Heading </strong></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="text-right active">
+                                        <th colspan="3" scope="row" class="">Section Heading</th>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th class="fnt-nrml" scope="row">Row Heading</th>
+                                        <td>222</td>
+                                        <td>222</td>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th class="fnt-nrml" scope="row">Row Heading</th>
+                                        <td>333</td>
+                                        <td class="">333</td>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th class="fnt-nrml" scope="row">Row Heading</th>
+                                        <td>444 </td>
+                                        <td>444</td>
+                                    </tr>
+                                    <tr class="text-right active">
+                                        <th scope="row">Section Heading (with data)</th>
+                                        <td><strong>777</strong></td>
+                                        <td><strong>777</strong></td>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th class="fnt-nrml" scope="row">Row Heading</th>
+                                        <td>666</td>
+                                        <td>666</td>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th class="fnt-nrml" scope="row">
+                                            <div class="mrgn-lft-md">Sub Heading (1 indent)</div>
+                                        </th>
+                                        <td>888</td>
+                                        <td>888</td>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th class="fnt-nrml" scope="row">
+                                            <div class="mrgn-lft-lg">Sub Heading (2 indent)</div>
+                                        </th>
+                                        <td><strong>&nbsp;</strong></td>
+                                        <td><strong>&nbsp;</strong></td>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th class="fnt-nrml" scope="row">
+                                            <div class="mrgn-lft-xl">Sub Heading (3 indent)</div>
+                                        </th>
+                                        <td>999</td>
+                                        <td>999</td>
+                                    </tr>
+                                    <tr class="text-right">
+                                        <th scope="row" class="fnt-nrml">Row Heading (Totals)</th>
+                                        <td><strong>555</strong></td>
+                                        <td><strong>555</strong></td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" class="small">
+                                            Notes:<br>
+                                            Footnotes:<br>
+                                            Sources:
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-12 explaination">
+
+                            <div class="alert alert-info">
+                                <p>Use the new <a
+                                        href="https://authoring.finb.gc.ca/tools/table-cleanup/table-cleanup.html">Table
+                                        Cleanup Tool</a> to help convert your table from MS Word HTML to properly
+                                    formatted HTML.
+                                    The Table Cleanup Tool will restructure the table, remove unwanted properties, add
+                                    proper classes and allows you to indicate which rows are Section Headings, Sub
+                                    headings (indents) and column headings.<br>The Table Cleanup Tool may not work in
+                                    all cases, please ensure you check the code and make sure the table is built
+                                    properly.</p>
+                            </div>
+
+
+                            <h3 class="mrgn-tp-0">Quick Guide (without using the Table Cleanup Tool)</h3>
+
+                            <ol class="lst-spcd">
+                                <li>Wrap the table in a <code>&lt;div class="table-responsive"&gt;</code> element.</li>
+                                <li>Apply the <code>table table-bordered</code> classes to the
+                                    <code>&lt;table&gt;</code> element.</li>
+                                <li>Put the table title in a
+                                    <code>&lt;caption class=&quot;text-left fnt-nrml&quot;&gt;</code> element and follow
+                                    the HTML structure in the example below</li>
+                                <li>Make sure your table has the proper basic structure.</li>
+                                <li>Add the <code>bg-dark text-white</code> classes on the <code>&lt;tr&gt;</code>
+                                    elements in the <code>&lt;thead&gt;</code>.</li>
+                                <li>Add the <code>text-right</code> class to the <code>&lt;tr&gt;</code> elements inside
+                                    the <code>&lt;tbody&gt;</code>. If the row contains a lot of text or a mix of text
+                                    and numerical data, <strong>do not apply</strong> the <code>text-right</code> class.
+                                </li>
+                                <li>All column headings must be a <code>&lt;th&gt;</code> element</li>
+                                <li>All cells in the far left column (row headings) should be a <code>&lt;th&gt;</code>
+                                    element</li>
+                                <li>If the row heading spans the full width of the table it should get the
+                                    <code>active</code> class. We call these Section Headings.</li>
+                                <li>Any left column <code>&lt;th&gt;</code> that is a sub heading (indented) or a child
+                                    of a , should get the <code>fnt-nrml</code> class to remove the default bolding.
+                                </li>
+                                <li>If the table has notes, footnotes or sources, make sure to put that content in the
+                                    <code>&lt;tfoot&gt;</code> element and you use the proper HTML structure shown
+                                    below.</li>
+
+                            </ol>
+
+
+                            <!-- <h3 class="mrgn-tp-lg">Full Guidelines</h3>
+                            <details class="tbl-html mrgn-tp-lg">
+                                <summary><b>Example Table HTML</b></summary>
+                                <pre style="max-height:none;"><code class="codeToCopy" ></code></pre>
+                            </details>
+                            <p>When building your table, clean the table of any unwanted Word classes or html properties and then modify/add the HTML and classes we have propvided below to achieve a look similar to the Word version of the table.</p>
+                            
+                            <h4>Basic table structure</h4>
+                            <p>All of our tables should consist of this basic HTML structure and include these classes:</p>
+
+<pre class="mini"><code>
+&lt;div class=&quot;table-responsive&quot;&gt;
+    &lt;table class=&quot;table table-bordered&quot;&gt;
+        &lt;caption class=&quot;text-left fnt-nrml&quot;&gt;&lt;/caption&gt;
+        &lt;thead&gt;&lt;/thead&gt;
+        &lt;tbody&gt;&lt;/tbody&gt;
+        &lt;tfoot&gt;&lt;/tfoot&gt; 
+    &lt;/table&gt;
+&lt;/div&gt;
+</code></pre>                        
+
+
+
+
+
+                            <h4>Table caption: <code>&lt;caption class=&quot;text-left fnt-nrml&quot;&gt;</code></h4>
+                            <p>The caption is a container for the table's title information. It should be the first element inside the <code>&lt;table&gt;</code> element.</p> 
+                            <p>Example:</p>
+<pre class="mini"><code>&lt;caption class=&quot;text-left fnt-nrml&quot;&gt;
+    Table #&lt;br&gt;
+    &lt;b&gt;Table Title&lt;/b&gt;&lt;br&gt;
+    &lt;small&gt;(Units)&lt;/small&gt;
+&lt;/caption&gt;
+</code></pre> 
+
+                            <h4>Table head: <code>&lt;thead&gt;</code></h4>
+                            
+                            <p>The table head is a container for the table's column headings.</p> 
+                            
+                            <ul>
+                                <li>The <code>&lt;tr&gt;</code> elements inside the table head will get the <code>bg-dark text-white</code> classes to make them appear dark grey with white text.</li>
+                                <li>All column headings must be a <code>&lt;th&gt;</code> element.</li>
+                            </ul> 
+                            <p>Below is how the <code>&lt;thead&gt;</code> from the rendered component example would be coded:</p>
+                            
+                            
+
+<pre class="mini"><code class="">
+&lt;thead&gt;
+    &lt;tr class=&quot;bg-dark text-white&quot;&gt;
+        &lt;th&gt;&lt;/th&gt;
+        &lt;th&gt;Col Heading&lt;/th&gt;
+        &lt;th&gt;Col Heading&lt;/th&gt;
+        &lt;th&gt;Col Heading&lt;/th&gt;
+        &lt;th&gt;Col Heading&lt;/th&gt;
+        &lt;th&gt;Col Heading&lt;/th&gt;
+        &lt;th&gt;Col Heading&lt;/th&gt;
+        &lt;th&gt;Total&lt;/th&gt;
+    &lt;/tr&gt;
+&lt;/thead&gt;
+</code></pre>
+                            
+
+                        <h4>Table body: <code>&lt;tbody&gt;</code></h4>
+                        <p>The table body is a container for row headings and data.</p>
+                        <ul>
+                            <li><h5>Text Right</h5>The <code>&lt;tr&gt;</code> elements inside the table body will get the <code>text-right</code> class which will align all of the text in the <code>&lt;td&gt;</code> elements to the right. If the row contains a lot of text or a mix of text and numerical data, <strong>do not apply</strong> the <code>text-right</code> class.</li>
+							<li><h5>Grey Background</h5>If the Table Row needs a grey background, apply the <code>active</code> class to it.</li>
+							<li><h5>Heading Element</h5>All Row Headings inside the table body must be coverted to a <code>&lt;th&gt;</code> if they have not already been converted.</li>
+							<li>Row Heading styles:
+								<ul>
+									<li><h5>Removing Bold</h5>All <code>&lt;th&gt;</code> elements are bolded by default, to remove the bold, use the class <code>fnt-nrml</code>.</li>
+									</li>
+								</ul>
+							</li>
+                        </ul> 
+                        <h4>Indented sub headings</h4>
+                        <p>We are no longer using non-breaking spaces to indent sub headings. Below is the new way of achieving this:</p>
+                        <div class="panel-default panel mrgn-tp-lg">
+                            <div class="panel-body">
+                                
+                           <dl>
+                            <dt>Sub headings</dt>
+                            <dd> Wrap the text inside of the <code>&lt;th&gt;</code> with a <code>&lt;div class=&quot;mrgn-lft-md text-left fnt-nrml&quot;&gt;</code> container. The <code>mrgn-lft-md</code> class provides the indent.
+<pre class="mini"><code>
+&lt;th class=&quot;active&quot;&gt;
+    &lt;div class=&quot;mrgn-lft-md text-left fnt-nrml&quot;&gt;Sub heading&lt;/div&gt;
+&lt;/th&gt;</code></pre></dd>
+
+                            <dt>Sub sub headings</dt>
+                            <dd>This heading is done the same way as the sub-heading, you just have to change the <code>mrgn-lft-md</code> class to <code>mrgn-lft-lg</code> to create a larger indent.
+<pre class="mini"><code>
+&lt;th class=&quot;active&quot;&gt;
+    &lt;div class=&quot;mrgn-lft-lg text-left fnt-nrml&quot;&gt;Sub sub heading&lt;/div&gt;
+&lt;/th&gt;</code></pre></dd>
+                        </dl>
+
+                        <dt>Sub sub sub headings</dt>
+                            <dd>This heading is done the same way as the sub-heading, you just have to change the <code>mrgn-lft-md</code> class to <code>mrgn-lft-xl</code> to create a larger indent.
+<pre class="mini"><code>
+&lt;th class=&quot;active&quot;&gt;
+    &lt;div class=&quot;mrgn-lft-xl text-left fnt-nrml&quot;&gt;Sub sub sub heading&lt;/div&gt;
+&lt;/th&gt;</code></pre></dd>
+                        </dl>
+                          
+                               
+                            </div>
+                        </div>
+                    
+                        <h4>Table footer: <code>&lt;tfoot&gt;</code></h4>
+                        <p>If the table you are building has notes, footnotes or sources, include them inside the <code>&lt;tfoot&gt;</code> container as shown below:</p>
+<pre class="mini"><code class="">
+&lt;tfoot&gt;
+    &lt;tr&gt;
+        &lt;td colspan=&quot;8&quot; class=&quot;small&quot;&gt;
+            Notes:&lt;br&gt;
+            Footnotes:&lt;br&gt;
+            Sources:
+        &lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/tfoot&gt;
+</code></pre> -->
+
+                            <!-- <h4>Images in tables</h4>
+                        <p>When adding images within a table cell, include the <code>width</code>property and add the class <code>img-responsive</code> to the <code>&lt;img&gt;</code> element. Also ensure that the <code>alt</code> property is set</p> -->
+
+
+
+
+                        </div>
+
+                    </div>
+                </section>
+                <h2>Impact Report link</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <section class="panel panel-default mrgn-tp-md mrgn-bttm-md">
+                            <div class="panel-body media">
+                                
+                            
+                                    <span class="glyphicon glyphicon-info-sign media-object pull-left"></span>
+                                    <div class="media-body">
+                                        <h3 class="h4 mrgn-tp-0 mrgn-bttm-0">Impacts report</h3>
+                                        <p class="mrgn-bttm-0">Find out more about the <a href="gdql-egdqv-2-en.html#s2-1">expected gender and diversity impacts for each measure in section X.X SECTION TITLE</a></p></div>
+                            
+                              
+                              
+                            </div>
+                          </section>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Add snippet to the end of numbered sections (EX: 2.1 Helping middle class)</li>
+                                <li>Update the link text with section number and title</li>
+                                <li>Update the link href anchor with the proper section number (EX: #s2-1)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+                            <span class="wb-prettify all-pre"></span>
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+                <h2>Data Tables EN</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <div class="table-responsive">
+                            <caption class="text-left fnt-nrml">
+                                Table #<br>
+                                <strong>TABLE NAME</strong> <br>
+                            </caption>
+                            <table class="table table-bordered wb-tables" style="border:none">
+                                    <!--Paste everything inside the table tags here-->
+                
+                              <thead>
+                                <tr class="bg-dark text-white">
+                                  <th class="" scope="col">Country</th>
+                                  <th scope="col">Province/State</th>
+                                  <th scope="col">Amount</th>
+                                </tr>
+                              </thead>
+                
+                
+                              <tbody>
+                                <tr class="text-right">
+                                  <th scope="row" class="fnt-nrml">Canada</th>
+                                  <td class="text-left">Ontario</td>
+                                  <td class="text-left">5,100</td>
+                                </tr>
+                                <tr class="text-right">
+                                    <th scope="row" class="fnt-nrml">Canada</th>
+                                    <td class="text-left">British COlumbia</td>
+                                    <td class="text-left">510</td>
+                                </tr>
+                                <tr class="text-right">
+                                    <th scope="row" class="fnt-nrml">Canada</th>
+                                    <td class="text-left">Ontario</td>
+                                    <td class="text-left">15,200</td>
+                                </tr>
+                                <tr class="text-right">
+                                    <th scope="row" class="fnt-nrml">Canada</th>
+                                    <td class="text-left">PEI</td>
+                                    <td class="text-left">6</td>
+                                </tr>
+                                <tr class="text-right">
+                                    <th scope="row" class="fnt-nrml">USA</th>
+                                    <td class="text-left">New York</td>
+                                    <td class="text-left">7,000,000</td>
+                                </tr>
+                                <tr class="text-right">
+                                    <th scope="row" class="fnt-nrml">Canada</th>
+                                    <td class="text-left">Ontario</td>
+                                    <td class="text-left">5,100</td>
+                                  </tr>
+                                  <tr class="text-right">
+                                      <th scope="row" class="fnt-nrml">Canada</th>
+                                      <td class="text-left">British COlumbia</td>
+                                      <td class="text-left">510</td>
+                                  </tr>
+                                  <tr class="text-right">
+                                      <th scope="row" class="fnt-nrml">Canada</th>
+                                      <td class="text-left">Ontario</td>
+                                      <td class="text-left">200</td>
+                                  </tr>
+                  
+                                <tfoot>
+                                     <tr>
+                                  <td colspan="3">
+                
+                                    <p class="small"><sup>1</sup> Note: This is notes 1</p>
+                                    <p class="small"><sup>2</sup> Note: This is notes 2</p>
+                
+                                  </td>
+                                </tr>
+                
+                                </tfoot>
+                               
+                
+                
+                              </tbody>
+                            </table>
+                          </div>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+
+                            <div class="alert alert-info">
+                                <p>NOTE: the code snippet will be different depending on the language of the table.</p>
+                            </div>
+
+
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ol>
+                                <li>Paste the snippet in your page</li>
+                                <li>Copy everything inside the table tags of the table you want to convert</li>
+                                <li>Paste it inside the table tags of the snippet</li>
+                                <li>Copy the Table # and Table Name from the old caption and paste them in the snippets caption</li>
+                                <li>Delete the old caption.</li>
+                                <li>Test to make sure Filtering and Sorting is working properlly.</li>
+                            </ol>
+                        </div>
+                            <div class="col-md-6 ">
+
+                                <!--copy button-->
+                                <!-- <a class="copyBtn"></a> -->
+    
+                                <!-- section for the written code-->
+    
+<pre><code >
+    &lt;!--This is the English Data Tables snippet--&gt;
+    &lt;div class&#x3D;&quot;table-responsive&quot;&gt;
+        &lt;caption class&#x3D;&quot;text-left fnt-nrml&quot;&gt;
+            Table #&lt;br&gt;
+            &lt;strong&gt;TABLE NAME&lt;&#x2F;strong&gt; &lt;br&gt;
+        &lt;&#x2F;caption&gt;
+        &lt;table class&#x3D;&quot;table table-bordered wb-tables&quot; style&#x3D;&quot;border:none&quot;&gt;
+                &lt;!--Paste everything inside the table tags here--&gt;
+        &lt;&#x2F;table&gt;
+    &lt;&#x2F;div&gt;
+</code></pre>
+    
+                        
+
+
+                        </div>
+
+                    </div>
+                </section>
+                <h2>Data Tables FR</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        		<!--This is the french Data Tables snippet-->
+		<div class="table-responsive">
+			<caption class="text-left fnt-nrml">
+				Table #<br>
+				<strong>TABLE NAME</strong> <br>
+			</caption>
+			<table class="table table-bordered wb-tables" style="border:none" data-wb-tables='
+						{"language": {
+							"thousands": "&ThinSpace",
+							"decimal": ","
+							}
+						}
+					'>
+					<!--Paste everything inside the table tags here-->
+
+	
+              <thead>
+                <tr class="bg-dark text-white">
+                  <th class="" scope="col">Country</th>
+                  <th scope="col">Province/State</th>
+				  <th scope="col">Amount</th>
+                </tr>
+              </thead>
+
+
+              <tbody>
+                <tr class="text-right">
+					<th scope="row" class="fnt-nrml">Canada</th>
+					<td class="text-left">British COlumbia</td>
+					<td class="text-left">510</td>
+                </tr>
+                <tr class="text-right">
+					<th scope="row" class="fnt-nrml">Canada</th>
+					<td class="text-left">Ontario</td>
+					<td class="text-left">15&ThinSpace;200</td>
+                </tr>
+				<tr class="text-right">
+					<th scope="row" class="fnt-nrml">USA</th>
+					<td class="text-left">Texas</td>
+					<td class="text-left">1&ThinSpace;020&ThinSpace;000</td>
+                </tr>
+				<tr class="text-right">
+					<th scope="row" class="fnt-nrml">Canada</th>
+					<td class="text-left">Ontario</td>
+					<td class="text-left">5&ThinSpace;100</td>
+				  </tr>
+				  <tr class="text-right">
+					  <th scope="row" class="fnt-nrml">Canada</th>
+					  <td class="text-left">British COlumbia</td>
+					  <td class="text-left">510</td>
+				  </tr>
+				  <tr class="text-right">
+					  <th scope="row" class="fnt-nrml">Canada</th>
+					  <td class="text-left">Ontario</td>
+					  <td class="text-left">200</td>
+				  </tr>
+				  <tr class="text-right">
+					  <th scope="row" class="fnt-nrml">Canada</th>
+					  <td class="text-left">PEI</td>
+					  <td class="text-left">5&ThinSpace;000</td>
+				  </tr>
+				  <tr class="text-right">
+					  <th scope="row" class="fnt-nrml">USA</th>
+					  <td class="text-left">New York</td>
+					  <td class="text-left">7&ThinSpace;000&ThinSpace;000</td>
+				  </tr>
+				  <tr class="text-right">
+					  <th scope="row" class="fnt-nrml">USA</th>
+					  <td class="text-left">Texas</td>
+					  <td class="text-left">2&ThinSpace;020&ThinSpace;000</td>
+				  </tr>
+				  <tr class="text-right">
+					<th scope="row" class="fnt-nrml">USA</th>
+					<td class="text-left">Texas</td>
+					<td class="text-left">10&ThinSpace;020&ThinSpace;000</td>
+				</tr>
+				<tfoot>
+					 <tr>
+                  <td colspan="3">
+
+                    <p class="small"><sup>1</sup> Note: This is notes 1</p>
+                    <p class="small"><sup>2</sup> Note: This is notes 2</p>
+
+                  </td>
+                </tr>
+
+				</tfoot>
+               
+
+
+              </tbody>
+            </table>
+          </div>
+                    </div>
+                    <div class="row style-text">
+
+
+                        <div class="col-md-6 explaination">
+                            <div class="alert alert-info">
+                                <p>NOTE: the code snippet will be different depending on the language of the table.</p>
+                            </div>
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ol>
+                                <li>Paste the snippet in your page</li>
+                                <li>Copy everything inside the table tags of the table you want to convert</li>
+                                <li>Paste it inside the table tags of the snippet</li>
+                                <li>Copy the Table # and Table Name from the old caption and paste them in the snippets caption</li>
+                                <li>Delete the old caption.</li>
+                                <li><b>To filtering issues in french:</b><ul>
+                                    <li>Set the French thousands seperator by using <code>&amp;ThinSpace;</code> instead of <code>&amp;nbsp;</code>. For example: <code>1&amp;ThinSpace;000&amp;ThinSpace;546</code>. Make sure there are not spaces between the html tags in the cells in this column.</li>
+                                    <li>Set the French thousands seperator by using <code>&amp;ThinSpace;</code> instead of <code>&amp;nbsp;</code>. For example: <code>1&amp;ThinSpace;000&amp;ThinSpace;546</code>. Make sure there are not spaces between the html tags in the cells in this column.</li>
+                                </ul></li>
+                                
+                                <li>Set the French decimal by setting <code>"decimal": ","</code></li>
+                                <li>Test to make sure Filtering and Sorting is working properlly.</li>
+                            </ol>
+
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <!-- <a class="copyBtn"></a> -->
+
+                            <!-- section for the written code-->
+
+<pre><code class="">
+&lt;!--This is the french Data Tables snippet--&gt;
+&lt;div class&#x3D;&quot;table-responsive&quot;&gt;
+    &lt;caption class&#x3D;&quot;text-left fnt-nrml&quot;&gt;
+        Table #&lt;br&gt;
+        &lt;strong&gt;TABLE NAME&lt;&#x2F;strong&gt; &lt;br&gt;
+    &lt;&#x2F;caption&gt;
+    &lt;table class&#x3D;&quot;table table-bordered wb-tables&quot; style&#x3D;&quot;border:none&quot; data-wb-tables&#x3D;&#39;
+                {&quot;language&quot;: {
+                    &quot;thousands&quot;: &quot;&amp;ThinSpace&quot;,
+                    &quot;decimal&quot;: &quot;,&quot;
+                    }
+                }
+            &#39;&gt;
+            &lt;!--Paste everything inside the table tags here--&gt;
+    &lt;&#x2F;table&gt;
+&lt;&#x2F;div&gt;
+</code></pre>
+
+                        </div>
+
+                    </div>
+                </section>
+
+                <h2>List: Two Column</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Heading</h5>
+                                <ul>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Heading</h5>
+                                <ul>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                    <li>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Architecto quos.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Change headings to correct heading level</li>
+
+                            </ul>
+
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+                <h2>List: Checkmark Icons</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+
+                        <ul class="media-list lst-spcd mrgn-tp-md mrgn-bttm-md">
+                            <li class="media"><span
+                                    class="glyphicon glyphicon-ok media-object pull-left mrgn-tp-sm"></span>
+                                <div class="media-body">Eum error natus vero voluptas
+                                    similique omnis asperiores laboriosam ad! Dolore, dicta! Consequuntur qui facere
+                                    temporibus
+                                    nihil blanditiis.</div>
+                            </li>
+                            <li class="media"><span
+                                    class="glyphicon glyphicon-ok media-object pull-left mrgn-tp-sm"></span>
+                                <div class="media-body">Eum error natus vero voluptas
+                                    similique omnis asperiores laboriosam ad! Dolore, dicta! Consequuntur qui facere
+                                    temporibus
+                                    nihil blanditiis.</div>
+                            </li>
+                            <li class="media"><span
+                                    class="glyphicon glyphicon-ok media-object pull-left mrgn-tp-sm"></span>
+                                <div class="media-body">Eum error natus vero voluptas
+                                    similique omnis asperiores laboriosam ad! Dolore, dicta! Consequuntur qui facere
+                                    temporibus
+                                    nihil blanditiis.</div>
+                            </li>
+                            <li class="media"><span
+                                    class="glyphicon glyphicon-ok media-object pull-left mrgn-tp-sm"></span>
+                                <div class="media-body">Eum error natus vero voluptas
+                                    similique omnis asperiores laboriosam ad! Dolore, dicta! Consequuntur qui facere
+                                    temporibus
+                                    nihil blanditiis.</div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Text content goes in the <code>&lt;div class=&quot;media-body&quot;&gt;</code>
+                                    element</li>
+                                <li>If an item in the list does not get an icon, delete the span.</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+                <h2>List: New Measure Icons</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+
+                        <ul class="custom-bullets">
+                            <li>First item</li>
+                            <li>Second item</li>
+                            <li>Third item</li>
+                        </ul>
+                        
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>Text content goes in the <code>&lt;div class=&quot;media-body&quot;&gt;</code>
+                                    element</li>
+                                <li>If an item in the list does not get an icon, delete the span.</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+
+                <h2>New Measure Icon (For Tables Only)</h2>
+                <section>
+                    <a class="exampleBtn">Show example <span class="glyphicon glyphicon-chevron-down"> </span></a>
+                    <!--CODE SNIPPET GOES INSIDE EXAMPLE-CONTENT-->
+                    <div class="example-content">
+
+                        <i class="fas fa-play"></i>
+
+                    </div>
+                    <div class="row style-text">
+
+                        <div class="col-md-6 explaination">
+                            <h3 class="mrgn-tp-0">Quick Guide</h3>
+                            <ul class="lst-spcd">
+                                <li>This icon can be used to indicate new measures within tables</li>
+                            </ul>
+
+                        </div>
+                        <div class="col-md-6 ">
+
+                            <!--copy button-->
+                            <a class="copyBtn"></a>
+
+                            <!-- section for the written code-->
+
+                            <pre><code class="codeToCopy"></code></pre>
+
+                        </div>
+                    </div>
+                </section>
+ 
+              
+                     
+              
+               
+                <section>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h2 >Web Resources</h2> 
+                            <ul class="lst-spcd mrgn-tp-md">
+                                <li><a href="https://wet-boew.github.io/wet-boew-styleguide/index-en.html">WET Style
+                                        Guide</a></li>
+                                <li><a href="https://validator.w3.org/">HTML Validator</a></li>
+                                <li><a href="http://authoring.finb.gc.ca/prototype/tablevalidator-en.html">Table
+                                        Validator & Scoper</a></li>
+                                <li><a
+                                        href="https://wet-boew.github.io/wet-boew-styleguide/accessibility/index-en.html">Accesibility
+                                        Guide</a></li>
+                            </ul>
+
+                        </div>
+
+                        <div class="col-md-6">
+                            
+                       <h2 >Tools</h2>
+                            <ul class="lst-spcd mrgn-tp-md">
+                            <li><a target="_blank" href="https://authoring.finb.gc.ca/tools/table-cleanup/">Table cleanup   </a></li>
+                            <li><a target="_blank" href="https://authoring.finb.gc.ca/tools/footnote-generator/">Footnote Generator  </a></li>
+                            <li><a target="_blank" href="https://authoring.finb.gc.ca/tools/anchors-aweigh/">Anchors Aweigh </a></li>
+                            <li><a target="_blank" href="https://authoring.finb.gc.ca/tools/fes-icon-library/">FES Icon Library </a></li>
+                            <li><a target="_blank" href="https://authoring.finb.gc.ca/tools/insert-footnote/insert-footnote.html"> Insert footnote    </a></li>
+                            <li><a target="_blank" href="https://authoring.finb.gc.ca/drleg-apl/InlineCSSextractor/Inline%20CSS%20Extractor.html">Inline  CSS Extractor   </a></li> 
+                            <li><a target="_blank" href="https://authoring.finb.gc.ca/tools/charts-and-figures-converter/index.html">Charts & Figures Converter</a></li>
+                            </ul>
+                        </div>
+
+                </section>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.js"></script>
+    <script src="/fes-eea/2020/wet-boew/js/wet-boew.min.js"></script>
+    <script src="/fes-eea/2020/GCWeb/js/theme.min.js"></script>
+    <script src="js/sidenav.js"></script>
+    <script src="js/web-comp-custom.js" async></script>
+</body>
+
+</html>
