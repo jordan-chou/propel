@@ -31,6 +31,16 @@ test('table cleanup creates WET structure', () => {
     equal(result.querySelectorAll('thead').length, 1);
 });
 
+test('table cleanup does not make colspan rows active automatically', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td>Label</td><td>Value</td></tr><tr><td colspan="2">Group</td></tr></tbody></table>';
+    cleanupTable(host.querySelector('table'));
+    const groupRow = host.querySelector('tbody tr');
+
+    equal(groupRow.classList.contains('active'), false);
+    equal(groupRow.querySelector('th').getAttribute('scope'), 'colgroup');
+});
+
 test('NBSP correction leaves image alt spaces intact', () => {
     equal(fixNbspHTML('<img alt="Table 2">Table 2', false), '<img alt="Table 2">Table&nbsp;2');
 });

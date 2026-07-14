@@ -290,8 +290,6 @@ function formatTbody(tbody, options) {
         }
 
         if (rowHeader.hasAttribute('colspan')) {
-            row.classList.add('active');
-
             if (options.addScope) {
                 rowHeader.setAttribute('scope', 'colgroup');
             }
