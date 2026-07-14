@@ -2067,13 +2067,17 @@ textarea {
     overflow-wrap: anywhere;
     tab-size: 4;
     font-family: var(--font-mono);
-    font-size: 0.88rem;
-    line-height: 1.55;
+    font-size: 14px;
+    font-weight: 400;
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "calt" 0;
+    letter-spacing: 0;
+    line-height: 22px;
 }
 
 #codeHighlight {
     z-index: 0;
-    overflow: hidden;
+    overflow: scroll;
     color: #d7deea;
     pointer-events: none;
 }
