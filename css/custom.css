@@ -694,11 +694,6 @@ textarea {
     width: 100%;
     margin: 0 0 12px;
     min-height: 38px;
-    border-color: #1d4ed8;
-    background: linear-gradient(180deg, #3475ee 0%, #2563eb 100%);
-    color: #fff;
-    font-weight: 750;
-    box-shadow: 0 4px 10px rgba(30, 64, 175, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(15, 35, 80, 0.2);
     cursor: pointer;
 }
 
@@ -711,24 +706,6 @@ textarea {
     font-weight: 900;
     line-height: 1;
     text-shadow: 0 1px 1px rgba(15, 35, 80, 0.28);
-}
-
-.table-editor-dialog .table-editor-component-action.btn:hover,
-.table-editor-dialog .table-editor-component-action.btn:focus-visible {
-    border-color: #173ea5;
-    background: #1d4ed8;
-    color: #fff;
-    box-shadow: 0 5px 14px rgba(30, 64, 175, 0.28);
-    transform: translateY(-1px);
-}
-
-.table-editor-dialog .table-editor-component-action.btn:focus-visible {
-    outline: 3px solid rgba(59, 130, 246, 0.28);
-    outline-offset: 2px;
-}
-
-.table-editor-dialog .table-editor-component-action.btn:active {
-    transform: translateY(0);
 }
 
 .component-library-name,
