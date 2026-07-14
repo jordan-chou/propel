@@ -22,14 +22,16 @@ import { CommandRegistry } from './commands/command-registry.js';
 import { buildCellGrid, getCellPosition } from './table-editor/model.js';
 import { toggleCellsBold } from './table-editor/formatting.js';
 import { readFileAsArrayBuffer, getMammothLibrary, convertWithMammoth } from './conversion/mammoth-adapter.js';
+import { getLanguageResultFromDocxXml } from './conversion/docx-language.js';
 import { createJSONStorage } from './ui/storage.js';
+import { createWetLiveEditor } from './ui/wet-live-editor.js';
+import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 
 /* HTML Elements */
 const file = document.getElementById('file');
 const outputSection = document.getElementById('outputSection');
 const outputText = document.getElementById('outputText');
 const copyBtn = document.getElementById('copyBtn');
-const topBtn = document.getElementById('topBtn');
 const langBtn = document.getElementById('langBtn');
 
 // Anchors Aweigh elements
@@ -203,7 +205,6 @@ const tableEditorMobileLayoutQuery = window.matchMedia('(max-width: 767px)');
 const tableEditorSnapZone = 24;
 
 // Footnote generator
-var showFullPreview = false;
 var isEngLang = true;
 var langStrings = engStrings;
 
@@ -247,208 +248,6 @@ function updateShortcutHelpForPlatform() {
         shortcut.hidden = shortcut.dataset.shortcutPlatform === 'apple' ? !isApplePlatform : isApplePlatform;
     });
 }
-
-function createWetLiveEditor(host) {
-    if (!host) {
-        return null;
-    }
-
-    const placeholder = host.getAttribute('data-placeholder') || '';
-    host.removeAttribute('contenteditable');
-    host.removeAttribute('role');
-    host.removeAttribute('aria-multiline');
-
-    const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
-    shadow.innerHTML = `
-        <link rel="stylesheet" href="css/wet-boew.min.css">
-        <link rel="stylesheet" href="css/theme.min.css">
-        <style>
-            * {
-                box-sizing: border-box;
-            }
-
-            :host {
-                display: block;
-                position: relative;
-                height: 100%;
-                min-height: 0;
-                background: #fff;
-                color: #333;
-            }
-
-            .wet-live-editor {
-                min-height: 100%;
-                height: 100%;
-                overflow: auto;
-                padding: 16px;
-                outline: none;
-                background: #fff;
-                color: #333;
-                font-family: "Noto Sans", sans-serif;
-                font-size: 16px;
-                line-height: 1.4375;
-                -webkit-user-select: text;
-                user-select: text;
-            }
-
-            .wet-live-editor:empty::before {
-                content: attr(data-placeholder);
-                color: #6f6f6f;
-            }
-
-            .wet-live-editor h1:first-child {
-                margin-top: 0;
-            }
-
-            .wet-live-editor img {
-                max-width: 100%;
-                height: auto;
-            }
-
-            .wet-live-editor table,
-            .wet-live-editor .table-responsive {
-                transition: outline-color 0.15s ease, box-shadow 0.15s ease;
-            }
-
-            .wet-live-editor table:hover,
-            .wet-live-editor .table-responsive:hover {
-                outline: 2px solid rgba(37,87,214,0.58);
-                outline-offset: 3px;
-                box-shadow: 0 0 0 6px rgba(37,87,214,0.08);
-            }
-
-            .wet-live-editor .review-flagged-component {
-                position: relative;
-            }
-
-            .wet-live-editor .review-flag-button {
-                position: absolute;
-                z-index: 12;
-                top: -7px;
-                left: -7px;
-                display: grid;
-                width: 14px;
-                height: 14px;
-                place-items: center;
-                border: 1px solid #92400e;
-                border-radius: 50%;
-                background: #fff7ed;
-                color: #b45309;
-                font: 700 9px/1 sans-serif;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
-                cursor: pointer;
-                opacity: 0;
-                pointer-events: none;
-                transform: scale(0.88);
-                transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-                -webkit-user-select: none;
-                user-select: none;
-            }
-
-            .wet-live-editor.review-flags-visible .review-flag-button {
-                opacity: 0.6;
-                pointer-events: auto;
-            }
-
-            .wet-live-editor.review-flags-visible .review-flag-button:hover,
-            .wet-live-editor .review-flag-button:focus {
-                opacity: 1;
-                transform: scale(1);
-                outline: 2px solid rgba(37, 87, 214, 0.45);
-                outline-offset: 1px;
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
-            }
-
-            .review-flag-count {
-                position: absolute;
-                top: -7px;
-                right: -8px;
-                min-width: 12px;
-                height: 12px;
-                padding: 0 3px;
-                border-radius: 999px;
-                background: #b45309;
-                color: #fff;
-                font: 700 8px/12px sans-serif;
-                text-align: center;
-            }
-
-            .review-flag-button-error .review-flag-count {
-                background: #b91c1c;
-            }
-
-            .wet-live-editor .review-flag-button-error {
-                border-color: #991b1b;
-                background: #fef2f2;
-                color: #b91c1c;
-            }
-
-            .wet-live-editor .review-flag-target {
-                animation: review-flag-pulse 0.8s ease-in-out 2;
-            }
-
-            @keyframes review-flag-pulse {
-                50% { box-shadow: 0 0 0 7px rgba(180, 83, 9, 0.22); }
-            }
-
-            .table-edit-popover {
-                position: absolute;
-                z-index: 20;
-                display: none;
-                align-items: center;
-                gap: 6px;
-                min-height: 32px;
-                padding: 5px 10px;
-                border: 1px solid rgba(37,87,214,0.36);
-                border-radius: 999px;
-                background: #fff;
-                color: #0f3557;
-                font: 700 0.82rem/1.2 "Noto Sans", sans-serif;
-                box-shadow: 0 10px 26px rgba(16, 24, 40, 0.18);
-                cursor: pointer;
-                -webkit-user-select: none;
-                user-select: none;
-            }
-
-            .table-edit-popover.visible {
-                display: inline-flex;
-            }
-
-            .table-edit-popover:hover,
-            .table-edit-popover:focus {
-                border-color: rgba(37,87,214,0.68);
-                background: #eef4ff;
-                outline: 2px solid rgba(37,87,214,0.24);
-                outline-offset: 1px;
-            }
-
-            .table-edit-popover-icon {
-                position: relative;
-                display: inline-block;
-                width: 15px;
-                height: 15px;
-                border: 1px solid currentColor;
-                border-radius: 2px;
-                background:
-                    linear-gradient(currentColor, currentColor) 0 33% / 100% 1px no-repeat,
-                    linear-gradient(currentColor, currentColor) 0 66% / 100% 1px no-repeat,
-                    linear-gradient(currentColor, currentColor) 33% 0 / 1px 100% no-repeat,
-                    linear-gradient(currentColor, currentColor) 66% 0 / 1px 100% no-repeat;
-            }
-        </style>
-        <div id="wetLiveEditor" class="wet-live-editor" contenteditable="true" role="textbox" aria-multiline="true" tabindex="0"></div>
-        <button type="button" id="tableEditPopover" class="table-edit-popover" aria-label="Edit table">
-            <span class="table-edit-popover-icon" aria-hidden="true"></span>
-            <span>Edit table</span>
-        </button>
-    `;
-
-    const editor = shadow.getElementById('wetLiveEditor');
-    editor.setAttribute('data-placeholder', placeholder);
-    host.setAttribute('tabindex', '0');
-    return editor;
-}
-
 
 /**
  * Optional listeners for the modern dashboard layout.
@@ -906,8 +705,6 @@ function createListeners() {
             addProcessingLog('Could not copy HTML to clipboard.', 'error');
         }
     });
-
-    topBtn.addEventListener('click', Utils.goToTop);
 
     langBtn.addEventListener('click', toggleLanguage);
 
@@ -1898,7 +1695,6 @@ function handleFileInputChange(event) {
 function handleConversion() {
     if (!file || file.files.length === 0) {
         console.warn("No file selected");
-        setFileUploadStatus('No file selected.');
         addProcessingLog('No file selected.', 'warning');
         return;
     }
@@ -1936,20 +1732,17 @@ function processSelectedFile(selectedFile) {
     const validExtension = /\.docx?$/i.test(selectedFile.name);
     if (!validExtension) {
         updateFileDropZoneState(false);
-        setFileUploadStatus('Unsupported file type. Please use a .docx file.');
         addProcessingLog('Unsupported file type. Please use a .docx file.', 'danger');
         return;
     }
 
     if (!getMammothLibrary()) {
-        setFileUploadStatus('Mammoth is not loaded. Check that src/mammoth.browser.js is loading before propel.js.');
         addProcessingLog('Mammoth is not loaded. Check that src/mammoth.browser.js is loading before propel.js.', 'danger');
         return;
     }
 
     getStartTime();
     updateFileDropZoneState(true);
-    setFileUploadStatus(`Selected: ${selectedFile.name}`);
     addProcessingLog(`Started conversion: ${selectedFile.name}`, 'info');
     convertUsingMammoth(selectedFile);
 }
@@ -3796,7 +3589,6 @@ async function convertUsingMammoth(file) {
     const mammothLibrary = getMammothLibrary();
 
     if (!mammothLibrary) {
-        setFileUploadStatus('Mammoth is not loaded.');
         addProcessingLog('Mammoth is not loaded.', 'danger');
         return;
     }
@@ -3854,163 +3646,6 @@ function detectDocxLanguageFromMetadata(arrayBuffer, fileName, mammothLibrary) {
         });
 }
 
-function getLanguageResultFromDocxXml(xmlParts) {
-    const documentCounts = getLanguageCountsFromXml(xmlParts.documentXml || '');
-    const defaultLanguage = getDefaultDocxLanguage(xmlParts.stylesXml || '') ||
-        getDefaultDocxLanguage(xmlParts.settingsXml || '');
-    const explicitLanguage = getExplicitDocumentLanguage(documentCounts, defaultLanguage);
-    const language = explicitLanguage || defaultLanguage;
-
-    if (!language) {
-        return null;
-    }
-
-    return {
-        language,
-        counts: documentCounts,
-        defaultLanguage,
-        explicitLanguage
-    };
-}
-
-function getExplicitDocumentLanguage(languageText, defaultLanguage) {
-    const total = languageText.en + languageText.fr;
-
-    if (total === 0) {
-        return null;
-    }
-
-    const language = languageText.fr > languageText.en ? 'fr' : 'en';
-    const winningCount = languageText[language];
-    const winningShare = winningCount / total;
-
-    if (!defaultLanguage) {
-        return total >= 200 && winningShare >= 0.75 ? language : null;
-    }
-
-    if (language === defaultLanguage) {
-        return language;
-    }
-
-    return winningCount >= 200 && winningShare >= 0.75 ? language : null;
-}
-
-function getDefaultDocxLanguage(xml) {
-    const docDefaultsMatch = xml.match(/<w:docDefaults\b[\s\S]*?<\/w:docDefaults>/i);
-    const docDefaults = docDefaultsMatch ? docDefaultsMatch[0] : '';
-    const defaultLanguage = getFirstPrimaryLanguageFromXml(docDefaults);
-
-    if (defaultLanguage) {
-        return defaultLanguage;
-    }
-
-    const themeLanguageMatch = xml.match(/<w:themeFontLang\b[^>]*>/i);
-    if (themeLanguageMatch) {
-        return getSupportedLanguageCode(getXmlAttribute(themeLanguageMatch[0], 'w:val'));
-    }
-
-    return null;
-}
-
-function getFirstPrimaryLanguageFromXml(xml) {
-    const languageTagPattern = /<w:lang\b[^>]*>/gi;
-    let tagMatch;
-
-    while ((tagMatch = languageTagPattern.exec(xml)) !== null) {
-        const language = getSupportedLanguageCode(getXmlAttribute(tagMatch[0], 'w:val'));
-        if (language) {
-            return language;
-        }
-    }
-
-    return null;
-}
-
-function getLanguageCountsFromXml(xml) {
-    const counts = {
-        en: 0,
-        fr: 0
-    };
-
-    const documentXml = stripNonBodyLanguageXml(xml);
-    const paragraphPattern = /<w:p\b[\s\S]*?<\/w:p>/gi;
-    let paragraphMatch;
-
-    while ((paragraphMatch = paragraphPattern.exec(documentXml)) !== null) {
-        const paragraphXml = paragraphMatch[0];
-        const paragraphProperties = getFirstXmlBlock(paragraphXml, 'w:pPr');
-        const paragraphLanguage = getFirstPrimaryLanguageFromXml(paragraphProperties);
-        const runPattern = /<w:r\b[\s\S]*?<\/w:r>/gi;
-        let runMatch;
-
-        while ((runMatch = runPattern.exec(paragraphXml)) !== null) {
-            const runXml = runMatch[0];
-            const runProperties = getFirstXmlBlock(runXml, 'w:rPr');
-            const runLanguage = getFirstPrimaryLanguageFromXml(runProperties) || paragraphLanguage;
-
-            if (!runLanguage) {
-                continue;
-            }
-
-            counts[runLanguage] += getWordTextLength(runXml);
-        }
-    }
-
-    return counts;
-}
-
-function stripNonBodyLanguageXml(xml) {
-    return xml
-        .replace(/<w:drawing\b[\s\S]*?<\/w:drawing>/gi, '')
-        .replace(/<w:pict\b[\s\S]*?<\/w:pict>/gi, '')
-        .replace(/<mc:AlternateContent\b[\s\S]*?<\/mc:AlternateContent>/gi, '')
-        .replace(/<w:object\b[\s\S]*?<\/w:object>/gi, '');
-}
-
-function getFirstXmlBlock(xml, tagName) {
-    const pattern = new RegExp(`<${tagName}\\b[\\s\\S]*?<\\/${tagName}>`, 'i');
-    const match = xml.match(pattern);
-    return match ? match[0] : '';
-}
-
-function getWordTextLength(xml) {
-    let textLength = 0;
-    const textPattern = /<w:t\b[^>]*>([\s\S]*?)<\/w:t>/gi;
-    let textMatch;
-
-    while ((textMatch = textPattern.exec(xml)) !== null) {
-        textLength += decodeXmlText(textMatch[1]).trim().length;
-    }
-
-    return textLength;
-}
-
-function decodeXmlText(text) {
-    const parser = document.createElement('textarea');
-    parser.innerHTML = text;
-    return parser.value;
-}
-
-function getXmlAttribute(tag, attributeName) {
-    const pattern = new RegExp(`\\s${attributeName}="([^"]+)"`, 'i');
-    const match = tag.match(pattern);
-    return match ? match[1] : '';
-}
-
-function getSupportedLanguageCode(languageCode) {
-    const normalizedLanguageCode = (languageCode || '').toLowerCase();
-
-    if (normalizedLanguageCode === 'en' || normalizedLanguageCode.startsWith('en-')) {
-        return 'en';
-    }
-
-    if (normalizedLanguageCode === 'fr' || normalizedLanguageCode.startsWith('fr-')) {
-        return 'fr';
-    }
-
-    return null;
-}
-
 function applyDetectedDocumentLanguage(languageResult) {
     if (!languageResult) {
         addProcessingLog('No English or French DOCX language metadata found.', 'info');
@@ -4037,7 +3672,6 @@ function handleConvertedHTML(html) {
     const conversionTime = getEndTime();
     if (loading) { loading.classList.add("hidden"); }
 
-    setFileUploadStatus(`Converted successfully.`);
     updateOutputText();
     Utils.scrollSmoothTo(outputSection);
 
@@ -4052,7 +3686,6 @@ function handleConvertedHTML(html) {
  * This is useful after pasting HTML manually, editing the code, or re-running cleanup after import.
  */
 function standardCleanupCommand() {
-    const debug = document.getElementById('debug');
 
     try {
         syncActiveEditorToInputHTML();
@@ -4064,10 +3697,8 @@ function standardCleanupCommand() {
         const { imageSources: imgCount, bookmarks: bookmarkCount, bookmarkLinks: hrefCount } = runStandardCleanup(inputHTML);
 
         updateOutputText();
-        setDebugMessage(debug, 'Standard cleanup successful', false);
         addProcessingLog(`Standard cleanup successful: cleared ${imgCount} image src value(s), removed ${bookmarkCount} Word bookmark anchor(s), cleaned ${hrefCount} Word bookmark href(s), and normalized smart quotes.`, 'success');
     } catch (e) {
-        setDebugMessage(debug, 'Error for Standard cleanup. Input is empty or invalid.', true);
         addProcessingLog('Error for Standard cleanup. Input is empty or invalid.', 'danger');
         console.error(e);
     }
@@ -4077,7 +3708,6 @@ function standardCleanupCommand() {
  * Generate generic unique IDs for headings, tables, and figures
  */
 function addIDsCommand() {
-    const debug = document.getElementById('debug');
     modifiedComponents = [];
     headingIDCount = 0;
     tableIDCount = 0;
@@ -4092,11 +3722,9 @@ function addIDsCommand() {
         }
 
         updateOutputText();
-        setDebugMessage(debug, 'Add IDs successful', false);
         addProcessingLog(`Add IDs successful${onThisPageBox.checked ? ' with On this page generated' : ''}.`, 'success');
 
     } catch (e) {
-        setDebugMessage(debug, 'Error for Add IDs. Check console for details', true);
         addProcessingLog('Error for Add IDs. Check console for details.', 'danger');
         console.error(e);
     }
@@ -4106,17 +3734,14 @@ function addIDsCommand() {
  * Generate WET Style footnotes from inputted HTML code
  */
 function generateFootnotesCommand() {
-    const debug = document.getElementById('debug');
     try {
         syncActiveEditorToInputHTML();
         createBodyFtnTags(inputHTML, langStrings);
         replaceFootnoteSection(inputHTML, langStrings, isEngLang);
         
         updateOutputText();
-        setDebugMessage(debug, 'Generate Footnotes successful', false);
         addProcessingLog('Generate Footnotes successful.', 'success');
     } catch (e) {
-        setDebugMessage(debug, 'Error for Generate Footnotes. Check console for details', true);
         addProcessingLog('Error for Generate Footnotes. Check console for details.', 'danger');
         console.error(e);
     }
@@ -4126,23 +3751,19 @@ function generateFootnotesCommand() {
  * Validate HTML by adding &nbsp; for specified text
  */
 function validateNbspCommand() {
-    const debug = document.getElementById('debug');
     try {
         syncActiveEditorToInputHTML();
         documentStore.replaceHTML(fixNbspHTML(inputHTML.innerHTML, !isEngLang), { source: 'document.fixSpacing' });
         
         updateOutputText();
-        setDebugMessage(debug, 'Validate &nbsp; successful', false);
         addProcessingLog('Validate &nbsp; successful.', 'success');
     } catch (e) {
-        setDebugMessage(debug, 'Error for Validate &nbsp;. Check console for details', true);
         addProcessingLog('Error for Validate &nbsp;. Check console for details.', 'danger');
         console.error(e);
     }
 }
 
 function tableCleanupCommand() {
-    const debug = document.getElementById('debug');
     try {
         syncActiveEditorToInputHTML();
         if (!hasInput()) {
@@ -4152,16 +3773,13 @@ function tableCleanupCommand() {
         const tableCount = inputHTML.querySelectorAll('table').length;
 
         if (tableCount === 0) {
-            setDebugMessage(debug, 'No tables found', false);
             addProcessingLog('No tables found for Table Cleanup.', 'warning');
             return;
         }
 
-        setDebugMessage(debug, 'Table cleanup opened', false);
         addProcessingLog(`Table cleanup opened. Previewing ${tableCount} table(s); changes apply only after pressing Apply.`, 'info');
         openTableEditor(0);
     } catch (e) {
-        setDebugMessage(debug, 'Error for Table Cleanup. Input is empty or invalid.', true);
         addProcessingLog('Error for Table Cleanup. Input is empty or invalid.', 'danger');
         console.error(e);
     }
@@ -4171,7 +3789,6 @@ function tableCleanupCommand() {
  * Splits the HTML into smaller snippets split by H1s. For each snippet, a button will be created.
  */
 function splitByH1Command() {
-    const debug = document.getElementById('debug');
     document.getElementById('splits').innerHTML = "";
     try {
         syncActiveEditorToInputHTML();
@@ -4187,24 +3804,20 @@ function splitByH1Command() {
         }
         updateCodeHighlight();
         updateInputHTML();
-        setDebugMessage(debug, 'Create H1 splits successful', false);
         addProcessingLog(`Create H1 splits successful. Created ${sections.length} section(s).`, 'success');
     } catch (e) {
-        setDebugMessage(debug, 'Error for Create H1 splits. Check console for details', true);
         addProcessingLog('Error for Create H1 splits. Check console for details.', 'danger');
         console.error(e);
     }
 }
 
 function qaHelperCount() {
-    const debug = document.getElementById('debug');
     try {
         syncActiveEditorToInputHTML();
         countTags(inputHTML);
         refreshReviewPanel();
         addProcessingLog('QA Helper count completed.', 'success');
     } catch (e) {
-        setDebugMessage(debug, 'Error for QA Helper Count. Check console for details', true);
         addProcessingLog('Error for QA Helper Count. Check console for details.', 'danger');
         console.error(e);
     }
@@ -4410,15 +4023,6 @@ function scrollLiveToCodeClick(event) {
     scrollLiveElementIntoView(liveElement);
 }
 
-function getCodeEntryForLiveElement(liveElement) {
-    const path = getElementPath(liveElement, liveEditor);
-    if (!path) {
-        return null;
-    }
-
-    return getCodeEntryForPath(path);
-}
-
 function getCodeEntryForPath(path) {
     const pathKey = path.join('.');
     return elementSyncLineMap.find((entry) => entry.pathKey === pathKey) || null;
@@ -4479,157 +4083,6 @@ function updateElementSyncLineMap() {
     }
 
     elementSyncLineMap = buildElementSourceMap(outputText.value);
-}
-
-function buildElementSourceMap(html) {
-    const entries = [];
-    const stack = [];
-    const documentFrame = {
-        path: null,
-        childCount: 0,
-        entry: null
-    };
-    const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
-
-    stack.push(documentFrame);
-
-    let index = 0;
-    while (index < html.length) {
-        const tagStart = html.indexOf('<', index);
-        if (tagStart === -1) {
-            break;
-        }
-
-        if (html.startsWith('<!--', tagStart)) {
-            const commentEnd = html.indexOf('-->', tagStart + 4);
-            index = commentEnd === -1 ? html.length : commentEnd + 3;
-            continue;
-        }
-
-        const tagEnd = getTagEndIndex(html, tagStart);
-        if (tagEnd === -1) {
-            break;
-        }
-
-        const tagSource = html.slice(tagStart, tagEnd + 1);
-        const tagMatch = tagSource.match(/^<\s*(\/?)\s*([A-Za-z][\w:-]*)/);
-        if (!tagMatch) {
-            index = tagEnd + 1;
-            continue;
-        }
-
-        const isClosingTag = tagMatch[1] === '/';
-        const tagName = tagMatch[2].toLowerCase();
-
-        if (isClosingTag) {
-            closeSourceMapEntry(stack, tagName, tagEnd + 1);
-            index = tagEnd + 1;
-            continue;
-        }
-
-        const parentFrame = stack[stack.length - 1] || documentFrame;
-        const childIndex = parentFrame.childCount;
-        parentFrame.childCount += 1;
-        const path = parentFrame.path === null ? [] : parentFrame.path.concat(childIndex);
-        const isRootWrapper = path.length === 0;
-        const isSelfClosing = /\/\s*>$/.test(tagSource) || voidTags.has(tagName);
-        const entry = isRootWrapper ? null : {
-            tagName,
-            path,
-            pathKey: path.join('.'),
-            startIndex: tagStart,
-            openEndIndex: tagEnd + 1,
-            endIndex: tagEnd + 1
-        };
-
-        if (entry) {
-            entries.push(entry);
-        }
-
-        if (!isSelfClosing) {
-            stack.push({
-                tagName,
-                path,
-                childCount: 0,
-                entry
-            });
-        } else if (entry) {
-            entry.endIndex = tagEnd + 1;
-        }
-
-        index = tagEnd + 1;
-    }
-
-    return entries;
-}
-
-function closeSourceMapEntry(stack, tagName, endIndex) {
-    for (let index = stack.length - 1; index > 0; index -= 1) {
-        const frame = stack[index];
-        stack.pop();
-        if (frame.entry) {
-            frame.entry.endIndex = endIndex;
-        }
-        if (frame.tagName === tagName) {
-            return;
-        }
-    }
-}
-
-function getTagEndIndex(html, tagStart) {
-    let quote = null;
-
-    for (let index = tagStart + 1; index < html.length; index += 1) {
-        const char = html[index];
-        if (quote) {
-            if (char === quote) {
-                quote = null;
-            }
-            continue;
-        }
-
-        if (char === '"' || char === "'") {
-            quote = char;
-            continue;
-        }
-
-        if (char === '>') {
-            return index;
-        }
-    }
-
-    return -1;
-}
-
-function getElementPath(element, root) {
-    if (!element || !root || element === root || !root.contains(element)) {
-        return null;
-    }
-
-    const path = [];
-    let current = element;
-
-    while (current && current !== root) {
-        const parent = current.parentElement;
-        if (!parent) {
-            return null;
-        }
-
-        path.unshift(Array.from(parent.children).indexOf(current));
-        current = parent;
-    }
-
-    return path;
-}
-
-function getElementByPath(root, path) {
-    return path.reduce((current, index) => {
-        if (!current || !current.children || !current.children[index]) {
-            return null;
-        }
-
-        return current.children[index];
-    }, root);
 }
 
 function scrollCodeToIndex(codeIndex) {
@@ -4742,7 +4195,6 @@ function clearOutputText() {
     refreshReviewPanel();
 }
 
-function setFileUploadStatus() {}
 
 /**
  * Phase 1 review panel helpers
@@ -5107,7 +4559,6 @@ function hasInput() {
     return inputHTML.textContent.trim() !== '' || inputHTML.children.length > 0;
 }
 
-function setDebugMessage() {}
 
 function isActivityPanelOpen() {
     return Boolean(processingLogPanel && processingLogPanel.classList.contains('open'));
@@ -5178,10 +4629,3 @@ function escapeHTML(value) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
-
-/**
- * Whenever window scrolls, check if Go to Top button should appear
- */
-window.onscroll = () => {
-    Utils.showGoToTopButton();
-};
