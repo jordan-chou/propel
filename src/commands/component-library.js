@@ -233,19 +233,28 @@ function isSourcesCell(cell) {
     return /^sources?\s*:?/i.test(getTextContent(cell));
 }
 
+function isSuperscriptNote(cell) {
+    return /^\s*<sup\b/i.test(cell);
+}
+
 function asSmallParagraph(cell) {
     const content = unwrapTextBlock(cell);
     return `<p class="small">${content}</p>`;
 }
 
 function getChartFields(cells, labels) {
-    const metadataCells = cells.filter(cell => isNotesCell(cell) || isSourcesCell(cell));
+    const parts = cells.flatMap(getCellParts).filter(Boolean);
+    const imageIndex = parts.findIndex(part => /<img\b/i.test(part));
+    const metadataCells = parts.filter(part => isNotesCell(part) || isSourcesCell(part) || isSuperscriptNote(part));
     const notesCell = metadataCells.find(isNotesCell);
     const sourcesCell = metadataCells.find(isSourcesCell);
-    const headingCells = cells.filter(cell => !/<img\b/i.test(cell) && !isNotesCell(cell) && !isSourcesCell(cell));
-    const firstParts = headingCells[0] ? getCellParts(headingCells[0]) : [];
-    let chartNumber = firstParts[0] || labels.chartNumber;
-    let chartTitle = firstParts[1] || (headingCells[1] ? getCellParts(headingCells[1])[0] : '') || labels.chartTitle;
+    const headingParts = parts.filter((part, index) =>
+        !/<img\b/i.test(part) &&
+        !metadataCells.includes(part) &&
+        (imageIndex < 0 || index < imageIndex)
+    );
+    let chartNumber = headingParts[0] || labels.chartNumber;
+    let chartTitle = headingParts[1] || labels.chartTitle;
 
     const combinedHeading = getTextContent(chartNumber);
     const combinedMatch = combinedHeading.match(/^((?:chart|figure|graphique)\s*(?:n[o°.]?|#)?\s*\d+)\s*[:–—-]\s*(.+)$/i);
@@ -262,7 +271,7 @@ function getChartFields(cells, labels) {
         chartTitle,
         heading: `${chartNumber}<br>\n<b>${chartTitle}</b>`,
         footerMetadata,
-        notesLabel: notesCell ? unwrapTextBlock(notesCell) : labels.notes,
+        notesLabel: notesCell ? unwrapTextBlock(notesCell) : (metadataCells.find(isSuperscriptNote) || labels.notes),
         sourcesLabel: sourcesCell ? unwrapTextBlock(sourcesCell) : labels.sources
     };
 }

@@ -135,3 +135,18 @@ test('chart conversion remains compatible with previously stored chart templates
     assert.match(html, /<p>Source: Survey data.<\/p>/);
     assert.doesNotMatch(html, /{{\w+}}/);
 });
+
+test('chart conversion parses paragraph fields from a single Word table cell', () => {
+    const component = defaultComponentLibrary.components.find(item => item.id === 'chart-figure');
+    const source = `<table><tbody><tr><td>
+        <p>Chart 1</p>
+        <p>Budgetary Balance </p>
+        <p><img src=""></p>
+        <p>Sources: <em>Public Accounts of Canada </em>and Statistics Canada.</p>
+        <p><sup>1</sup> In 2017–18, the government changed its methodology.</p>
+    </td></tr></tbody></table>`;
+    const html = applySmartComponent(component, source);
+    assert.match(html, /<figcaption class="panel-heading">Chart 1<br>\s*<b>Budgetary Balance<\/b>/);
+    assert.match(html, /<footer class="panel-footer">[\s\S]*Sources: <em>Public Accounts of Canada <\/em>and Statistics Canada\.[\s\S]*<sup>1<\/sup> In 2017–18/);
+    assert.match(html, /<details class="mrgn-tp-sm">/);
+});
