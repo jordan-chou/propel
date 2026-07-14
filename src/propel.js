@@ -91,6 +91,7 @@ const fileDropZone = document.getElementById('fileDropZone');
 const railUploadBtn = document.getElementById('railUploadBtn');
 const onboardingUploadBtn = document.getElementById('onboardingUploadBtn');
 const editorOnboarding = document.getElementById('editorOnboarding');
+const documentLoader = document.getElementById('loader');
 const liveEditorHost = document.getElementById('liveEditor');
 const liveEditor = createWetLiveEditor(liveEditorHost);
 const editorDropZone = document.getElementById('editorDropZone');
@@ -1927,7 +1928,6 @@ function updateAddIDsSettingsState() {
  * Converts the input text into HTML components for better JavaScript compatibility
  */
 async function convertUsingMammoth(file) {
-    const loading = document.getElementById('loader');
     const mammothLibrary = getMammothLibrary();
 
     if (!mammothLibrary) {
@@ -1935,10 +1935,11 @@ async function convertUsingMammoth(file) {
         return;
     }
 
+    setDocumentLoading(true);
+
     try {
         const arrayBuffer = await readFileAsArrayBuffer(file);
         clearOutputText();
-        if (loading) { loading.classList.remove("hidden"); }
         applyDetectedDocumentLanguage(await detectDocxLanguageFromMetadata(arrayBuffer, file.name, mammothLibrary));
         const { html, messages } = await convertWithMammoth(mammothLibrary, arrayBuffer);
         handleConvertedHTML(html);
@@ -1949,7 +1950,20 @@ async function convertUsingMammoth(file) {
     } catch (error) {
         console.error('Mammoth conversion error:', error);
         addProcessingLog('Mammoth conversion error. Check console for details.', 'danger');
-        if (loading) loading.classList.add('hidden');
+    } finally {
+        setDocumentLoading(false);
+    }
+}
+
+/** Shows document conversion progress and exposes the busy state to assistive technology. */
+function setDocumentLoading(isLoading) {
+    if (documentLoader) {
+        documentLoader.classList.toggle('hidden', !isLoading);
+        documentLoader.setAttribute('aria-hidden', String(!isLoading));
+    }
+
+    if (editorDropZone) {
+        editorDropZone.setAttribute('aria-busy', String(isLoading));
     }
 }
 
@@ -2008,14 +2022,11 @@ function applyDetectedDocumentLanguage(languageResult) {
  * @param {String} html HTML represented as a String
  */
 function handleConvertedHTML(html) {
-    const loading = document.getElementById('loader');
     documentStore.replaceHTML(html, { source: 'conversion' });
 
     const { imageSources: imgCount, bookmarks: bookmarkCount, bookmarkLinks: hrefCount } = runStandardCleanup(inputHTML);
 
     const conversionTime = getEndTime();
-    if (loading) { loading.classList.add("hidden"); }
-
     updateOutputText();
     Utils.scrollSmoothTo(outputSection);
 

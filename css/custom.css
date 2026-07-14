@@ -76,78 +76,6 @@
   background-color: #f5fbff;
 }
 
-/* Loading */
-#loader {
-  z-index: 1000;
-  position: absolute;
-  top: calc(47% - 32px);
-  left: calc(50% - 32px);
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  perspective: 800px;
-}
-
-.inner {
-  position: absolute;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-}
-
-.inner.one {
-  left: 0%;
-  top: 0%;
-  animation: rotate-one 1s linear infinite;
-  border-bottom: 3px solid #6e91b1;
-}
-
-.inner.two {
-  right: 0%;
-  top: 0%;
-  animation: rotate-two 1s linear infinite;
-  border-right: 3px solid #6e91b1;
-  /* border-right: 3px solid #EFEFFA; */
-}
-
-.inner.three {
-  right: 0%;
-  bottom: 0%;
-  animation: rotate-three 1s linear infinite;
-  border-top: 3px solid #6e91b1;
-}
-
-@keyframes rotate-one {
-  0% {
-    transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg);
-  }
-
-  100% {
-    transform: rotateX(35deg) rotateY(-45deg) rotateZ(360deg);
-  }
-}
-
-@keyframes rotate-two {
-  0% {
-    transform: rotateX(50deg) rotateY(10deg) rotateZ(0deg);
-  }
-
-  100% {
-    transform: rotateX(50deg) rotateY(10deg) rotateZ(360deg);
-  }
-}
-
-@keyframes rotate-three {
-  0% {
-    transform: rotateX(35deg) rotateY(55deg) rotateZ(0deg);
-  }
-
-  100% {
-    transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg);
-  }
-}
-
 /* Propel workspace */
 :root {
     --font-sans: Aptos, "Inter", "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -3012,13 +2940,30 @@ textarea {
     background: rgba(11, 16, 32, 0.28);
 }
 
-#loader::after {
-    content: "Converting...";
-    padding: 16px 22px;
-    border-radius: 999px;
+.loader-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: 4px;
     background: #fff;
     box-shadow: var(--shadow);
     font-weight: 800;
+}
+
+.loader-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    animation: propel-logo-spin 900ms linear infinite;
+}
+
+@keyframes propel-logo-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loader-logo { animation: none; }
 }
 
 @media (max-width: 767px) {
@@ -3637,8 +3582,7 @@ textarea:focus {
 
 #loader { background: rgba(10, 22, 52, 0.5); }
 
-#loader::after {
-    border-radius: 4px;
+.loader-content {
     background: #f8faff;
     color: #172f60;
 }

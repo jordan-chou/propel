@@ -444,7 +444,12 @@
 
     <div class="option-tooltip" id="optionTooltip" role="tooltip" hidden></div>
 
-    <div id="loader" class="hidden"><div class="inner one"></div><div class="inner two"></div><div class="inner three"></div></div>
+    <div id="loader" class="hidden" role="status" aria-live="polite" aria-hidden="true">
+        <div class="loader-content">
+            <img class="loader-logo" src="logo.png" alt="">
+            <span>Loading document&hellip;</span>
+        </div>
+    </div>
 
     <textarea class="wb-inv" id="copyArea"></textarea>
     <div id="htmlPreview" class="wb-inv"></div>
