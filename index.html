@@ -28,15 +28,14 @@
                 <a class="workflow-tab" href="#cleanSection" data-workflow-tab>2. Clean</a>
                 <a class="workflow-tab" href="#enhanceSection" data-workflow-tab>3. Enhance</a>
                 <a class="workflow-tab" href="#qaSection" data-workflow-tab>4. QA</a>
-                <a class="workflow-tab" href="#exportSection" data-workflow-tab>5. Export</a>
             </nav>
 
             <div class="header-actions">
                 <span id="healthScore" class="label label-default" role="button" tabindex="0" aria-controls="processingLogPanel" title="Open review panel">Not checked</span>
                 <button type="button" class="btn btn-sm" id="activityToggleBtn" aria-expanded="false" aria-controls="processingLogPanel">Activity</button>
-                <button type="button" class="btn btn-sm icon-btn" id="shortcutHelpBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="shortcutHelpDialog" title="Keyboard shortcuts">
+                <button type="button" class="btn btn-sm icon-btn" id="shortcutHelpBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="shortcutHelpDialog" title="Propel help and shortcuts">
                     <span class="question-icon" aria-hidden="true">?</span>
-                    <span class="wb-inv">Keyboard shortcuts</span>
+                    <span class="wb-inv">Open Propel cheatsheet</span>
                 </button>
                 <button type="button" class="language-switch" id="langBtn" role="switch" aria-checked="true" title="Toggle command language">
                     <span class="language-switch-option active" data-language-option="en">EN</span>
@@ -153,16 +152,6 @@
                             </div>
                         </section>
 
-                        <section class="workflow-section wb-inv" id="exportSection">
-                            <p class="section-kicker">Export</p>
-                            <div class="command-card">
-                                <strong>Split by H1</strong>
-                                <p>Create copy buttons for each section.</p>
-                                <button type="button" class="btn btn-primary btn-full" id="splitBtn" title="Split the HTML by H1s">Create H1 splits</button>
-                                <label><span id="splitCopiedLabel" class="wb-inv label label-success">Chapter copied</span></label>
-                                <div id="splits"></div>
-                            </div>
-                        </section>
                         </div>
                         <div class="rail-copy-action">
                             <button type="button" id="copyBtn" class="btn btn-sm btn-primary">
@@ -267,10 +256,34 @@
     <div class="modal-backdrop" id="shortcutHelpBackdrop"></div>
     <section class="shortcut-dialog" id="shortcutHelpDialog" role="dialog" aria-modal="true" aria-labelledby="shortcutHelpTitle" hidden>
         <div class="dialog-header">
-            <h2 id="shortcutHelpTitle">Keyboard shortcuts</h2>
+            <h2 id="shortcutHelpTitle">Propel cheatsheet</h2>
             <button type="button" class="btn btn-xs" id="shortcutHelpCloseBtn">Close</button>
         </div>
-        <div class="shortcut-groups">
+        <div class="cheatsheet-tabs" role="tablist" aria-label="Cheatsheet sections">
+            <button type="button" id="cheatsheetInstructionsTab" role="tab" aria-selected="true" aria-controls="cheatsheetInstructionsPanel" tabindex="0" data-cheatsheet-tab="instructions">Instructions</button>
+            <button type="button" id="cheatsheetTipsTab" role="tab" aria-selected="false" aria-controls="cheatsheetTipsPanel" tabindex="-1" data-cheatsheet-tab="tips">Tips</button>
+            <button type="button" id="cheatsheetShortcutsTab" role="tab" aria-selected="false" aria-controls="cheatsheetShortcutsPanel" tabindex="-1" data-cheatsheet-tab="shortcuts">Keyboard shortcuts</button>
+        </div>
+        <section class="cheatsheet-panel" id="cheatsheetInstructionsPanel" role="tabpanel" aria-labelledby="cheatsheetInstructionsTab" data-cheatsheet-panel="instructions">
+            <ol class="cheatsheet-steps">
+                <li><strong>Open a Word document.</strong><span>Choose a .doc or .docx file, or drop it into the editor.</span></li>
+                <li><strong>Review and edit.</strong><span>Use Live view for visual editing and Code view for direct HTML changes. Both views stay synchronized.</span></li>
+                <li><strong>Enhance the markup.</strong><span>Use the tools to add IDs, generate footnotes, validate non-breaking spaces, and clean tables.</span></li>
+                <li><strong>Check the result.</strong><span>Open Activity and review the Report and Review tabs for structural issues.</span></li>
+                <li><strong>Copy the HTML.</strong><span>When the document is ready, select Copy HTML at the bottom of the Tools panel.</span></li>
+            </ol>
+        </section>
+        <section class="cheatsheet-panel" id="cheatsheetTipsPanel" role="tabpanel" aria-labelledby="cheatsheetTipsTab" data-cheatsheet-panel="tips" hidden>
+            <ul class="cheatsheet-tips">
+                <li>Run cleanup tools after the document is imported so they work from the converted HTML.</li>
+                <li>Use undo and redo in whichever editor or table editor is currently active.</li>
+                <li>Check both Live and Code views after structural changes such as footnotes or table cleanup.</li>
+                <li>Use the language switch before generating language-specific publishing text.</li>
+                <li>Resolve items in the Review panel before copying the final HTML.</li>
+            </ul>
+        </section>
+        <section class="cheatsheet-panel" id="cheatsheetShortcutsPanel" role="tabpanel" aria-labelledby="cheatsheetShortcutsTab" data-cheatsheet-panel="shortcuts" hidden>
+            <div class="shortcut-groups">
             <section>
                 <h3>History</h3>
                 <dl class="shortcut-list">
@@ -311,7 +324,8 @@
                     <div><dt><span class="shortcut-command">Wrap with tag</span></dt><dd><kbd data-shortcut-key="alternate">Alt</kbd><kbd>W</kbd></dd></div>
                 </dl>
             </section>
-        </div>
+            </div>
+        </section>
     </section>
 
     <section class="table-editor-dialog" id="tableEditorDialog" role="dialog" aria-labelledby="tableEditorTitle" hidden>
@@ -453,7 +467,6 @@
 
     <textarea class="wb-inv" id="copyArea"></textarea>
     <div id="htmlPreview" class="wb-inv"></div>
-    <textarea id="splitHTML" class="wb-inv"></textarea>
     <input id="submitBtn" class="wb-inv" type="button" value="Convert">
     <label class="wb-inv"><input id="budgetOption" type="checkbox">Budget</label>
     <h2 id="commandsLabel" class="wb-inv">Commands</h2>

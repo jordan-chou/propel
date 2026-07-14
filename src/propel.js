@@ -8,7 +8,6 @@
 /* Import JS */
 import { modifyHeadings, modifyFigures, modifyTables, createOnThisPage } from './commands/anchors-aweigh.js';
 import { createBodyFtnTags, replaceFootnoteSection } from './commands/footnote-generator.js';
-import { splitH1s, createSplitButton } from './commands/split-h1s.js';
 import { fixNbspHTML } from './commands/nbsp.js';
 import { cleanupTable, defaultTableCleanupOptions, renameTag } from './commands/table-cleanup.js';
 import { collapseAll, setCodeTheme, countTags, qaHelperTagsDefault, setUpPresetBtns } from './commands/qa-helper.js';
@@ -51,7 +50,6 @@ const addIDsBtn = document.getElementById('addIDsBtn');
 const footnotesBtn = document.getElementById('footnotesBtn');
 const nbspBtn = document.getElementById('nbspBtn');
 const tableCleanupBtn = document.getElementById('tableCleanupBtn');
-const splitBtn = document.getElementById('splitBtn');
 const addIDsSettingsBtn = document.getElementById('addIDsSettingsBtn');
 const addIDsSettingsCloseBtn = document.getElementById('addIDsSettingsCloseBtn');
 const addIDsApplyBtn = document.getElementById('addIDsApplyBtn');
@@ -136,8 +134,7 @@ const commandRegistry = new CommandRegistry()
     .register('document.addIds', { label: 'Add IDs', execute: addIDsCommand })
     .register('document.generateFootnotes', { label: 'Generate footnotes', execute: generateFootnotesCommand })
     .register('document.fixSpacing', { label: 'Validate non-breaking spaces', execute: validateNbspCommand })
-    .register('table.openCleanup', { label: 'Table cleanup', execute: tableCleanupCommand })
-    .register('document.splitHeadings', { label: 'Create H1 splits', execute: splitByH1Command });
+    .register('table.openCleanup', { label: 'Table cleanup', execute: tableCleanupCommand });
 
 /* Global Variables */
 // Elapsed time
@@ -760,8 +757,7 @@ function createListeners() {
         [standardCleanupBtn, 'Standard cleanup'],
         [addIDsApplyBtn, 'Add IDs'],
         [footnotesBtn, 'Generate footnotes'],
-        [nbspBtn, 'Validate non-breaking spaces'],
-        [splitBtn, 'Create H1 splits']
+        [nbspBtn, 'Validate non-breaking spaces']
     ].forEach(([button, commandLabel]) => {
         if (!button) {
             return;
@@ -789,7 +785,6 @@ function createListeners() {
     footnotesBtn.addEventListener('click', () => commandRegistry.execute('document.generateFootnotes'));
     nbspBtn.addEventListener('click', () => commandRegistry.execute('document.fixSpacing'));
     tableCleanupBtn.addEventListener('click', () => commandRegistry.execute('table.openCleanup'));
-    splitBtn.addEventListener('click', () => commandRegistry.execute('document.splitHeadings'));
 
     // QA Helper buttons
     countBtn.addEventListener('click', qaHelperCount);
@@ -2137,32 +2132,6 @@ function tableCleanupCommand() {
         tableEditor.open(0);
     } catch (e) {
         addProcessingLog('Error for Table Cleanup. Input is empty or invalid.', 'danger');
-        console.error(e);
-    }
-}
-
-/**
- * Splits the HTML into smaller snippets split by H1s. For each snippet, a button will be created.
- */
-function splitByH1Command() {
-    document.getElementById('splits').innerHTML = "";
-    try {
-        syncActiveEditorToInputHTML();
-        const splits = document.getElementById('splits');
-
-        splits.innerHTML = "";
-        var sections = splitH1s(inputHTML);
-        outputText.value = "";
-        for (var s of sections) {
-            createOnThisPage(s, isEngLang);
-            createSplitButton(s);
-            outputText.value += Utils.formattedHTML(s);
-        }
-        updateCodeHighlight();
-        updateInputHTML();
-        addProcessingLog(`Create H1 splits successful. Created ${sections.length} section(s).`, 'success');
-    } catch (e) {
-        addProcessingLog('Error for Create H1 splits. Check console for details.', 'danger');
         console.error(e);
     }
 }

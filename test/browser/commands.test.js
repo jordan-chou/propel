@@ -10,10 +10,48 @@ import {
     setManualHeaderRelationship
 } from '../../src/table-editor/scoping.js';
 import { renameTag } from '../../src/commands/table-cleanup.js';
+import { createDrawerControllers } from '../../src/ui/drawers.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
 function equal(actual, expected) { if (actual !== expected) throw new Error(`Expected ${expected}; received ${actual}`); }
+
+test('cheatsheet starts on Instructions and preserves the selected tab', () => {
+    const host = document.createElement('div');
+    host.innerHTML = `
+        <button data-toggle>Help</button>
+        <div data-backdrop></div>
+        <section data-dialog hidden>
+            <button data-close>Close</button>
+            <button data-cheatsheet-tab="instructions" aria-selected="true">Instructions</button>
+            <button data-cheatsheet-tab="tips" aria-selected="false">Tips</button>
+            <section data-cheatsheet-panel="instructions"></section>
+            <section data-cheatsheet-panel="tips" hidden></section>
+        </section>`;
+    document.body.append(host);
+    const dialog = host.querySelector('[data-dialog]');
+    const toggleButton = host.querySelector('[data-toggle]');
+    const controller = createDrawerControllers({
+        activity: {},
+        shortcuts: {
+            dialog,
+            toggleButton,
+            closeButton: host.querySelector('[data-close]'),
+            backdrop: host.querySelector('[data-backdrop]')
+        }
+    });
+    controller.bind();
+
+    toggleButton.click();
+    equal(host.querySelector('[data-cheatsheet-tab="instructions"]').getAttribute('aria-selected'), 'true');
+    host.querySelector('[data-cheatsheet-tab="tips"]').click();
+    equal(host.querySelector('[data-cheatsheet-panel="tips"]').hidden, false);
+    controller.shortcuts.close();
+    controller.shortcuts.open();
+    equal(host.querySelector('[data-cheatsheet-tab="tips"]').getAttribute('aria-selected'), 'true');
+    equal(host.querySelector('[data-cheatsheet-panel="tips"]').hidden, false);
+    host.remove();
+});
 
 test('English footnote return text is preserved', () => {
     const root = document.createElement('div');

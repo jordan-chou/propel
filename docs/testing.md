@@ -9,7 +9,7 @@ Before merging a structural refactor, manually verify with `test/test-document-d
 1. Import completes and language detection does not block conversion.
 2. Live and code edits synchronize in both directions.
 3. Undo and redo restore command and typing changes.
-4. Add IDs, footnotes, spacing, split, and copy behave as before.
+4. Add IDs, footnotes, spacing, and copy behave as before.
 5. Table cleanup opens, supports selection and formatting, applies changes, and cancels safely.
 6. Review counts, issue navigation, outline filters, and flags update after edits.
 7. English/French switching changes relevant generated publishing text.

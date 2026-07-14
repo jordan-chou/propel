@@ -15,7 +15,6 @@ The application runs locally in the browser and currently has no production buil
 - Cleans and interactively edits complex tables.
 - Reports structural issues such as missing IDs, empty links, heading-level skips, unclean tables, and missing image `alt` attributes.
 - Supports document and table-editor undo/redo.
-- Splits documents by first-level headings and copies the resulting HTML.
 
 ## Running locally
 

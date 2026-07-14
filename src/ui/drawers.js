@@ -34,6 +34,39 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
         });
     }
 
+    function selectCheatsheetTab(tabName, { focus = false } = {}) {
+        if (!shortcuts.dialog) return;
+        const tabs = Array.from(shortcuts.dialog.querySelectorAll('[data-cheatsheet-tab]'));
+        const selectedTab = tabs.find((tab) => tab.dataset.cheatsheetTab === tabName) || tabs[0];
+        if (!selectedTab) return;
+
+        tabs.forEach((tab) => {
+            const isSelected = tab === selectedTab;
+            tab.setAttribute('aria-selected', String(isSelected));
+            tab.tabIndex = isSelected ? 0 : -1;
+        });
+        shortcuts.dialog.querySelectorAll('[data-cheatsheet-panel]').forEach((panel) => {
+            panel.hidden = panel.dataset.cheatsheetPanel !== selectedTab.dataset.cheatsheetTab;
+        });
+        if (focus) selectedTab.focus();
+    }
+
+    function handleCheatsheetTabKeydown(event) {
+        const currentTab = event.target.closest('[data-cheatsheet-tab]');
+        if (!currentTab || !shortcuts.dialog) return;
+        const tabs = Array.from(shortcuts.dialog.querySelectorAll('[data-cheatsheet-tab]'));
+        const currentIndex = tabs.indexOf(currentTab);
+        let nextIndex = null;
+
+        if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+        if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = tabs.length - 1;
+        if (nextIndex === null) return;
+        event.preventDefault();
+        selectCheatsheetTab(tabs[nextIndex].dataset.cheatsheetTab, { focus: true });
+    }
+
     function openShortcuts() {
         if (!shortcuts.dialog) return;
         shortcutPreviousFocus = document.activeElement;
@@ -80,6 +113,10 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
         shortcuts.closeButton?.addEventListener('click', closeShortcuts);
         shortcuts.backdrop?.addEventListener('click', closeShortcuts);
         shortcuts.dialog?.addEventListener('keydown', handleShortcutKeydown);
+        shortcuts.dialog?.querySelectorAll('[data-cheatsheet-tab]').forEach((tab) => {
+            tab.addEventListener('click', () => selectCheatsheetTab(tab.dataset.cheatsheetTab));
+            tab.addEventListener('keydown', handleCheatsheetTabKeydown);
+        });
         updateShortcutPlatform();
     }
 

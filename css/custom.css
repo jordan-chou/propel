@@ -710,6 +710,56 @@ textarea {
     text-transform: uppercase;
 }
 
+.cheatsheet-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.cheatsheet-tabs button {
+    padding: 8px 12px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.cheatsheet-tabs button:hover,
+.cheatsheet-tabs button:focus-visible {
+    color: var(--primary);
+}
+
+.cheatsheet-tabs button[aria-selected="true"] {
+    border-bottom-color: var(--primary);
+    color: var(--primary);
+}
+
+.cheatsheet-panel[hidden] {
+    display: none;
+}
+
+.cheatsheet-steps,
+.cheatsheet-tips {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 24px;
+}
+
+.cheatsheet-steps li,
+.cheatsheet-tips li {
+    padding-left: 4px;
+}
+
+.cheatsheet-steps span {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+}
+
 .table-editor-dialog {
     position: fixed;
     top: var(--header-height);
@@ -2916,13 +2966,6 @@ textarea {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-}
-
-#splits {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 10px 0 0;
 }
 
 .hidden,
