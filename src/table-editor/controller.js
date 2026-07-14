@@ -1,6 +1,7 @@
 import { buildCellGrid, getCellPosition } from './model.js';
 import { toggleCellsBold, toggleRowsActive } from './formatting.js';
 import { moveRowsToTableFooter } from './footer.js';
+import { classifyTableCaptionLabels } from './caption-suggestions.js';
 import {
     applyTableScopes,
     hasHeaderRelationship,
@@ -1285,24 +1286,36 @@ export function createTableEditorController(config) {
         });
     
         const suggestions = {};
-        const numberPattern = /^(?:table|tableau)\s+(?:no\.?\s*)?(?:\d+|[ivxlcdm]+)(?:[.\-:]|\b)/i;
-        const unitPattern = /^(?:units?|unit[eé]s?)\s*[:\-]|^(?:per\s+cent|percent(?:age)?|pour\s+cent|pourcentage)\b|^(?:in\s+|en\s+)?(?:thousands?|millions?|billions?|milliers?|milliards?)(?:\s+of|\s+de)?\b|^\([^)]*(?:[$€£%]|dollars?|euros?|per\s+cent|percent(?:age)?|pour\s+cent|pourcentage|millions?|billions?|milliers?|milliards?)[^)]*\)$/i;
-    
-        candidates.forEach((candidate) => {
-            if (!suggestions.number && numberPattern.test(candidate.text)) {
-                suggestions.number = candidate;
-            } else if (!suggestions.unit && unitPattern.test(candidate.text)) {
-                suggestions.unit = candidate;
+        const groups = ['document', 'table'].map((sourceType) => (
+            candidates.filter((candidate) => candidate.sourceType === sourceType)
+        ));
+        let fallbackUnit = null;
+
+        for (const group of groups) {
+            const classification = classifyTableCaptionLabels(group.map((candidate) => candidate.text));
+            if (classification.unit !== undefined && !fallbackUnit) {
+                fallbackUnit = group[classification.unit];
             }
-        });
-    
-        // A free-form line is only proposed as a title when nearby number/unit text
-        // makes the group look like table metadata rather than ordinary body copy.
-        if (suggestions.number || suggestions.unit) {
+            if (classification.number === undefined) {
+                continue;
+            }
+
+            suggestions.number = group[classification.number];
+            if (classification.title !== undefined && group[classification.title].text.length <= 240) {
+                suggestions.title = group[classification.title];
+            }
+            if (classification.unit !== undefined) {
+                suggestions.unit = group[classification.unit];
+            }
+            break;
+        }
+
+        suggestions.unit ||= fallbackUnit;
+
+        // Preserve the prior fallback for an explicit unit next to a free-form title.
+        if (!suggestions.title && suggestions.unit) {
             suggestions.title = candidates.find((candidate) => (
-                candidate !== suggestions.number
-                && candidate !== suggestions.unit
-                && candidate.text.length <= 240
+                candidate !== suggestions.unit && candidate.text.length <= 240
             ));
         }
     
