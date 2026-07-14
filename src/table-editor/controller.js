@@ -1933,13 +1933,9 @@ export function createTableEditorController(config) {
     /** Opens the shared component chooser for the table currently being edited. */
     function openActiveTableComponentLibrary() {
         const item = getTableEditorItems()[tableEditorIndex];
-        const editedContainer = getTableEditorContainer();
-        if (!item || !editedContainer || typeof openComponentLibraryForTable !== 'function') return;
-        const cleanClone = editedContainer.cloneNode(true);
-        clearScopeVisualization(cleanClone);
-        cleanClone.querySelectorAll('.selected').forEach(element => element.classList.remove('selected'));
+        if (!item || typeof openComponentLibraryForTable !== 'function') return;
         openComponentLibraryForTable({
-            html: cleanClone.outerHTML,
+            html: item.container.outerHTML,
             anchor: tableEditorComponentBtn,
             apply(convertedHTML) {
                 item.container.outerHTML = convertedHTML;

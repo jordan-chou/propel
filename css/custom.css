@@ -924,8 +924,9 @@ textarea {
     text-transform: uppercase;
 }
 
-#componentPreviewTitle:empty {
-    display: none;
+#componentPreviewTitle {
+    display: block;
+    min-height: 1.25em;
 }
 
 .component-preview-panel iframe {
