@@ -2130,7 +2130,8 @@ function processSelectedFile(selectedFile) {
 
 /** Dismisses UI tied to the previous document before a new upload begins. */
 function closeOpenUIForFileUpload() {
-    drawers.closeAll();
+    drawers.activity.setOpen(false);
+    drawers.shortcuts.close();
     closeAddIDsSettings();
     closeComponentLibrary();
     tableEditor.close();

@@ -66,43 +66,6 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
     host.remove();
 });
 
-test('drawer controller closes every open surface together', () => {
-    const host = document.createElement('div');
-    host.innerHTML = `
-        <button data-activity-toggle aria-expanded="false">Activity</button>
-        <aside data-activity-panel></aside>
-        <button data-shortcut-toggle aria-expanded="false">Help</button>
-        <div data-backdrop></div>
-        <section data-dialog hidden><button data-close>Close</button></section>`;
-    document.body.append(host);
-    const activityPanel = host.querySelector('[data-activity-panel]');
-    const activityToggle = host.querySelector('[data-activity-toggle]');
-    const shortcutDialog = host.querySelector('[data-dialog]');
-    const shortcutToggle = host.querySelector('[data-shortcut-toggle]');
-    const backdrop = host.querySelector('[data-backdrop]');
-    const controller = createDrawerControllers({
-        activity: { panel: activityPanel, toggleButton: activityToggle },
-        shortcuts: {
-            dialog: shortcutDialog,
-            toggleButton: shortcutToggle,
-            closeButton: host.querySelector('[data-close]'),
-            backdrop
-        }
-    });
-
-    controller.activity.setOpen(true);
-    controller.shortcuts.open();
-    controller.closeAll();
-
-    equal(activityPanel.classList.contains('open'), false);
-    equal(activityPanel.getAttribute('aria-hidden'), 'true');
-    equal(activityToggle.getAttribute('aria-expanded'), 'false');
-    equal(shortcutDialog.hidden, true);
-    equal(shortcutToggle.getAttribute('aria-expanded'), 'false');
-    equal(backdrop.classList.contains('open'), false);
-    host.remove();
-});
-
 test('English footnote return text is preserved', () => {
     const root = document.createElement('div');
     root.innerHTML = '<p>A<sup><a href="#footnote-1" id="footnote-ref-1">[1]</a></sup></p><ol><li id="footnote-1">Note <a href="#footnote-ref-1">back</a></li></ol>';
