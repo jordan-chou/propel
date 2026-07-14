@@ -2554,8 +2554,6 @@ textarea {
     overflow: scroll;
     color: #d7deea;
     pointer-events: none;
-    opacity: 1;
-    transition: opacity 140ms ease-out;
 }
 
 #codeHighlight code {
@@ -2590,7 +2588,6 @@ textarea {
 .code-editor.is-typing #codeHighlight,
 .code-editor.is-resizing #codeHighlight {
     visibility: hidden;
-    opacity: 0;
 }
 
 .code-editor.is-typing #outputText,
@@ -3428,7 +3425,6 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
     .loader-logo { animation: none; }
-    #codeHighlight { transition: none; }
 }
 
 @media (max-width: 767px) {
