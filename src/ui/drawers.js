@@ -124,6 +124,10 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
 
     return {
         bind,
+        closeAll() {
+            setActivityOpen(false);
+            closeShortcuts();
+        },
         activity: { isOpen: isActivityOpen, setOpen: setActivityOpen },
         shortcuts: { open: openShortcuts, close: closeShortcuts }
     };

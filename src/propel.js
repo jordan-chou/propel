@@ -2108,6 +2108,8 @@ function processSelectedFile(selectedFile) {
         return;
     }
 
+    closeOpenUIForFileUpload();
+
     const validExtension = /\.docx?$/i.test(selectedFile.name);
     if (!validExtension) {
         updateFileDropZoneState(false);
@@ -2124,6 +2126,15 @@ function processSelectedFile(selectedFile) {
     updateFileDropZoneState(true);
     addProcessingLog(`Started conversion: ${selectedFile.name}`, 'info');
     convertUsingMammoth(selectedFile);
+}
+
+/** Dismisses UI tied to the previous document before a new upload begins. */
+function closeOpenUIForFileUpload() {
+    drawers.closeAll();
+    closeAddIDsSettings();
+    closeComponentLibrary();
+    tableEditor.close();
+    tableEditor.hideLiveTablePopover();
 }
 
 /** Refreshes file drop zone state. */
