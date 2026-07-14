@@ -104,3 +104,19 @@ test('chart conversion keeps the source table in the text version', () => {
     assert.match(html, /<summary>Text version<\/summary>[\s\S]*<table[^>]*data-propel-component-source="true"/);
     assert.match(html, /img-responsive full-width/);
 });
+
+test('chart conversion maps number, title, notes, and sources into guide positions', () => {
+    const component = defaultComponentLibrary.components.find(item => item.id === 'chart-figure');
+    const source = '<table><tr><td><p>Chart 7</p><p>Revenue by year</p></td></tr><tr><td><img src="chart.png" alt="Chart 7: Revenue by year"></td></tr><tr><td><p>Sources: Departmental data</p></td></tr><tr><td><p>Notes: Values are rounded.</p></td></tr></table>';
+    const html = applySmartComponent(component, source);
+    assert.match(html, /<figcaption class="panel-heading">Chart 7<br>\s*<b>Revenue by year<\/b>/);
+    assert.match(html, /<footer class="panel-footer">[\s\S]*Sources: Departmental data[\s\S]*Notes: Values are rounded.[\s\S]*<details/);
+});
+
+test('French chart conversion recognizes French metadata labels', () => {
+    const component = defaultComponentLibrary.components.find(item => item.id === 'chart-figure');
+    const source = '<table><tr><td>Graphique 2</td><td>Revenus annuels</td><td>Remarque : Valeurs arrondies.</td><td>Source : Données ministérielles</td></tr></table>';
+    const html = applySmartComponent(component, source, { language: 'fr' });
+    assert.match(html, /Graphique 2<br>\s*<b>Revenus annuels<\/b>/);
+    assert.match(html, /Remarque : Valeurs arrondies.[\s\S]*Source : Données ministérielles[\s\S]*<summary>Version texte/);
+});

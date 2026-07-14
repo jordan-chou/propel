@@ -692,7 +692,31 @@ textarea {
 
 .table-editor-component-action {
     width: 100%;
-    margin-top: 8px;
+    margin: 0 0 12px;
+    min-height: 38px;
+    border-color: #6f8fc7;
+    background: linear-gradient(180deg, #f7faff 0%, #e8f0ff 100%);
+    color: #1d4ed8;
+    font-weight: 750;
+    box-shadow: 0 3px 8px rgba(30, 64, 175, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.table-editor-component-action:hover,
+.table-editor-component-action:focus-visible {
+    border-color: #1d4ed8;
+    background: #2563eb;
+    color: #fff;
+    box-shadow: 0 5px 14px rgba(30, 64, 175, 0.28);
+    transform: translateY(-1px);
+}
+
+.table-editor-component-action:focus-visible {
+    outline: 3px solid rgba(59, 130, 246, 0.28);
+    outline-offset: 2px;
+}
+
+.table-editor-component-action:active {
+    transform: translateY(0);
 }
 
 .component-library-name,
@@ -1209,10 +1233,11 @@ textarea {
 .table-editor-panel {
     display: grid;
     align-content: start;
-    gap: 12px;
+    gap: 0;
     min-height: 0;
-    padding-right: 14px;
-    border-right: 1px solid var(--border);
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     overflow: auto;
 }
 
@@ -1229,10 +1254,11 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     padding: 12px;
-    border: 1px solid rgba(37, 87, 214, 0.12);
+    border: 1px solid rgba(105, 124, 157, 0.32);
     border-radius: 10px;
-    background: var(--surface-2);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(30, 58, 110, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    margin-bottom: 10px;
 }
 
 .table-editor-nav-heading {
@@ -1306,7 +1332,8 @@ textarea {
     grid-column: 1 / -1;
     grid-row: 3;
     gap: 6px;
-    padding: 3px 1px 2px;
+    min-height: 32px;
+    padding: 2px 0 0;
     overflow-x: auto;
     scrollbar-width: thin;
 }
@@ -1343,9 +1370,15 @@ textarea {
     display: grid;
     gap: 10px;
     padding: 10px;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(105, 124, 157, 0.32);
     border-radius: 8px;
-    background: var(--surface-2);
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(30, 58, 110, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    margin-top: 2px;
+}
+
+.table-editor-panel > .form-row {
+    margin: 0 0 10px;
 }
 
 .table-caption-field {
@@ -2009,15 +2042,21 @@ textarea {
     .table-editor-panel {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: end;
-        padding-right: 0;
-        padding-bottom: 12px;
-        border-right: 0;
-        border-bottom: 1px solid var(--border);
+        gap: 10px;
+        padding: 10px;
     }
 
     .table-editor-nav,
+    .table-editor-component-action,
     .table-editor-options {
         grid-column: 1 / -1;
+    }
+
+    .table-editor-component-action,
+    .table-editor-panel > .form-row,
+    .table-editor-options,
+    .table-editor-nav {
+        margin: 0;
     }
 }
 

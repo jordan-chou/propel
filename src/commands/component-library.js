@@ -35,7 +35,7 @@ export const defaultComponentLibrary = Object.freeze({
             name: 'Charts and Figures',
             description: 'Uses the first image as the chart and preserves the table as its accessible text version.',
             conversion: 'chart',
-            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{heading}}</figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n<p class="small">{{notesLabel}}</p>\n<p class="small">{{sourcesLabel}}</p>\n<details class="mrgn-tp-sm">\n<summary>{{textVersionLabel}}</summary>\n{{content}}\n</details>\n</footer>\n</figure>'
+            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{chartNumber}}<br>\n<b>{{chartTitle}}</b></figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n{{footerMetadata}}\n<details class="mrgn-tp-sm">\n<summary>{{textVersionLabel}}</summary>\n{{content}}\n</details>\n</footer>\n</figure>'
         }),
         Object.freeze({
             id: 'charts-double',
@@ -220,11 +220,50 @@ function normalizeChartImage(image) {
     return image.replace(/^<img\b/i, '<img class="img-responsive full-width"');
 }
 
+function getCellParts(cell) {
+    const blocks = Array.from(cell.matchAll(/<(?:p|h[1-6]|div)\b[^>]*>([\s\S]*?)<\/(?:p|h[1-6]|div)>/gi), match => match[1].trim()).filter(Boolean);
+    return blocks.length > 0 ? blocks : [unwrapTextBlock(cell)];
+}
+
+function isNotesCell(cell) {
+    return /^(?:notes?|remarques?)\s*:?/i.test(getTextContent(cell));
+}
+
+function isSourcesCell(cell) {
+    return /^sources?\s*:?/i.test(getTextContent(cell));
+}
+
+function asSmallParagraph(cell) {
+    const content = unwrapTextBlock(cell);
+    return `<p class="small">${content}</p>`;
+}
+
+function getChartFields(cells, labels) {
+    const metadataCells = cells.filter(cell => isNotesCell(cell) || isSourcesCell(cell));
+    const headingCells = cells.filter(cell => !/<img\b/i.test(cell) && !isNotesCell(cell) && !isSourcesCell(cell));
+    const firstParts = headingCells[0] ? getCellParts(headingCells[0]) : [];
+    let chartNumber = firstParts[0] || labels.chartNumber;
+    let chartTitle = firstParts[1] || (headingCells[1] ? getCellParts(headingCells[1])[0] : '') || labels.chartTitle;
+
+    const combinedHeading = getTextContent(chartNumber);
+    const combinedMatch = combinedHeading.match(/^((?:chart|figure|graphique)\s*(?:n[o°.]?|#)?\s*\d+)\s*[:–—-]\s*(.+)$/i);
+    if (combinedMatch && chartTitle === labels.chartTitle) {
+        chartNumber = combinedMatch[1];
+        chartTitle = combinedMatch[2];
+    }
+
+    const footerMetadata = metadataCells.length > 0
+        ? metadataCells.map(asSmallParagraph).join('\n')
+        : `<p class="small">${labels.notes}</p>\n<p class="small">${labels.sources}</p>`;
+    return { chartNumber, chartTitle, footerMetadata };
+}
+
 export function applySmartComponent(component, selectedHTML, { language = 'en' } = {}) {
     const isFrench = language === 'fr';
     const labels = {
         heading: isFrench ? 'Titre' : 'Heading',
-        chartHeading: isFrench ? 'Graphique no<br><b>Titre du graphique</b>' : 'Chart #<br><b>Chart title</b>',
+        chartNumber: isFrench ? 'Graphique no' : 'Chart #',
+        chartTitle: isFrench ? 'Titre du graphique' : 'Chart title',
         notes: 'Notes',
         sources: 'Sources',
         textVersion: isFrench ? 'Version texte' : 'Text version',
@@ -248,16 +287,15 @@ export function applySmartComponent(component, selectedHTML, { language = 'en' }
         const images = Array.from(selectedHTML.matchAll(/<img\b[^>]*>/gi), match => normalizeChartImage(match[0]));
         const textVersion = /<table\b/i.test(selectedHTML) ? componentSourceHTML : asParagraph(selectedHTML);
         if (component.conversion === 'double-chart') {
-            const figureOne = chartFigure({ heading: cells[0] || labels.chartHeading, image: images[0] || '', content: textVersion, labels });
-            const figureTwo = chartFigure({ heading: cells[1] || labels.chartHeading, image: images[1] || images[0] || '', content: textVersion, labels });
+            const figureOne = chartFigure({ heading: cells[0] || `${labels.chartNumber}<br><b>${labels.chartTitle}</b>`, image: images[0] || '', content: textVersion, labels });
+            const figureTwo = chartFigure({ heading: cells[1] || `${labels.chartNumber}<br><b>${labels.chartTitle}</b>`, image: images[1] || images[0] || '', content: textVersion, labels });
             return fillTemplate(component.template, { figureOne, figureTwo, content: textVersion });
         }
+        const chartFields = getChartFields(cells, labels);
         return fillTemplate(component.template, {
-            heading: cells[0] || labels.chartHeading,
+            ...chartFields,
             image: images[0] || '',
             content: textVersion,
-            notesLabel: labels.notes,
-            sourcesLabel: labels.sources,
             textVersionLabel: labels.textVersion
         });
     }
