@@ -696,6 +696,7 @@ function startPaneResize(event) {
     paneSplitter.setPointerCapture(event.pointerId);
     paneSplitter.classList.add('drag-active');
     editorDropZone.classList.add('pane-resizing');
+    codeEditor?.classList.add('is-resizing');
     updatePaneSnapGuides();
 
     const handleMove = (moveEvent) => {
@@ -712,6 +713,7 @@ function startPaneResize(event) {
     const stopResize = () => {
         paneSplitter.classList.remove('drag-active');
         editorDropZone.classList.remove('pane-resizing');
+        codeEditor?.classList.remove('is-resizing');
         showActivePaneSnap(null);
         savePaneSplitterLocation();
         paneSplitter.removeEventListener('pointermove', handleMove);

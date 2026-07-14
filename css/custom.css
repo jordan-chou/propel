@@ -2554,6 +2554,8 @@ textarea {
     overflow: scroll;
     color: #d7deea;
     pointer-events: none;
+    opacity: 1;
+    transition: opacity 140ms ease-out;
 }
 
 #codeHighlight code {
@@ -2585,11 +2587,14 @@ textarea {
 }
 
 /* Avoid rebuilding the full syntax-highlight DOM for every keystroke. */
-.code-editor.is-typing #codeHighlight {
+.code-editor.is-typing #codeHighlight,
+.code-editor.is-resizing #codeHighlight {
     visibility: hidden;
+    opacity: 0;
 }
 
-.code-editor.is-typing #outputText {
+.code-editor.is-typing #outputText,
+.code-editor.is-resizing #outputText {
     background: #111b35;
     color: #dce7ff;
     -webkit-text-fill-color: #dce7ff;
@@ -3423,6 +3428,7 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
     .loader-logo { animation: none; }
+    #codeHighlight { transition: none; }
 }
 
 @media (max-width: 767px) {
