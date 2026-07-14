@@ -2,7 +2,7 @@
 
 ## July 7–14, 2026
 
-This period includes 92 commits focused on editing workflows, complex tables, reusable components, review tooling, and application architecture.
+This period includes 108 commits focused on editing workflows, complex tables, reusable components, review tooling, performance, and application architecture.
 
 ### Editing and workspace
 
@@ -12,7 +12,8 @@ This period includes 92 commits focused on editing workflows, complex tables, re
 - Added numbered-list and indent/outdent controls plus keyboard navigation between parent and child elements.
 - Expanded the OS-aware keyboard shortcut cheatsheet and improved its layout and accessibility.
 - Improved document onboarding and loading feedback.
-- Deferred expensive editor refresh work while the user is typing to improve responsiveness.
+- Deferred expensive editor refresh work while the user is typing and reduced syntax-highlighting work to keep large documents responsive.
+- Automatically closes open drawers, dialogs, and other transient UI when a new file is uploaded, leaving the new document in a clean workspace.
 
 ### Table cleanup and complex-table editing
 
@@ -20,13 +21,15 @@ This period includes 92 commits focused on editing workflows, complex tables, re
 - Added multi-cell selection, row activation, bold formatting, financial formatting, French number formatting, and table-option controls.
 - Synchronized navigation between the table editor and the corresponding table in Live view.
 - Added Live-view table outlines and hover controls.
-- Added table caption suggestions based on nearby document content.
+- Improved table caption suggestions by detecting useful nearby text more accurately.
 - Added responsive table-editor layouts, persistent sizing, improved pagination, and a consistently visible preview scrollbar.
 - Added support for moving selected row content into `tfoot`.
 - Added interactive complex-table scoping that generates `id` and `headers` relationships for multi-level and `colspan` header structures.
 - Shortened generated table-header IDs and stopped automatically activating `colspan` rows.
 - Combined related table configuration changes into unified undo/history actions.
 - Improved handling of tables converted into reusable components.
+- Fixed Live-view table overlays so their edit and conversion controls receive clicks reliably.
+- Clarified and emphasized the table editor's component-conversion control.
 
 ### Component libraries
 
@@ -34,6 +37,7 @@ This period includes 92 commits focused on editing workflows, complex tables, re
 - Added component conversion from Live-view tables and the table editor.
 - Added starter components for boxes, notices, figures, quotes, and single- and two-chart layouts.
 - Added smart mapping for headings, quotes, figures, charts, authors, citations, and accessible text versions.
+- Expanded chart conversion to support stored custom templates and source tables containing all chart content in a single cell.
 - Added WET/Canada.ca-styled component previews.
 - Added creation and deletion of custom components.
 - Added versioned JSON library import and export with browser persistence.
@@ -82,8 +86,8 @@ See [Architecture](docs/architecture.md) and the [README](README.md) for current
 ### Testing and quality
 
 - Added dependency-free unit-test infrastructure and the `npm run check` command.
-- Added unit tests for command registration, language detection, source mapping, storage, non-breaking spaces, component libraries, and deferred editor work.
+- Added unit tests for command registration, language detection, source mapping, storage, non-breaking spaces, component libraries, deferred editor work, and table caption suggestions.
 - Added real-browser characterization tests for commands and table behavior.
 - Added DOCX regression and web-component reference fixtures.
 - Documented the browser regression checklist in [Testing](docs/testing.md).
-- Fixed issues involving copied HTML, semantic `strong`/`em` output, table bold selection, financial formatting, portrait-mode dialogs, double scrollbars, footers, and component-combination markup.
+- Fixed issues involving copied HTML, semantic `strong`/`em` output, table bold selection, financial formatting, portrait-mode dialogs, double scrollbars, footers, component-combination markup, Live table overlay clicks, and file-upload UI cleanup.
