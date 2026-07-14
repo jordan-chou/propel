@@ -114,7 +114,7 @@ const tableEditorElements = {
         'tableEditorCloseBtn', 'tableEditorCancelBtn', 'tableEditorApplyBtn',
         'tableEditorApplyNextBtn', 'tableEditorFirstBtn', 'tableEditorPrevBtn',
         'tableEditorNextBtn', 'tableEditorLastBtn', 'tableEditorPages',
-        'tableEditorRecleanBtn', 'tableEditorUndoBtn', 'tableEditorRedoBtn',
+        'tableEditorUndoBtn', 'tableEditorRedoBtn',
         'tableEditorDeselectBtn', 'tableEditorHeaderBtn', 'tableEditorMergeRowBtn',
         'tableEditorMergeCellsBtn', 'tableEditorActiveBtn', 'tableEditorAddFooterBtn',
         'tableEditorTfootBtn', 'tableEditorIndentBtn', 'tableEditorOutdentBtn',
@@ -1863,6 +1863,11 @@ function setAddIDsPopoverExpanded(isOpen) {
 
 /** Handles global keydown. */
 function handleGlobalKeydown(event) {
+    if (tableEditor.isOpen() && isDocumentHistoryShortcut(event)) {
+        tableEditor.handleHistoryShortcut(event);
+        return;
+    }
+
     if (isDocumentHistoryShortcut(event) && !isNativeHistoryField(event.target)) {
         handleDocumentHistoryShortcut(event);
         return;

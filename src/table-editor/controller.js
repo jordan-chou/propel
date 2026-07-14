@@ -31,7 +31,7 @@ export function createTableEditorController(config) {
         tableEditorFullscreenBtn, tableEditorCloseBtn, tableEditorCancelBtn,
         tableEditorApplyBtn, tableEditorApplyNextBtn, tableEditorFirstBtn,
         tableEditorPrevBtn, tableEditorNextBtn, tableEditorLastBtn, tableEditorPages,
-        tableEditorRecleanBtn, tableEditorUndoBtn, tableEditorRedoBtn,
+        tableEditorUndoBtn, tableEditorRedoBtn,
         tableEditorDeselectBtn, tableEditorHeaderBtn, tableEditorMergeRowBtn,
         tableEditorMergeCellsBtn, tableEditorActiveBtn, tableEditorAddFooterBtn,
         tableEditorTfootBtn, tableEditorIndentBtn, tableEditorOutdentBtn,
@@ -117,9 +117,6 @@ export function createTableEditorController(config) {
         }
         if (tableEditorLastBtn) {
             tableEditorLastBtn.addEventListener('click', () => renderTableEditor(getTableEditorItems().length - 1));
-        }
-        if (tableEditorRecleanBtn) {
-            tableEditorRecleanBtn.addEventListener('click', () => runTableEditorMutation(recleanTableEditorTable, 'Re-clean table'));
         }
         if (tableEditorDeselectBtn) {
             tableEditorDeselectBtn.addEventListener('click', deselectTableEditorCells);
@@ -210,7 +207,10 @@ export function createTableEditorController(config) {
     
         [tableEditorFinancial, tableEditorFrench].forEach((field) => {
             if (field) {
-                field.addEventListener('change', () => commitTableEditorHistory('Change table options'));
+                field.addEventListener('change', () => {
+                    const action = field === tableEditorFinancial ? 'table.option.financial' : 'table.option.french';
+                    applyTableOptionChange(field, action);
+                });
             }
         });
     
@@ -696,6 +696,21 @@ export function createTableEditorController(config) {
         callback();
         commitTableEditorHistory(actionLabel);
     }
+
+    /** Records a switch and its resulting table cleanup as one history entry. */
+    function applyTableOptionChange(field, action) {
+        const nextChecked = field.checked;
+
+        window.clearTimeout(tableEditorHistoryTimer);
+        field.checked = !nextChecked;
+        commitTableEditorHistory(tableEditorPendingAction);
+        tableEditorPendingAction = null;
+
+        field.checked = nextChecked;
+        recleanTableEditorTable();
+        commitTableEditorHistory(action);
+        showTableOptionToast(action, 'Applied');
+    }
     
     /** Adds the current table-editor snapshot when it differs from the active entry. */
     function commitTableEditorHistory(actionLabel = 'Edit table') {
@@ -729,7 +744,9 @@ export function createTableEditorController(config) {
         const undoneAction = tableEditorHistory[tableEditorHistoryIndex].action || 'Edit table';
         restoreTableEditorHistory(tableEditorHistoryIndex - 1);
         restoreFocusAfterTableSuggestionUndo(undoneAction);
-        showActivityToast(`Undid ${undoneAction}.`, 'success', 'Table undo');
+        if (!showTableOptionToast(undoneAction, 'Undo')) {
+            showActivityToast(`Undid ${undoneAction}.`, 'success', 'Table undo');
+        }
     }
     
     /** Restores focus after table suggestion undo. */
@@ -763,7 +780,32 @@ export function createTableEditorController(config) {
         const nextIndex = tableEditorHistoryIndex + 1;
         const redoneAction = tableEditorHistory[nextIndex].action || 'Edit table';
         restoreTableEditorHistory(nextIndex);
-        showActivityToast(`Redid ${redoneAction}.`, 'success', 'Table redo');
+        if (!showTableOptionToast(redoneAction, 'Redo')) {
+            showActivityToast(`Redid ${redoneAction}.`, 'success', 'Table redo');
+        }
+    }
+
+    /** Shows one option-aware message after applying, undoing, or redoing a switch change. */
+    function showTableOptionToast(action, phase) {
+        const option = action === 'table.option.financial'
+            ? {
+                name: 'Financial table',
+                enabled: Boolean(tableEditorFinancial && tableEditorFinancial.checked)
+            }
+            : action === 'table.option.french'
+                ? {
+                    name: 'French number format',
+                    enabled: Boolean(tableEditorFrench && tableEditorFrench.checked)
+                }
+                : null;
+
+        if (!option) {
+            return false;
+        }
+
+        const state = option.enabled ? 'on' : 'off';
+        showActivityToast(`${phase}: ${option.name} turned ${state}.`, 'success', 'Table option');
+        return true;
     }
     
     /** Restores a table-editor snapshot, fields, selection state, and history controls. */
@@ -1419,8 +1461,6 @@ export function createTableEditorController(config) {
     
         updateTableEditorCaption();
         cleanupTable(table, getTableEditorOptions());
-        loadTableEditorCaptionFields();
-        addProcessingLog('Re-cleaned table in editor.', 'info');
     }
     
     /** Toggles table editor header rows. */
@@ -1785,6 +1825,7 @@ export function createTableEditorController(config) {
         hideLiveTablePopover: hideLiveTableEditPopover,
         openHoveredLiveTable: openHoveredLiveTableEditor,
         handleEscape: handleTableEditorEscape,
+        handleHistoryShortcut: handleTableEditorHistoryShortcut,
         syncLanguage: syncTableEditorFrenchOption,
         updateToastPosition: updateTableEditorToastPosition,
         isOpen: () => Boolean(tableEditorDialog && !tableEditorDialog.hidden)
