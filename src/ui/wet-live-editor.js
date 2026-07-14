@@ -203,3 +203,16 @@ export function createWetLiveEditor(host) {
     host.setAttribute('tabindex', '0');
     return editor;
 }
+
+/** Redirects focus from the host itself without stealing focus from shadow controls. */
+export function focusWetLiveEditorFromHost(event, host, editor) {
+    const focusTarget = event?.composedPath?.()[0] || event?.target;
+    if (focusTarget === host) {
+        editor?.focus();
+    }
+}
+
+/** Reports whether an event target is inside one of the Live editor overlays. */
+export function isWetLiveEditorOverlayTarget(target, overlays) {
+    return overlays.some((overlay) => Boolean(overlay && target && overlay.contains(target)));
+}

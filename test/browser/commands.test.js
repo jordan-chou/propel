@@ -13,6 +13,11 @@ import { renameTag } from '../../src/commands/table-cleanup.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
 import { createTableEditorController } from '../../src/table-editor/controller.js';
 import { moveRowsToTableFooter } from '../../src/table-editor/footer.js';
+import {
+    createWetLiveEditor,
+    focusWetLiveEditorFromHost,
+    isWetLiveEditorOverlayTarget
+} from '../../src/ui/wet-live-editor.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -102,6 +107,29 @@ test('live table hover shows the edit table pill', () => {
     controller.handleLiveTableHover({ target: liveEditor.querySelector('td') });
     equal(popover.classList.contains('visible'), true);
     liveEditorHost.remove();
+});
+
+test('live table overlay controls keep focus and remain valid hover targets', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const editor = createWetLiveEditor(host);
+    const shadow = editor.getRootNode();
+    const editButton = shadow.getElementById('tableEditPopover');
+    const convertButton = shadow.getElementById('tableComponentPopover');
+    const editButtonLabel = editButton.querySelector('span:last-child');
+
+    host.addEventListener('focus', (event) => {
+        focusWetLiveEditorFromHost(event, host, editor);
+    });
+
+    editButton.focus();
+    equal(shadow.activeElement, editButton);
+    equal(isWetLiveEditorOverlayTarget(editButtonLabel, [editButton, convertButton]), true);
+
+    host.focus();
+    equal(shadow.activeElement, editor);
+
+    host.remove();
 });
 
 test('table cleanup does not make colspan rows active automatically', () => {

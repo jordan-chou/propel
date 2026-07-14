@@ -30,7 +30,11 @@ import { createTableEditorController } from './table-editor/controller.js';
 import { readFileAsArrayBuffer, getMammothLibrary, convertWithMammoth } from './conversion/mammoth-adapter.js';
 import { getLanguageResultFromDocxXml } from './conversion/docx-language.js';
 import { createJSONStorage } from './ui/storage.js';
-import { createWetLiveEditor } from './ui/wet-live-editor.js';
+import {
+    createWetLiveEditor,
+    focusWetLiveEditorFromHost,
+    isWetLiveEditorOverlayTarget
+} from './ui/wet-live-editor.js';
 import { createDrawerControllers } from './ui/drawers.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 
@@ -381,8 +385,8 @@ function createModernDashboardListeners() {
 
     if (liveEditor) {
         if (liveEditorHost) {
-            liveEditorHost.addEventListener('focus', () => {
-                liveEditor.focus();
+            liveEditorHost.addEventListener('focus', (event) => {
+                focusWetLiveEditorFromHost(event, liveEditorHost, liveEditor);
             });
         }
 
@@ -425,7 +429,8 @@ function createModernDashboardListeners() {
         liveEditor.addEventListener('mousemove', tableEditor.handleLiveTableHover);
         liveEditor.addEventListener('scroll', tableEditor.positionLiveTablePopover);
         liveEditor.addEventListener('mouseleave', (event) => {
-            if ([tableEditorElements.liveTableEditPopover, tableEditorElements.liveTableComponentPopover].includes(event.relatedTarget)) {
+            const overlays = [tableEditorElements.liveTableEditPopover, tableEditorElements.liveTableComponentPopover];
+            if (isWetLiveEditorOverlayTarget(event.relatedTarget, overlays)) {
                 return;
             }
             tableEditor.hideLiveTablePopover();
