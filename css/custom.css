@@ -2587,12 +2587,11 @@ textarea {
 /* Avoid rebuilding the full syntax-highlight DOM for every keystroke. */
 .code-editor.is-typing #codeHighlight,
 .code-editor.is-resizing #codeHighlight {
-    visibility: hidden;
+    display: none;
 }
 
 .code-editor.is-typing #outputText,
 .code-editor.is-resizing #outputText {
-    background: #111b35;
     color: #dce7ff;
     -webkit-text-fill-color: #dce7ff;
 }

@@ -1,6 +1,6 @@
 /**
- * Coalesces replaceable UI work so rapid input only renders the latest state.
- * The caller remains responsible for committing source-of-truth state first.
+ * Coalesces replaceable work so rapid input only processes the latest state.
+ * Callers must flush before operations that depend on pending work.
  */
 export function createDeferredWork(callback, delay = 160, timers = globalThis) {
     let timer = null;

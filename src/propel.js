@@ -181,7 +181,7 @@ const deferredTypingRefresh = createDeferredWork(() => {
         updateCodeHighlight();
     }
     refreshReviewPanel();
-});
+}, 500);
 
 function scheduleTypingRefresh(sourceView) {
     pendingTypingView = sourceView;
