@@ -36,8 +36,15 @@ Then open `http://localhost:8000/` and upload a Word document. No `npm install` 
 Propel can also be packaged for offline use on secured networks. The portable
 release uses classic local scripts, embeds data that would otherwise require a
 runtime request, inlines its SVG icon sprite, and removes remote stylesheet
-resources. Users launch it by double-clicking `index.html`; no local server is
-required.
+resources. Every GitHub release will include a clearly labelled ZIP containing
+this bundled portable version.
+
+To use the portable release, download its ZIP from the corresponding GitHub
+release, extract the entire archive, and double-click `index.html` in the
+extracted folder. Keep the extracted files together; no installation or local
+server is required.
+
+### Creating a release bundle
 
 Install the development dependency and generate the release:
 
@@ -46,9 +53,10 @@ npm install
 npm run verify:portable
 ```
 
-The generated folder is `dist/portable/`. Copy that whole folder to the target
-computer and open `dist/portable/index.html`. The folder is ignored by Git and
-should be regenerated for each release rather than edited manually.
+The generated folder is `dist/portable/`. Package the complete folder as a
+clearly labelled portable ZIP and attach it to the corresponding GitHub release.
+The folder is ignored by Git and should be regenerated for each release rather
+than edited manually.
 
 Managed browsers can disable JavaScript on `file://` pages as an organizational
 policy. The portable build avoids application-level CORS requests, but it cannot
