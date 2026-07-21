@@ -2,18 +2,20 @@
 
 Propel is a browser-based Word-to-HTML conversion and editing tool. It converts `.doc` and `.docx` documents with Mammoth.js, helps editors clean and enhance the generated markup, and produces HTML suitable for Canada.ca/WET publishing workflows.
 
+The cleanup process was designed for the Finance Canada Web and Publishing Team and reflects its work preparing accessible, bilingual content for Canada.ca. Propel can also support other publishing teams with similar Word-to-web workflows.
+
 The application runs locally in the browser and currently has no production build step or application server.
 
 ## What Propel does
 
-- Imports Word documents and converts them to HTML.
+- Imports Word documents and converts them to HTML, or starts with a blank document for direct editing.
 - Detects English or French metadata from DOCX files when available.
-- Provides synchronized live and code editing views.
+- Provides synchronized Live and Code editing views with reciprocal caret guidance.
 - Adds stable IDs to headings, tables, and figures.
 - Generates publishing markup for footnotes.
 - Corrects language-specific non-breaking spaces.
 - Converts selected Live or Code content with previewable, importable component libraries.
-- Cleans and interactively edits complex tables.
+- Cleans and interactively edits financial and complex tables, including their headers, footers, rows, columns, formatting, and accessibility relationships.
 - Reports structural issues such as missing IDs, empty links, heading-level skips, unclean tables, and missing image `alt` attributes.
 - Supports document and table-editor undo/redo.
 
@@ -66,6 +68,21 @@ The starter library includes boxes, chart and figure layouts, a two-chart layout
 - Import and export versioned JSON libraries from the ellipsis menu.
 
 Custom libraries and locally created components are stored in browser `localStorage` under `propel.componentLibrary`, so they persist between sessions for the same browser and origin. Clearing site data removes this saved library. See [docs/component-libraries.md](docs/component-libraries.md) for the file format and supported smart-conversion modes.
+
+## Table cleanup workflow
+
+The table cleanup workflow was built around the Finance Canada Web and Publishing Team's requirements for turning Word tables—particularly financial tables—into accessible Canada.ca/WET markup. Cleanup remains an editor-controlled process: Propel prepares and previews the table, but changes are committed to the document only when the editor chooses **Apply** or **Apply and next**.
+
+Within the table editor, an editor can:
+
+- Review every table without losing its place in the Live document.
+- Use detected table numbers, titles, and units as caption suggestions.
+- Apply financial alignment or French number formatting.
+- Select and format cells, identify header and highlighted rows, merge cells, and indent hierarchical labels.
+- Add footers or move selected source and note rows into a full-width `tfoot`.
+- Delete selected rows or columns.
+- Generate and inspect explicit `id` and `headers` relationships for complex, multi-level tables.
+- Undo or redo table changes, cancel safely, and reopen a cleaned table without discarding its formatting.
 
 ## Local browser storage
 
