@@ -128,6 +128,18 @@ export function hasHeaderRelationship(parent, child) {
     return Boolean(parent && parent.id && getIdList(child, 'headers').includes(parent.id));
 }
 
+/** Removes relationships to header IDs that no longer exist in the table. */
+export function pruneTableHeaderRelationships(table) {
+    if (!table) return;
+    const validIds = new Set(Array.from(table.querySelectorAll('th[id]'), (header) => header.id));
+
+    table.querySelectorAll('th, td').forEach((cell) => {
+        ['headers', ...MANUAL_SCOPE_ATTRIBUTES].forEach((attribute) => {
+            setIdList(cell, attribute, getIdList(cell, attribute).filter((id) => validIds.has(id)));
+        });
+    });
+}
+
 /** Captures existing explicit associations as exact editor overrides before recalculation. */
 export function preserveExistingHeaderRelationships(table) {
     if (!table || !table.querySelector('[headers]')) return;

@@ -161,7 +161,7 @@ const tableEditorElements = {
         'tableEditorMergeCellsBtn', 'tableEditorActiveBtn', 'tableEditorAddFooterBtn',
         'tableEditorTfootBtn', 'tableEditorIndentBtn', 'tableEditorOutdentBtn',
         'tableEditorBoldBtn', 'tableEditorLeftBtn', 'tableEditorCenterBtn',
-        'tableEditorRightBtn', 'tableEditorDeleteRowBtn', 'tableEditorStatus',
+        'tableEditorRightBtn', 'tableEditorDeleteRowBtn', 'tableEditorDeleteColumnBtn', 'tableEditorStatus',
         'tableEditorCanvas', 'tableEditorNumber', 'tableEditorCaption',
         'tableEditorUnit', 'tableEditorNumberSuggestion', 'tableEditorCaptionSuggestion',
         'tableEditorUnitSuggestion', 'tableEditorComplexScoping', 'tableEditorFinancial', 'tableEditorFrench',

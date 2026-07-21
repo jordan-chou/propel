@@ -21,6 +21,7 @@ import {
 } from '../../src/table-editor/controller.js';
 import { isCleanedTable } from '../../src/review/analyzer.js';
 import { moveRowsToTableFooter } from '../../src/table-editor/footer.js';
+import { deleteSelectedTableColumns } from '../../src/table-editor/columns.js';
 import {
     createWetLiveEditor,
     focusWetLiveEditorFromHost,
@@ -330,6 +331,53 @@ test('table cleanup does not make colspan rows active automatically', () => {
 
     equal(groupRow.classList.contains('active'), false);
     equal(groupRow.querySelector('th').getAttribute('scope'), 'colgroup');
+});
+
+test('deleting a selected table column removes that visual column from every row', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>A</th><th class="selected">B</th><th>C</th></tr></thead><tbody><tr><th>One</th><td>2</td><td>3</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+
+    const result = deleteSelectedTableColumns(table, table.querySelectorAll('.selected'));
+
+    equal(result.deletedColumns, 1);
+    equal(table.rows[0].textContent, 'AC');
+    equal(table.rows[1].textContent, 'One3');
+});
+
+test('deleting a table column reduces cells that span across it', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>A</th><th class="selected">B</th><th>C</th></tr></thead><tbody><tr><td colspan="2">Wide</td><td>Last</td></tr></tbody><tfoot><tr><td colspan="3">Notes</td></tr></tfoot></table>';
+    const table = host.querySelector('table');
+
+    deleteSelectedTableColumns(table, table.querySelectorAll('.selected'));
+
+    equal(table.querySelector('tbody td').hasAttribute('colspan'), false);
+    equal(table.querySelector('tfoot td').getAttribute('colspan'), '2');
+});
+
+test('deleting a table column removes relationships to deleted headers', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th id="a">A</th><th id="b" class="selected">B</th><th id="c">C</th></tr></thead><tbody><tr><th id="row">One</th><td>Middle</td><td headers="a b row" data-propel-scope-add="a b" data-propel-scope-remove="b">2</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+
+    deleteSelectedTableColumns(table, table.querySelectorAll('.selected'));
+
+    const value = table.querySelector('tbody td:last-child');
+    equal(value.getAttribute('headers'), 'a row');
+    equal(value.getAttribute('data-propel-scope-add'), 'a');
+    equal(value.hasAttribute('data-propel-scope-remove'), false);
+});
+
+test('deleting columns refuses to remove the table last column', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td class="selected">Only</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+
+    const result = deleteSelectedTableColumns(table, table.querySelectorAll('.selected'));
+
+    equal(result.blocked, true);
+    equal(table.querySelector('td').textContent, 'Only');
 });
 
 test('moving row content creates a full-width table footer', () => {

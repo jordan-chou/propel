@@ -1,6 +1,7 @@
 import { buildCellGrid, getCellPosition } from './model.js';
 import { toggleCellsBold, toggleRowsActive } from './formatting.js';
 import { moveRowsToTableFooter } from './footer.js';
+import { deleteSelectedTableColumns } from './columns.js';
 import { classifyTableCaptionLabels } from './caption-suggestions.js';
 import {
     applyTableScopes,
@@ -65,7 +66,7 @@ export function createTableEditorController(config) {
         tableEditorMergeCellsBtn, tableEditorActiveBtn, tableEditorAddFooterBtn,
         tableEditorTfootBtn, tableEditorIndentBtn, tableEditorOutdentBtn,
         tableEditorBoldBtn, tableEditorLeftBtn, tableEditorCenterBtn,
-        tableEditorRightBtn, tableEditorDeleteRowBtn, tableEditorStatus,
+        tableEditorRightBtn, tableEditorDeleteRowBtn, tableEditorDeleteColumnBtn, tableEditorStatus,
         tableEditorCanvas, tableEditorNumber, tableEditorCaption, tableEditorUnit,
         tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
         tableEditorUnitSuggestion, tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
@@ -201,6 +202,9 @@ export function createTableEditorController(config) {
         }
         if (tableEditorDeleteRowBtn) {
             tableEditorDeleteRowBtn.addEventListener('click', () => runTableEditorMutation(deleteTableEditorRows, 'Delete row'));
+        }
+        if (tableEditorDeleteColumnBtn) {
+            tableEditorDeleteColumnBtn.addEventListener('click', () => runTableEditorMutation(deleteTableEditorColumns, 'Delete column'));
         }
         if (tableEditorUndoBtn) {
             tableEditorUndoBtn.addEventListener('click', undoTableEditorChange);
@@ -1943,6 +1947,21 @@ export function createTableEditorController(config) {
     /** Deletes table editor rows. */
     function deleteTableEditorRows() {
         getTableEditorSelectedRows().forEach((row) => row.remove());
+    }
+
+    /** Deletes the visual columns occupied by the selected cells. */
+    function deleteTableEditorColumns() {
+        const table = getTableEditorTable();
+        const result = deleteSelectedTableColumns(table, getTableEditorSelectedCells());
+
+        if (result.blocked) {
+            showActivityToast('A table must retain at least one column.', 'warning', 'Delete column');
+            return;
+        }
+        if (!result.changed) return;
+
+        deselectTableEditorCells();
+        applyCurrentTableScopes(table);
     }
     
     /** Commits the active table edit to canonical document state and optionally advances. */

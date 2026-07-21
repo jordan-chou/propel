@@ -1608,11 +1608,22 @@ textarea {
     background: #e4ecff;
 }
 
-.table-tool-danger:hover,
-.table-tool-danger:focus {
+.table-tool-btn.table-tool-danger:hover,
+.table-tool-btn.table-tool-danger:focus {
     border-color: rgba(180,35,24,0.28);
     background: #fff1f0;
     color: #b42318;
+}
+
+.table-tool-btn.table-tool-danger:focus {
+    box-shadow: 0 0 0 2px rgba(180,35,24,0.2);
+}
+
+.table-tool-btn.table-tool-danger:active {
+    border-color: rgba(180,35,24,0.46);
+    background: #fee4e2;
+    color: #912018;
+    box-shadow: inset 0 1px 2px rgba(145,32,24,0.14);
 }
 
 .table-tool-icon {
@@ -1658,6 +1669,15 @@ textarea {
 .table-tool-icon-grid .icon-arrow {
     stroke-width: 1.25;
     opacity: 0.72;
+}
+
+.table-tool-icon-grid .icon-delete {
+    stroke-width: 1.8;
+}
+
+.table-tool-icon-delete .icon-delete-shape {
+    fill: currentColor;
+    fill-opacity: 0.08;
 }
 
 .table-tool-btn[aria-pressed="true"] {
