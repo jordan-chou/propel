@@ -547,36 +547,36 @@ export function createTableEditorController(config) {
             return;
         }
     
-        const paragraph = getEmptyFooterParagraphAtSelection();
+        const placeholder = getEmptyFooterPlaceholderAtSelection();
     
-        if (!paragraph) {
+        if (!placeholder) {
             return;
         }
     
         event.preventDefault();
-        replaceEmptyFooterPlaceholder(paragraph, event.data);
+        replaceEmptyFooterPlaceholder(placeholder, event.data);
     }
     
     /** Replaces empty footer placeholder on paste. */
     function replaceEmptyFooterPlaceholderOnPaste(event) {
-        const paragraph = getEmptyFooterParagraphAtSelection();
+        const placeholder = getEmptyFooterPlaceholderAtSelection();
     
-        if (!paragraph || !event.clipboardData) {
+        if (!placeholder || !event.clipboardData) {
             return;
         }
     
         event.preventDefault();
-        replaceEmptyFooterPlaceholder(paragraph, event.clipboardData.getData('text/plain'));
+        replaceEmptyFooterPlaceholder(placeholder, event.clipboardData.getData('text/plain'));
     }
     
     /** Returns empty footer paragraph at selection. */
-    function getEmptyFooterParagraphAtSelection() {
+    function getEmptyFooterPlaceholderAtSelection() {
         const selection = getEditorSelection(tableEditorCanvas);
-        const paragraph = selection && selection.rangeCount > 0
-            ? getClosestElement(selection.anchorNode, tableEditorCanvas, 'tfoot p')
+        const placeholder = selection && selection.rangeCount > 0
+            ? getClosestElement(selection.anchorNode, tableEditorCanvas, 'tfoot p, tfoot td')
             : null;
     
-        return paragraph && paragraph.textContent === '\u00a0' ? paragraph : null;
+        return placeholder && placeholder.textContent === '\u00a0' ? placeholder : null;
     }
     
     /** Replaces empty footer placeholder. */
@@ -1801,12 +1801,16 @@ export function createTableEditorController(config) {
         const tfoot = ensureTableEditorTfoot(table);
         const footerRow = document.createElement('tr');
         const footerCell = document.createElement('td');
-        const footerParagraph = document.createElement('p');
     
         footerRow.classList.add('small');
         footerCell.setAttribute('colspan', String(getTableEditorWidth(table)));
-        footerParagraph.textContent = '\u00a0';
-        footerCell.appendChild(footerParagraph);
+        if (tableEditorFinancial && tableEditorFinancial.checked) {
+            footerCell.textContent = '\u00a0';
+        } else {
+            const footerParagraph = document.createElement('p');
+            footerParagraph.textContent = '\u00a0';
+            footerCell.appendChild(footerParagraph);
+        }
         footerRow.appendChild(footerCell);
         tfoot.appendChild(footerRow);
     }

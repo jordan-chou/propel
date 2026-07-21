@@ -102,13 +102,13 @@ export function formatWetTable(table, options = {}) {
     formatTbody(tbody, mergedOptions);
 
     if (mergedOptions.addTfoot && !table.querySelector('tfoot')) {
-        addTableFoot(table, true);
+        addTableFoot(table, true, mergedOptions.financialTable);
     }
 
     return table;
 }
 
-export function addTableFoot(table, includePlaceholder = true) {
+export function addTableFoot(table, includePlaceholder = true, financialTable = false) {
     if (!table) {
         return null;
     }
@@ -121,9 +121,11 @@ export function addTableFoot(table, includePlaceholder = true) {
     td.setAttribute('colspan', String(getTableWidth(table)));
 
     if (includePlaceholder) {
-        const p = document.createElement('p');
-        p.textContent = 'NOTES, SOURCES and FOOTNOTES GO HERE';
-        td.appendChild(p);
+        const placeholder = financialTable ? td : document.createElement('p');
+        placeholder.textContent = 'NOTES, SOURCES and FOOTNOTES GO HERE';
+        if (placeholder !== td) {
+            td.appendChild(placeholder);
+        }
     }
 
     tr.appendChild(td);

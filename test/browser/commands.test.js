@@ -175,6 +175,23 @@ test('table cleanup creates WET structure', () => {
     equal(result.querySelectorAll('thead').length, 1);
 });
 
+test('table cleanup creates financial footers without paragraph wrappers', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr></tbody></table>';
+    cleanupTable(host.querySelector('table'), { addTfoot: true, financialTable: true });
+
+    equal(host.querySelector('tfoot p'), null);
+    equal(host.querySelector('tfoot td').textContent, 'NOTES, SOURCES and FOOTNOTES GO HERE');
+});
+
+test('table cleanup keeps paragraph wrappers in non-financial footers', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr></tbody></table>';
+    cleanupTable(host.querySelector('table'), { addTfoot: true, financialTable: false });
+
+    equal(host.querySelector('tfoot p').textContent, 'NOTES, SOURCES and FOOTNOTES GO HERE');
+});
+
 test('table editor runs initial cleanup only for uncleaned tables', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr></tbody></table>';
