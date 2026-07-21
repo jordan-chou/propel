@@ -11,6 +11,7 @@ import {
 } from '../../src/table-editor/scoping.js';
 import { renameTag } from '../../src/commands/table-cleanup.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
+import { createOnboardingController } from '../../src/ui/onboarding.js';
 import { createTableEditorController } from '../../src/table-editor/controller.js';
 import { moveRowsToTableFooter } from '../../src/table-editor/footer.js';
 import {
@@ -22,6 +23,27 @@ import {
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
 function equal(actual, expected) { if (actual !== expected) throw new Error(`Expected ${expected}; received ${actual}`); }
+
+test('starting with a blank file dismisses onboarding for the current session', () => {
+    const card = document.createElement('div');
+    const blankButton = document.createElement('button');
+    const values = new Map();
+    const preferences = {
+        get: (key, fallback) => values.has(key) ? values.get(key) : fallback,
+        set: (key, value) => values.set(key, value)
+    };
+    const onboarding = createOnboardingController({ card, blankButton, preferences });
+    onboarding.bind();
+    equal(card.hidden, false);
+
+    blankButton.click();
+    equal(card.hidden, true);
+    equal(values.get('onboardingDismissed'), true);
+
+    const reloadedCard = document.createElement('div');
+    createOnboardingController({ card: reloadedCard, preferences }).bind();
+    equal(reloadedCard.hidden, true);
+});
 
 test('cheatsheet starts on Instructions and preserves the selected tab', () => {
     const host = document.createElement('div');

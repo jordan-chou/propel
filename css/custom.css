@@ -2737,6 +2737,22 @@ textarea {
     gap: 8px;
 }
 
+.editor-onboarding-blank {
+    flex-basis: 100%;
+    min-height: auto;
+    padding: 4px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.editor-onboarding-blank:hover {
+    border-color: transparent;
+    background: transparent;
+}
+
 .editor-onboarding-alternative {
     display: block;
     margin-top: 14px;

@@ -52,7 +52,9 @@ Propel stores the following JSON-encoded values in `localStorage`. They remain o
 | `propel.livePaneWidthRatio` | The selected width ratio between the synchronized Live and Code editor panes. |
 | `propel.tableEditorSize` | The table editor’s saved width or height for its current responsive layout. |
 
-Clearing the site’s browser data removes all three values and restores their defaults. Propel currently does not use cookies or `sessionStorage`.
+Clearing the site’s browser data removes these values and restores their defaults. Propel currently does not use cookies.
+
+The onboarding card uses `sessionStorage` under `propel.onboardingDismissed`. Starting with a blank file hides the card for the current browser tab session, including page reloads; it returns in a new session.
 
 ## Philosophy
 

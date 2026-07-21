@@ -30,6 +30,7 @@ import { createTableEditorController } from './table-editor/controller.js';
 import { readFileAsArrayBuffer, getMammothLibrary, convertWithMammoth } from './conversion/mammoth-adapter.js';
 import { getLanguageResultFromDocxXml } from './conversion/docx-language.js';
 import { createJSONStorage } from './ui/storage.js';
+import { createOnboardingController } from './ui/onboarding.js';
 import {
     createWetLiveEditor,
     focusWetLiveEditorFromHost,
@@ -123,6 +124,7 @@ const fileDropZone = document.getElementById('fileDropZone');
 const railUploadBtn = document.getElementById('railUploadBtn');
 const onboardingUploadBtn = document.getElementById('onboardingUploadBtn');
 const onboardingInstructionsBtn = document.getElementById('onboardingInstructionsBtn');
+const onboardingBlankBtn = document.getElementById('onboardingBlankBtn');
 const editorOnboarding = document.getElementById('editorOnboarding');
 const documentLoader = document.getElementById('loader');
 const liveEditorHost = document.getElementById('liveEditor');
@@ -223,6 +225,12 @@ let documentHistoryLastSource = null;
 let documentHistoryLastTime = 0;
 let activeDocumentCommandLabel = null;
 const uiPreferences = createJSONStorage(window.localStorage, 'propel');
+const sessionPreferences = createJSONStorage(window.sessionStorage, 'propel');
+const onboarding = createOnboardingController({
+    card: editorOnboarding,
+    blankButton: onboardingBlankBtn,
+    preferences: sessionPreferences
+});
 const componentLibraryStorageKey = 'componentLibrary';
 let activeComponentLibrary = loadComponentLibrary();
 let activeComponentId = activeComponentLibrary.components[0]?.id || null;
@@ -284,6 +292,7 @@ const drawers = createDrawerControllers({
 createListeners();
 createModernDashboardListeners();
 drawers.bind();
+onboarding.bind();
 
 // Set up 'Presets' button from JSON file
 fetch("./src/presetButtons.json")
@@ -2144,9 +2153,7 @@ function updateFileDropZoneState(hasFile) {
         fileDropZone.classList.toggle('has-file', hasFile);
     }
 
-    if (editorOnboarding) {
-        editorOnboarding.hidden = hasFile;
-    }
+    onboarding.update(hasFile);
 }
 
 /**
