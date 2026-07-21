@@ -11,6 +11,8 @@ import {
 } from '../../src/table-editor/scoping.js';
 import { renameTag } from '../../src/commands/table-cleanup.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
+import { applyBlockFormat } from '../../src/ui/block-format.js';
+import { renameTag as renameElementTag } from '../../src/util.js';
 import { createOnboardingController } from '../../src/ui/onboarding.js';
 import { createTableEditorController } from '../../src/table-editor/controller.js';
 import { moveRowsToTableFooter } from '../../src/table-editor/footer.js';
@@ -25,6 +27,72 @@ import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../sr
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
 function equal(actual, expected) { if (actual !== expected) throw new Error(`Expected ${expected}; received ${actual}`); }
+
+test('renameTag preserves attributes and children without leaving the old element', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<h2 id="overview" class="topic">Overview <em>details</em></h2>';
+
+    const renamed = renameElementTag(host.firstElementChild, 'h3');
+
+    equal(renamed.outerHTML, '<h3 id="overview" class="topic">Overview <em>details</em></h3>');
+    equal(host.querySelectorAll('h2').length, 0);
+});
+
+test('block formatting renames the selected heading without leaving an empty old heading', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<h2 id="overview">Overview</h2><p>Body</p>';
+    document.body.append(host);
+    const headingText = host.querySelector('h2').firstChild;
+    const range = document.createRange();
+    range.setStart(headingText, 3);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    applyBlockFormat(host, selection, 'h3');
+
+    equal(host.innerHTML, '<h3 id="overview">Overview</h3><p>Body</p>');
+    selection.removeAllRanges();
+    host.remove();
+});
+
+test('block formatting renames every block covered by a selection', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<h2>First</h2><h3>Second</h3><p>Body</p>';
+    document.body.append(host);
+    const range = document.createRange();
+    range.setStart(host.children[0].firstChild, 2);
+    range.setEnd(host.children[1].firstChild, 4);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    applyBlockFormat(host, selection, 'h4');
+
+    equal(host.innerHTML, '<h4>First</h4><h4>Second</h4><p>Body</p>');
+    selection.removeAllRanges();
+    host.remove();
+});
+
+test('block formatting ignores whitespace at element-selection boundaries', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '\n<h2>First</h2>\n<h3>Second</h3>\n';
+    document.body.append(host);
+    const range = document.createRange();
+    range.setStart(host, 1);
+    range.setEnd(host, 4);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    applyBlockFormat(host, selection, 'h4');
+
+    equal(host.querySelectorAll('h4').length, 2);
+    equal(host.querySelectorAll('h2, h3').length, 0);
+    selection.removeAllRanges();
+    host.remove();
+});
 
 test('starting with a blank file dismisses onboarding for the current session', () => {
     const card = document.createElement('div');

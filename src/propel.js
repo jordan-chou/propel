@@ -37,6 +37,7 @@ import {
     isWetLiveEditorOverlayTarget
 } from './ui/wet-live-editor.js';
 import { createDrawerControllers } from './ui/drawers.js';
+import { applyBlockFormat } from './ui/block-format.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
 
@@ -1315,7 +1316,13 @@ function runLiveEditCommand(command, value = null, label = '') {
         return;
     }
 
-    document.execCommand(command, false, value);
+    const selection = getEditorSelection(liveEditor);
+    const formattedBlocks = command === 'formatBlock'
+        ? applyBlockFormat(liveEditor, selection, value)
+        : [];
+    if (formattedBlocks.length === 0) {
+        document.execCommand(command, false, value);
+    }
     restoreTextSelectionRange(liveEditor, selectionRange);
     syncLiveToInputHTML();
     updateCodeView();

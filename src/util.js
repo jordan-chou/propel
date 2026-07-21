@@ -146,19 +146,21 @@ export function goToTop() {
  * @param {*} newTag name of new tag that will be created
  */
 export function renameTag(oldTag, newTag) {
-    let newNode = document.createElement(newTag);
+    if (!oldTag || oldTag.tagName.toLowerCase() === newTag.toLowerCase()) {
+        return oldTag;
+    }
+
+    const newNode = document.createElement(newTag);
 
     // Copy the children
     while (oldTag.firstChild) {
         newNode.appendChild(oldTag.firstChild); // *Moves* the child
     }
 
-    // Copy the attributes
-    if (oldTag.attributes) {
-        for (index = oldTag.attributes.length - 1; index >= 0; --index) {
-            newNode.attributes.setNamedItem(oldTag.attributes[index].cloneNode());
-        }
-    }
+    // Copy the attributes in their existing order.
+    Array.from(oldTag.attributes).forEach((attribute) => {
+        newNode.setAttribute(attribute.name, attribute.value);
+    });
 
     // Replace it
     if (oldTag.parentNode) {
