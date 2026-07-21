@@ -35,7 +35,7 @@ export const defaultComponentLibrary = Object.freeze({
             name: 'Charts and Figures',
             description: 'Uses the first image as the chart and preserves the table as its accessible text version.',
             conversion: 'chart',
-            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{chartNumber}}<br>\n<b>{{chartTitle}}</b></figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n{{footerMetadata}}\n<details class="mrgn-tp-sm">\n<summary>{{textVersionLabel}}</summary>\n{{content}}\n</details>\n</footer>\n</figure>'
+            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{chartNumber}}<br>\n<b>{{chartTitle}}</b></figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n{{footerMetadata}}\n<details class="mrgn-tp-sm">\n<summary>{{textVersionLabel}}</summary>\n</details>\n</footer>\n</figure>'
         }),
         Object.freeze({
             id: 'charts-double',
