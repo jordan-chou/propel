@@ -1870,9 +1870,8 @@ textarea {
 
 .table-editor-canvas table,
 .table-editor-canvas .table {
-    width: max-content;
-    min-width: 100%;
-    max-width: none;
+    width: 100%;
+    max-width: 1170px;
     margin-bottom: 22px;
     border-spacing: 0;
     border-collapse: collapse;
@@ -1906,6 +1905,7 @@ textarea {
     padding: 8px;
     line-height: 1.4375;
     vertical-align: top;
+    overflow-wrap: anywhere;
     cursor: text;
 }
 
