@@ -14,7 +14,11 @@ import { createDrawerControllers } from '../../src/ui/drawers.js';
 import { applyBlockFormat } from '../../src/ui/block-format.js';
 import { renameTag as renameElementTag } from '../../src/util.js';
 import { createOnboardingController } from '../../src/ui/onboarding.js';
-import { createTableEditorController, shouldRunInitialTableCleanup } from '../../src/table-editor/controller.js';
+import {
+    createTableEditorController,
+    runPreservingElementScroll,
+    shouldRunInitialTableCleanup
+} from '../../src/table-editor/controller.js';
 import { isCleanedTable } from '../../src/review/analyzer.js';
 import { moveRowsToTableFooter } from '../../src/table-editor/footer.js';
 import {
@@ -201,6 +205,23 @@ test('table editor runs initial cleanup only for uncleaned tables', () => {
     cleanupTable(table);
     equal(shouldRunInitialTableCleanup(table, true, isCleanedTable), false);
     equal(shouldRunInitialTableCleanup(table, false, isCleanedTable), false);
+});
+
+test('table editor commits preserve the Live editor scroll position', () => {
+    const liveEditor = document.createElement('div');
+    const content = document.createElement('div');
+    liveEditor.style.cssText = 'height: 20px; overflow: auto;';
+    content.style.height = '600px';
+    liveEditor.appendChild(content);
+    document.body.appendChild(liveEditor);
+    liveEditor.scrollTop = 240;
+
+    runPreservingElementScroll(liveEditor, () => {
+        liveEditor.scrollTop = 0;
+    });
+
+    equal(liveEditor.scrollTop, 240);
+    liveEditor.remove();
 });
 
 test('table option refresh preserves manual bold and source markup', () => {

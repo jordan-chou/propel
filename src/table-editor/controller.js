@@ -15,6 +15,18 @@ export function shouldRunInitialTableCleanup(table, previewCleanup, isCleanedTab
     return Boolean(previewCleanup && table && !isCleanedTable(table));
 }
 
+/** Runs a synchronous render or mutation while retaining an element's scroll position. */
+export function runPreservingElementScroll(element, callback) {
+    const scrollTop = element ? element.scrollTop : null;
+    try {
+        return callback();
+    } finally {
+        if (element && scrollTop !== null) {
+            element.scrollTop = scrollTop;
+        }
+    }
+}
+
 /**
  * Creates the stateful table-editor UI controller.
  * Publishing transformations and canonical document ownership remain injected dependencies.
@@ -62,6 +74,7 @@ export function createTableEditorController(config) {
 
     let tableEditorIndex = 0;
     let tableEditorPreviousFocus = null;
+    let tableEditorPreviousLiveScrollTop = null;
     let tableEditorLastSelectedCell = null;
     let tableEditorDragStartCell = null;
     let tableEditorIsDragging = false;
@@ -483,6 +496,11 @@ export function createTableEditorController(config) {
             optionTooltip.hidden = true;
         }
     }
+
+    /** Commits table changes without resetting the independently scrollable Live editor. */
+    function commitTableChangesPreservingLiveScroll() {
+        runPreservingElementScroll(liveEditor, commitTableChanges);
+    }
     
     /** Opens table editor. */
     function openTableEditor(index = 0, options = {}) {
@@ -495,6 +513,7 @@ export function createTableEditorController(config) {
     
         tableEditorPreviewCleanup = options.previewCleanup !== false;
         tableEditorPreviousFocus = document.activeElement;
+        tableEditorPreviousLiveScrollTop = liveEditor ? liveEditor.scrollTop : null;
         tableEditorDialog.hidden = false;
         applyStoredTableEditorSize();
         if (toastRegion) {
@@ -538,7 +557,11 @@ export function createTableEditorController(config) {
         if (tableEditorPreviousFocus && typeof tableEditorPreviousFocus.focus === 'function') {
             tableEditorPreviousFocus.focus();
         }
+        if (liveEditor && tableEditorPreviousLiveScrollTop !== null) {
+            liveEditor.scrollTop = tableEditorPreviousLiveScrollTop;
+        }
         tableEditorPreviousFocus = null;
+        tableEditorPreviousLiveScrollTop = null;
     }
     
     /** Removes empty footer placeholder. */
@@ -1020,7 +1043,7 @@ export function createTableEditorController(config) {
             apply(convertedHTML) {
                 target.outerHTML = convertedHTML;
                 syncLiveToInputHTML();
-                commitTableChanges();
+                commitTableChangesPreservingLiveScroll();
             }
         });
         liveTableEditTarget = null;
@@ -1954,7 +1977,7 @@ export function createTableEditorController(config) {
             }
         });
         tableEditorAcceptedExternalCaptionNodes.clear();
-        commitTableChanges();
+        commitTableChangesPreservingLiveScroll();
         addProcessingLog(`Applied edits to table ${tableEditorIndex + 1}.`, 'success');
     
         if (moveNext && tableEditorIndex < getTableEditorItems().length - 1) {
@@ -1974,7 +1997,7 @@ export function createTableEditorController(config) {
             anchor: tableEditorComponentBtn,
             apply(convertedHTML) {
                 item.container.outerHTML = convertedHTML;
-                commitTableChanges();
+                commitTableChangesPreservingLiveScroll();
                 const remainingItems = getTableEditorItems();
                 if (remainingItems.length === 0) {
                     closeTableEditor();
