@@ -40,6 +40,7 @@ import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
+import { presetButtons } from './preset-buttons.js';
 
 /* HTML Elements */
 const file = document.getElementById('file');
@@ -301,10 +302,8 @@ createModernDashboardListeners();
 drawers.bind();
 onboarding.bind();
 
-// Set up 'Presets' button from JSON file
-fetch("./src/presetButtons.json")
-    .then(response => { return response.json(); })
-    .then(data => setUpPresetBtns(data));
+// Set up Presets without a runtime request so file:// releases remain portable.
+setUpPresetBtns(presetButtons);
 
 // Default values
 const tagText = document.getElementById('tagList');

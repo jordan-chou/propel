@@ -4,6 +4,12 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/unit/**/*.test.js",
-    "check": "node --check src/propel.js && node --test test/unit/**/*.test.js"
+    "check": "node --check src/propel.js && node --check scripts/build-portable.mjs && node --check scripts/check-portable.mjs && node --test test/unit/**/*.test.js",
+    "build:portable": "node scripts/build-portable.mjs",
+    "check:portable": "node scripts/check-portable.mjs",
+    "verify:portable": "npm run build:portable && npm run check:portable"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }

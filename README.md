@@ -19,15 +19,40 @@ The application runs locally in the browser and currently has no production buil
 
 ## Running locally
 
-Propel can be run locally by opening `index.html` in a browser.
-
-Alternatively, you can serve the repository over HTTP. From the repository root, Python's built-in server is a simple option:
+The modular source application must be served over HTTP because browsers apply
+origin checks to JavaScript modules loaded from `file://` URLs. From the
+repository root, Python's built-in server is a simple option:
 
 ```sh
 python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000/` and upload a Word document. No `npm install` is required for the current application or unit tests.
+
+## Portable offline release
+
+Propel can also be packaged for offline use on secured networks. The portable
+release uses classic local scripts, embeds data that would otherwise require a
+runtime request, inlines its SVG icon sprite, and removes remote stylesheet
+resources. Users launch it by double-clicking `index.html`; no local server is
+required.
+
+Install the development dependency and generate the release:
+
+```sh
+npm install
+npm run verify:portable
+```
+
+The generated folder is `dist/portable/`. Copy that whole folder to the target
+computer and open `dist/portable/index.html`. The folder is ignored by Git and
+should be regenerated for each release rather than edited manually.
+
+Managed browsers can disable JavaScript on `file://` pages as an organizational
+policy. The portable build avoids application-level CORS requests, but it cannot
+override such a browser policy. Preferences stored by a `file://` page can also
+vary by browser and by the file's location, so component libraries should be
+exported when they need to move with the release.
 
 ## Component libraries
 
@@ -89,6 +114,7 @@ src/document/              Canonical document state and cleanup
 src/review/                Document analysis
 src/table-editor/          Table-editor model and feature modules
 src/ui/                    Shared browser UI utilities
+scripts/                   Portable build and artifact checks
 test/unit/                 Node unit tests
 test/browser/              Real-browser characterization tests
 docs/                      Architecture, testing, legacy, and vendor notes
