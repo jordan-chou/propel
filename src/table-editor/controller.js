@@ -10,6 +10,11 @@ import {
     setManualHeaderRelationship
 } from './scoping.js';
 
+/** Returns whether opening a table should perform destructive import normalization. */
+export function shouldRunInitialTableCleanup(table, previewCleanup, isCleanedTable) {
+    return Boolean(previewCleanup && table && !isCleanedTable(table));
+}
+
 /**
  * Creates the stateful table-editor UI controller.
  * Publishing transformations and canonical document ownership remain injected dependencies.
@@ -22,6 +27,7 @@ export function createTableEditorController(config) {
         liveEditorHost,
         uiPreferences,
         cleanupTable,
+        isCleanedTable,
         defaultTableCleanupOptions,
         renameTag,
         getEditorSelection,
@@ -1040,7 +1046,8 @@ export function createTableEditorController(config) {
         tableEditorCanvas.appendChild(clone);
         tableEditorScopeParent = null;
     
-        if (tableEditorPreviewCleanup) {
+        const sourceTable = item.container.matches('table') ? item.container : item.container.querySelector('table');
+        if (shouldRunInitialTableCleanup(sourceTable, tableEditorPreviewCleanup, isCleanedTable)) {
             const table = getTableEditorTable();
             if (table) {
                 cleanupTable(table, getTableEditorOptions());
@@ -1246,7 +1253,7 @@ export function createTableEditorController(config) {
             if (section && !section.querySelector('tr')) {
                 section.remove();
             }
-            cleanupTable(getTableEditorTable(), getTableEditorOptions());
+            recleanTableEditorTable();
         } else {
             tableEditorAcceptedExternalCaptionNodes.add(suggestion.node);
         }
@@ -1649,6 +1656,17 @@ export function createTableEditorController(config) {
             frenchNumbers: tableEditorFrench ? tableEditorFrench.checked : defaultTableCleanupOptions.frenchNumbers
         };
     }
+
+    /** Returns cleanup options that update table settings without repeating import normalization. */
+    function getTableEditorRefreshOptions() {
+        return {
+            ...getTableEditorOptions(),
+            trim: false,
+            removeBoldFromRowHeaders: false,
+            removeAttributes: [],
+            unwrapTags: []
+        };
+    }
     
     /** Re-cleans table editor table. */
     function recleanTableEditorTable() {
@@ -1659,7 +1677,7 @@ export function createTableEditorController(config) {
         }
     
         updateTableEditorCaption();
-        cleanupTable(table, getTableEditorOptions());
+        cleanupTable(table, getTableEditorRefreshOptions());
         applyCurrentTableScopes(table);
     }
 

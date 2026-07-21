@@ -256,6 +256,7 @@ const tableEditor = createTableEditorController({
     liveEditorHost,
     uiPreferences,
     cleanupTable,
+    isCleanedTable,
     defaultTableCleanupOptions,
     renameTag,
     getEditorSelection,

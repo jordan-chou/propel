@@ -1,5 +1,5 @@
 import { createBodyFtnTags, replaceFootnoteSection } from '../../src/commands/footnote-generator.js';
-import { cleanupTable } from '../../src/commands/table-cleanup.js';
+import { cleanupTable, defaultTableCleanupOptions } from '../../src/commands/table-cleanup.js';
 import { fixNbspHTML } from '../../src/commands/nbsp.js';
 import { getCellsInRange } from '../../src/table-editor/model.js';
 import { toggleCellBold, toggleCellsBold, toggleRowsActive } from '../../src/table-editor/formatting.js';
@@ -14,7 +14,8 @@ import { createDrawerControllers } from '../../src/ui/drawers.js';
 import { applyBlockFormat } from '../../src/ui/block-format.js';
 import { renameTag as renameElementTag } from '../../src/util.js';
 import { createOnboardingController } from '../../src/ui/onboarding.js';
-import { createTableEditorController } from '../../src/table-editor/controller.js';
+import { createTableEditorController, shouldRunInitialTableCleanup } from '../../src/table-editor/controller.js';
+import { isCleanedTable } from '../../src/review/analyzer.js';
 import { moveRowsToTableFooter } from '../../src/table-editor/footer.js';
 import {
     createWetLiveEditor,
@@ -172,6 +173,42 @@ test('table cleanup creates WET structure', () => {
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr><tr><td>A</td><td>1</td></tr></tbody></table>';
     const result = cleanupTable(host.querySelector('table'));
     equal(result.querySelectorAll('thead').length, 1);
+});
+
+test('table editor runs initial cleanup only for uncleaned tables', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+
+    equal(shouldRunInitialTableCleanup(table, true, isCleanedTable), true);
+    cleanupTable(table);
+    equal(shouldRunInitialTableCleanup(table, true, isCleanedTable), false);
+    equal(shouldRunInitialTableCleanup(table, false, isCleanedTable), false);
+});
+
+test('table option refresh preserves manual bold and source markup', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr><tr><td><p>Manually bold</p></td><td width="80">1</td></tr></tbody></table>';
+    cleanupTable(host.querySelector('table'));
+    const table = host.querySelector('table');
+    const rowHeader = table.querySelector('tbody th');
+    const value = table.querySelector('tbody td');
+    rowHeader.classList.remove('fnt-nrml');
+    rowHeader.innerHTML = '<p>Manually bold</p>';
+    value.setAttribute('width', '80');
+
+    cleanupTable(table, {
+        ...defaultTableCleanupOptions,
+        financialTable: false,
+        trim: false,
+        removeBoldFromRowHeaders: false,
+        removeAttributes: [],
+        unwrapTags: []
+    });
+
+    equal(rowHeader.classList.contains('fnt-nrml'), false);
+    equal(rowHeader.querySelector('p').textContent, 'Manually bold');
+    equal(value.getAttribute('width'), '80');
 });
 
 test('live table hover shows the edit table pill', () => {
