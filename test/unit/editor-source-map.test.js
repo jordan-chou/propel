@@ -12,6 +12,7 @@ test('maps nested elements to child paths and source ranges', () => {
         { tagName: 'br', path: [1, 0] }
     ]);
     assert.equal(html.slice(entries[0].startIndex, entries[0].endIndex), '<h1>Title</h1>');
+    assert.equal(html.slice(entries[0].openEndIndex, entries[0].closeStartIndex), 'Title');
 });
 
 test('does not treat angle brackets inside quoted attributes as tag endings', () => {

@@ -47,6 +47,30 @@ export function createWetLiveEditor(host) {
                 color: #6f6f6f;
             }
 
+            .reciprocal-caret {
+                position: absolute;
+                z-index: 18;
+                top: 0;
+                left: 0;
+                display: none;
+                width: 2px;
+                min-height: 1em;
+                background: #2563eb;
+                box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+                pointer-events: none;
+                animation: reciprocal-caret-blink 1.05s steps(1, end) infinite;
+            }
+
+            .reciprocal-caret.visible { display: block; }
+
+            @keyframes reciprocal-caret-blink {
+                50% { opacity: 0; }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .reciprocal-caret { animation: none; }
+            }
+
             .wet-live-editor h1:first-child {
                 margin-top: 0;
             }
@@ -188,6 +212,7 @@ export function createWetLiveEditor(host) {
             }
         </style>
         <div id="wetLiveEditor" class="wet-live-editor" contenteditable="true" role="textbox" aria-multiline="true" tabindex="0"></div>
+        <span id="liveReciprocalCaret" class="reciprocal-caret" aria-hidden="true"></span>
         <button type="button" id="tableEditPopover" class="table-edit-popover" aria-label="Edit table">
             <span class="table-edit-popover-icon" aria-hidden="true"></span>
             <span>Edit table</span>

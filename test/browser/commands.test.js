@@ -19,6 +19,8 @@ import {
     focusWetLiveEditorFromHost,
     isWetLiveEditorOverlayTarget
 } from '../../src/ui/wet-live-editor.js';
+import { buildElementSourceMap } from '../../src/app/editor-source-map.js';
+import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../src/app/reciprocal-caret.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -152,6 +154,29 @@ test('live table overlay controls keep focus and remain valid hover targets', ()
     equal(shadow.activeElement, editor);
 
     host.remove();
+});
+
+test('reciprocal caret maps the same text position between source and Live view', () => {
+    const root = document.createElement('div');
+    const html = '<div><p>One <strong>two</strong> three</p></div>';
+    root.innerHTML = '<p>One <strong>two</strong> three</p>';
+    const entries = buildElementSourceMap(html);
+    const textNode = root.querySelector('strong').firstChild;
+    const decodeEntity = source => {
+        const decoder = document.createElement('textarea');
+        decoder.innerHTML = source;
+        return decoder.value;
+    };
+
+    const sourceIndex = getSourceIndexForLiveCaret({
+        html, root, node: textNode, offset: 2, entries, decodeEntity
+    });
+    equal(sourceIndex, html.indexOf('two') + 2);
+
+    const entry = entries.find(candidate => candidate.pathKey === '0.0');
+    const point = getLiveCaretForSourceIndex({ html, root, sourceIndex, entry, decodeEntity });
+    equal(point.node, textNode);
+    equal(point.offset, 2);
 });
 
 test('table cleanup does not make colspan rows active automatically', () => {

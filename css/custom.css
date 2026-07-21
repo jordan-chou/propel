@@ -2561,6 +2561,28 @@ textarea {
     -webkit-text-fill-color: transparent;
 }
 
+.code-reciprocal-caret {
+    position: absolute;
+    z-index: 2;
+    display: none;
+    width: 2px;
+    height: 22px;
+    background: #fbbf24;
+    box-shadow: 0 0 0 1px rgba(11, 16, 32, 0.7);
+    pointer-events: none;
+    animation: reciprocal-code-caret-blink 1.05s steps(1, end) infinite;
+}
+
+.code-reciprocal-caret.visible { display: block; }
+
+@keyframes reciprocal-code-caret-blink {
+    50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .code-reciprocal-caret { animation: none; }
+}
+
 /* Avoid rebuilding the full syntax-highlight DOM for every keystroke. */
 .code-editor.is-typing #codeHighlight,
 .code-editor.is-resizing #codeHighlight {

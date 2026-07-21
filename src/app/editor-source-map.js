@@ -27,7 +27,7 @@ export function buildElementSourceMap(html) {
 
         const tagName = tagMatch[2].toLowerCase();
         if (tagMatch[1] === '/') {
-            closeSourceMapEntry(stack, tagName, tagEnd + 1);
+            closeSourceMapEntry(stack, tagName, tagStart, tagEnd + 1);
             index = tagEnd + 1;
             continue;
         }
@@ -38,7 +38,7 @@ export function buildElementSourceMap(html) {
         const isSelfClosing = /\/\s*>$/.test(tagSource) || voidTags.has(tagName);
         const entry = path.length === 0 ? null : {
             tagName, path, pathKey: path.join('.'), startIndex: tagStart,
-            openEndIndex: tagEnd + 1, endIndex: tagEnd + 1
+            openEndIndex: tagEnd + 1, closeStartIndex: tagEnd + 1, endIndex: tagEnd + 1
         };
         if (entry) entries.push(entry);
         if (!isSelfClosing) stack.push({ tagName, path, childCount: 0, entry });
@@ -70,11 +70,14 @@ export function getElementByPath(root, path) {
 }
 
 /** Closes source map entry. */
-function closeSourceMapEntry(stack, tagName, endIndex) {
+function closeSourceMapEntry(stack, tagName, closeStartIndex, endIndex) {
     for (let index = stack.length - 1; index > 0; index -= 1) {
         const frame = stack[index];
         stack.pop();
-        if (frame.entry) frame.entry.endIndex = endIndex;
+        if (frame.entry) {
+            frame.entry.closeStartIndex = closeStartIndex;
+            frame.entry.endIndex = endIndex;
+        }
         if (frame.tagName === tagName) return;
     }
 }

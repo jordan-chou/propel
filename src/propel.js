@@ -38,6 +38,7 @@ import {
 } from './ui/wet-live-editor.js';
 import { createDrawerControllers } from './ui/drawers.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
+import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
 
 /* HTML Elements */
 const file = document.getElementById('file');
@@ -135,6 +136,8 @@ const paneSplitter = document.getElementById('paneSplitter');
 const paneSnapGuides = document.querySelectorAll('.pane-snap-guide');
 const codeEditor = document.getElementById('codeEditor');
 const codeHighlight = document.getElementById('codeHighlight');
+const codeReciprocalCaret = document.getElementById('codeReciprocalCaret');
+const liveReciprocalCaret = liveEditor?.getRootNode().getElementById('liveReciprocalCaret');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
 const wysiwygButtons = document.querySelectorAll('[data-edit-command]');
 const blockFormatSelect = document.getElementById('blockFormatSelect');
@@ -176,11 +179,13 @@ const deferredTypingRefresh = createDeferredWork(() => {
         syncLiveToInputHTML();
         scheduleDocumentHistoryCommit('typing');
         updateCodeView();
+        updateCodeReciprocalCaret();
     } else if (sourceView === 'code') {
         syncEditorToInputHTML();
         scheduleDocumentHistoryCommit('typing');
         updateLiveView();
         updateCodeHighlight();
+        updateLiveReciprocalCaret();
     }
     refreshReviewPanel();
 }, 500);
@@ -401,6 +406,7 @@ function createModernDashboardListeners() {
 
         liveEditor.addEventListener('focus', () => {
             activeEditorView = 'live';
+            hideReciprocalCaret(liveReciprocalCaret);
             rememberLiveSelection();
             updateBlockFormatSelect();
         });
@@ -408,18 +414,21 @@ function createModernDashboardListeners() {
         liveEditor.addEventListener('mouseup', () => {
             rememberLiveSelection();
             updateBlockFormatSelect();
+            updateCodeReciprocalCaret();
         });
         liveEditor.addEventListener('keydown', handleLiveEditorKeydown);
         liveEditor.addEventListener('beforeinput', combineLiveEditorComponents);
         liveEditor.addEventListener('keyup', () => {
             rememberLiveSelection();
             updateBlockFormatSelect();
+            updateCodeReciprocalCaret();
         });
 
         liveEditor.addEventListener('input', () => {
             scheduleTypingRefresh('live');
             rememberLiveSelection();
             updateBlockFormatSelect();
+            hideReciprocalCaret(codeReciprocalCaret);
         });
 
         liveEditor.addEventListener('click', (event) => {
@@ -436,7 +445,10 @@ function createModernDashboardListeners() {
             }, 0);
         });
         liveEditor.addEventListener('mousemove', tableEditor.handleLiveTableHover);
-        liveEditor.addEventListener('scroll', tableEditor.positionLiveTablePopover);
+        liveEditor.addEventListener('scroll', () => {
+            tableEditor.positionLiveTablePopover();
+            if (activeEditorView === 'code') updateLiveReciprocalCaret();
+        });
         liveEditor.addEventListener('mouseleave', (event) => {
             const overlays = [tableEditorElements.liveTableEditPopover, tableEditorElements.liveTableComponentPopover];
             if (isWetLiveEditorOverlayTarget(event.relatedTarget, overlays)) {
@@ -483,6 +495,7 @@ function createModernDashboardListeners() {
 
         liveEditor.addEventListener('blur', () => {
             deferredTypingRefresh.flush();
+            hideReciprocalCaret(codeReciprocalCaret);
         });
     }
 
@@ -849,18 +862,39 @@ function createListeners() {
         activeEditorView = 'code';
         codeEditor?.classList.add('is-typing');
         scheduleTypingRefresh('code');
+        hideReciprocalCaret(liveReciprocalCaret);
     });
     outputText.addEventListener('focus', () => {
         activeEditorView = 'code';
+        hideReciprocalCaret(codeReciprocalCaret);
     });
-    outputText.addEventListener('blur', () => deferredTypingRefresh.flush());
+    outputText.addEventListener('blur', () => {
+        deferredTypingRefresh.flush();
+        hideReciprocalCaret(liveReciprocalCaret);
+    });
     outputText.addEventListener('keydown', handleCodeEditorKeydown);
     outputText.addEventListener('scroll', () => {
         syncCodeHighlightScroll();
+        if (activeEditorView === 'live') updateCodeReciprocalCaret();
     });
     outputText.addEventListener('click', (event) => {
         scrollLiveToCodeClick(event);
+        requestAnimationFrame(updateLiveReciprocalCaret);
     });
+    outputText.addEventListener('keyup', () => requestAnimationFrame(updateLiveReciprocalCaret));
+    outputText.addEventListener('select', () => requestAnimationFrame(updateLiveReciprocalCaret));
+
+    document.addEventListener('pointerdown', (event) => {
+        const path = event.composedPath ? event.composedPath() : [];
+        const clickedLive = path.includes(liveEditor) || path.includes(liveEditorHost);
+        const clickedCode = path.includes(outputText) || path.includes(codeEditor);
+        if (!clickedLive) hideReciprocalCaret(codeReciprocalCaret);
+        if (!clickedCode) hideReciprocalCaret(liveReciprocalCaret);
+        if (!clickedLive && !clickedCode) {
+            hideReciprocalCaret(codeReciprocalCaret);
+            hideReciprocalCaret(liveReciprocalCaret);
+        }
+    }, { capture: true });
 
     // Input box. Use change instead of input so the formatter does not fight the user while typing.
     outputText.addEventListener('change', updateInputHTML);
@@ -2760,6 +2794,7 @@ function scrollCodeToLiveElement(target) {
     }
 
     scrollCodeToIndex(codeEntry.startIndex);
+    updateCodeReciprocalCaret();
 }
 
 /** Returns live sync element. */
@@ -2789,6 +2824,121 @@ function scrollLiveToCodeClick(event) {
     }
 
     scrollLiveElementIntoView(liveElement);
+}
+
+/** Positions a visual caret in Code view for the collapsed Live selection. */
+function updateCodeReciprocalCaret() {
+    if (activeEditorView !== 'live' || pendingTypingView === 'live' || !codeReciprocalCaret || !outputText) {
+        hideReciprocalCaret(codeReciprocalCaret);
+        return;
+    }
+
+    const selection = getEditorSelection(liveEditor);
+    if (!selection || !selection.isCollapsed || selection.rangeCount === 0) {
+        hideReciprocalCaret(codeReciprocalCaret);
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const sourceIndex = getSourceIndexForLiveCaret({
+        html: outputText.value,
+        root: liveEditor,
+        node: range.startContainer,
+        offset: range.startOffset,
+        entries: elementSyncLineMap,
+        decodeEntity: decodeHTMLEntity
+    });
+    const coordinates = sourceIndex === null ? null : getCodeCoordinatesForIndex(sourceIndex);
+    if (!coordinates || coordinates.top < 0 || coordinates.top > outputText.clientHeight - 2) {
+        hideReciprocalCaret(codeReciprocalCaret);
+        return;
+    }
+
+    codeReciprocalCaret.style.left = `${coordinates.left}px`;
+    codeReciprocalCaret.style.top = `${coordinates.top}px`;
+    codeReciprocalCaret.classList.add('visible');
+}
+
+/** Positions a visual caret in Live view for the Code textarea selection. */
+function updateLiveReciprocalCaret() {
+    if (activeEditorView !== 'code' || pendingTypingView === 'code' || !liveReciprocalCaret || !outputText || outputText.selectionStart !== outputText.selectionEnd) {
+        hideReciprocalCaret(liveReciprocalCaret);
+        return;
+    }
+
+    const sourceIndex = outputText.selectionStart || 0;
+    updateElementSyncLineMap();
+    const entry = getSyncEntryForCodeIndex(sourceIndex);
+    const point = getLiveCaretForSourceIndex({
+        html: outputText.value,
+        root: liveEditor,
+        sourceIndex,
+        entry,
+        decodeEntity: decodeHTMLEntity
+    });
+    if (!point) {
+        hideReciprocalCaret(liveReciprocalCaret);
+        return;
+    }
+
+    const range = document.createRange();
+    range.setStart(point.node, point.offset);
+    range.collapse(true);
+    const rect = range.getClientRects()[0] || getFallbackCaretRect(point.node);
+    const hostRect = liveEditorHost.getBoundingClientRect();
+    if (!rect || rect.bottom < hostRect.top || rect.top > hostRect.bottom) {
+        hideReciprocalCaret(liveReciprocalCaret);
+        return;
+    }
+
+    liveReciprocalCaret.style.left = `${rect.left - hostRect.left}px`;
+    liveReciprocalCaret.style.top = `${rect.top - hostRect.top}px`;
+    liveReciprocalCaret.style.height = `${Math.max(16, rect.height)}px`;
+    liveReciprocalCaret.classList.add('visible');
+}
+
+function hideReciprocalCaret(caret) {
+    caret?.classList.remove('visible');
+}
+
+function decodeHTMLEntity(source) {
+    const decoder = document.createElement('textarea');
+    decoder.innerHTML = source;
+    return decoder.value;
+}
+
+function getFallbackCaretRect(node) {
+    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    return element?.getBoundingClientRect() || null;
+}
+
+/** Measures a textarea character using a hidden layout mirror. */
+function getCodeCoordinatesForIndex(codeIndex) {
+    const style = window.getComputedStyle(outputText);
+    const mirror = document.createElement('div');
+    const marker = document.createElement('span');
+    [
+        'boxSizing', 'fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'letterSpacing',
+        'lineHeight', 'paddingBottom', 'paddingLeft', 'paddingRight', 'paddingTop',
+        'tabSize', 'textAlign', 'textIndent', 'textTransform', 'whiteSpace', 'wordBreak'
+    ].forEach(property => { mirror.style[property] = style[property]; });
+    mirror.style.overflowWrap = style.overflowWrap;
+    mirror.style.position = 'absolute';
+    mirror.style.visibility = 'hidden';
+    mirror.style.left = '-9999px';
+    mirror.style.top = '0';
+    mirror.style.width = `${outputText.clientWidth}px`;
+    mirror.style.height = 'auto';
+    mirror.style.overflow = 'hidden';
+    marker.textContent = '\u200b';
+    mirror.append(document.createTextNode(outputText.value.slice(0, codeIndex)), marker);
+    document.body.appendChild(mirror);
+    const coordinates = {
+        left: marker.offsetLeft - outputText.scrollLeft,
+        top: marker.offsetTop - outputText.scrollTop
+    };
+    mirror.remove();
+    return coordinates;
 }
 
 /** Returns code entry for path. */
