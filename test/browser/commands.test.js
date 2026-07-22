@@ -31,6 +31,7 @@ import { buildElementSourceMap } from '../../src/app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../src/app/reciprocal-caret.js';
 import { captureLiveEditBaseline, normalizeLiveEditClone } from '../../src/document/live-edit-normalization.js';
 import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
+import { buildFeedbackEmailUrl, configureFeedbackEmailLink } from '../../src/support/feedback.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -256,14 +257,17 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
     const host = document.createElement('div');
     host.innerHTML = `
         <button data-toggle>Help</button>
+        <button data-feedback>Feedback</button>
         <button data-instructions>View instructions</button>
         <div data-backdrop></div>
         <section data-dialog hidden>
             <button data-close>Close</button>
             <button data-cheatsheet-tab="instructions" aria-selected="true">Instructions</button>
             <button data-cheatsheet-tab="tips" aria-selected="false">Tips</button>
+            <button data-cheatsheet-tab="feedback" aria-selected="false">Feedback</button>
             <section data-cheatsheet-panel="instructions"></section>
             <section data-cheatsheet-panel="tips" hidden></section>
+            <section data-cheatsheet-panel="feedback" hidden></section>
         </section>`;
     document.body.append(host);
     const dialog = host.querySelector('[data-dialog]');
@@ -273,6 +277,7 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
         shortcuts: {
             dialog,
             toggleButton,
+            feedbackButton: host.querySelector('[data-feedback]'),
             instructionsButton: host.querySelector('[data-instructions]'),
             closeButton: host.querySelector('[data-close]'),
             backdrop: host.querySelector('[data-backdrop]')
@@ -292,7 +297,30 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
     host.querySelector('[data-instructions]').click();
     equal(host.querySelector('[data-cheatsheet-tab="instructions"]').getAttribute('aria-selected'), 'true');
     equal(host.querySelector('[data-cheatsheet-panel="instructions"]').hidden, false);
+    host.querySelector('[data-cheatsheet-tab="instructions"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    equal(host.querySelector('[data-cheatsheet-tab="feedback"]').getAttribute('aria-selected'), 'true');
+    equal(host.querySelector('[data-cheatsheet-panel="feedback"]').hidden, false);
+    controller.shortcuts.close();
+    const feedbackButton = host.querySelector('[data-feedback]');
+    feedbackButton.focus();
+    feedbackButton.click();
+    equal(host.querySelector('[data-cheatsheet-tab="feedback"]').getAttribute('aria-selected'), 'true');
+    equal(feedbackButton.getAttribute('aria-expanded'), 'true');
+    controller.shortcuts.close();
+    equal(feedbackButton.getAttribute('aria-expanded'), 'false');
+    equal(document.activeElement, feedbackButton);
     host.remove();
+});
+
+test('feedback email link is populated with a reviewable mail draft', () => {
+    const link = document.createElement('a');
+    configureFeedbackEmailLink(link);
+
+    equal(link.href, buildFeedbackEmailUrl());
+    const url = new URL(link.href);
+    equal(url.pathname, 'web@fin.gc.ca');
+    equal(url.searchParams.get('cc'), 'jordan.chou@fin.gc.ca');
+    equal(url.searchParams.get('body').includes('do not include document content'), true);
 });
 
 test('English footnote return text is preserved', () => {

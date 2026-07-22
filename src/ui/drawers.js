@@ -74,6 +74,7 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
         shortcuts.dialog.hidden = false;
         shortcuts.backdrop?.classList.add('open');
         shortcuts.toggleButton?.setAttribute('aria-expanded', 'true');
+        shortcuts.feedbackButton?.setAttribute('aria-expanded', 'true');
         shortcuts.closeButton?.focus();
     }
 
@@ -82,6 +83,7 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
         shortcuts.dialog.hidden = true;
         shortcuts.backdrop?.classList.remove('open');
         shortcuts.toggleButton?.setAttribute('aria-expanded', 'false');
+        shortcuts.feedbackButton?.setAttribute('aria-expanded', 'false');
         shortcutPreviousFocus?.focus?.();
         shortcutPreviousFocus = null;
     }
@@ -111,6 +113,7 @@ export function createDrawerControllers({ activity, shortcuts, onActivityChange 
         activity.closeButton?.addEventListener('click', () => setActivityOpen(false));
         document.addEventListener('keydown', handleActivityKeydown, true);
         shortcuts.toggleButton?.addEventListener('click', () => openShortcuts());
+        shortcuts.feedbackButton?.addEventListener('click', () => openShortcuts('feedback'));
         shortcuts.instructionsButton?.addEventListener('click', () => openShortcuts('instructions'));
         shortcuts.closeButton?.addEventListener('click', closeShortcuts);
         shortcuts.backdrop?.addEventListener('click', closeShortcuts);

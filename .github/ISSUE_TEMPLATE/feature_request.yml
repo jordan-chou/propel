@@ -1,0 +1,89 @@
+name: Suggest an improvement
+description: Propose an enhancement to Propel or its publishing workflow.
+title: "[Enhancement]: "
+labels:
+  - "type: enhancement"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the need before describing a solution so the proposal can be evaluated across different publishing teams.
+
+        Do not include document content, protected or personal information, credentials, internal URLs, full local file paths, or other sensitive operational details. If the proposal should not be public, use the email option in Propel's **Information > Feedback** tab.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What task, limitation, or user need should this improvement address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: How is the work completed today, if at all?
+
+  - type: textarea
+    id: proposed-behaviour
+    attributes:
+      label: Proposed behaviour
+      description: Describe the desired outcome without including sensitive examples or source documents.
+    validations:
+      required: true
+
+  - type: textarea
+    id: beneficiaries
+    attributes:
+      label: Who would benefit?
+      description: Identify user roles or general types of publishing teams, not individual people.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does this need occur?
+      options:
+        - Every day
+        - Every week
+        - Every month
+        - Occasionally
+        - Unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: applicability
+    attributes:
+      label: Applicability
+      options:
+        - Generally useful across publishing teams
+        - Specific to a department or organization
+        - Specific to one workflow
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: accessibility-languages
+    attributes:
+      label: Accessibility or official-languages implications
+      description: Explain how the proposal affects accessibility, English, French, or bilingual output. Enter "None known" when not applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional sanitized context
+      description: Add safe examples or constraints that would help evaluate the proposal.
+
+  - type: checkboxes
+    id: privacy-confirmation
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I have removed document content, personal or protected information, credentials, internal URLs, and full local file paths from this proposal.
+          required: true

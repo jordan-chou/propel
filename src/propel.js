@@ -41,6 +41,7 @@ import {
 import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
+import { configureFeedbackEmailLink, configureGeneralFeedbackEmailLink } from './support/feedback.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
 import { presetButtons } from './preset-buttons.js';
@@ -103,10 +104,13 @@ const processingLog = document.getElementById('processingLog');
 const processingLogPanel = document.getElementById('processingLogPanel');
 const activityToggleBtn = document.getElementById('activityToggleBtn');
 const activityCloseBtn = document.getElementById('activityCloseBtn');
+const feedbackBtn = document.getElementById('feedbackBtn');
 const shortcutHelpBtn = document.getElementById('shortcutHelpBtn');
 const shortcutHelpDialog = document.getElementById('shortcutHelpDialog');
 const shortcutHelpCloseBtn = document.getElementById('shortcutHelpCloseBtn');
 const shortcutHelpBackdrop = document.getElementById('shortcutHelpBackdrop');
+const feedbackEmailLink = document.getElementById('feedbackEmailLink');
+const generalFeedbackEmailLink = document.getElementById('generalFeedbackEmailLink');
 const toastRegion = document.getElementById('toastRegion');
 const documentHealth = document.getElementById('documentHealth');
 const documentOutline = document.getElementById('documentOutline');
@@ -297,6 +301,7 @@ const drawers = createDrawerControllers({
     shortcuts: {
         dialog: shortcutHelpDialog,
         toggleButton: shortcutHelpBtn,
+        feedbackButton: feedbackBtn,
         instructionsButton: onboardingInstructionsBtn,
         closeButton: shortcutHelpCloseBtn,
         backdrop: shortcutHelpBackdrop
@@ -308,6 +313,8 @@ const drawers = createDrawerControllers({
 });
 
 /* Main */
+configureFeedbackEmailLink(feedbackEmailLink);
+configureGeneralFeedbackEmailLink(generalFeedbackEmailLink);
 createListeners();
 createModernDashboardListeners();
 drawers.bind();
