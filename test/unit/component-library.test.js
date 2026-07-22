@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {
     applyComponentTemplate,
     applySmartComponent,
-    convertSelectionToComponent,
+    createComponentSnippet,
     defaultComponentLibrary,
+    insertComponentAtCaret,
     parseComponentLibrary,
     serializeComponentLibrary,
     validateComponentLibrary
@@ -37,19 +38,25 @@ test('rejects executable markup in imported component templates', () => {
     assert.match(validateComponentLibrary(library).errors.join(' '), /executable/);
 });
 
-test('applies a component without escaping selected HTML', () => {
+test('applies a component without escaping content HTML', () => {
     assert.equal(applyComponentTemplate('<aside>{{content}}</aside>', '<p>Hello</p>'), '<aside><p>Hello</p></aside>');
 });
 
-test('converts only the selected code range and returns a structured result', () => {
-    const result = convertSelectionToComponent({
-        html: '<p>Before</p><p>Selected</p><p>After</p>',
-        selectionStart: 13,
-        selectionEnd: 28,
+test('inserts a component at the code caret without replacing surrounding content', () => {
+    const result = insertComponentAtCaret({
+        html: '<p>Before</p><p>After</p>',
+        insertionIndex: 13,
         component: { id: 'panel', name: 'Panel', template: '<section>{{content}}</section>' }
     });
-    assert.equal(result.html, '<p>Before</p><section><p>Selected</p></section><p>After</p>');
+    assert.equal(result.html, '<p>Before</p><section><p>Placeholder text.</p></section><p>After</p>');
     assert.equal(result.changes[0].componentId, 'panel');
+    assert.equal(result.changes[0].type, 'insert-component');
+});
+
+test('component snippets use editable placeholders in the selected language', () => {
+    const component = defaultComponentLibrary.components.find(item => item.id === 'box-gray');
+    assert.match(createComponentSnippet(component), />Heading<\/h4>[\s\S]*<p>Placeholder text\.<\/p>/);
+    assert.match(createComponentSnippet(component, { language: 'fr' }), />Titre<\/h4>[\s\S]*<p>Texte indicatif\.<\/p>/);
 });
 
 test('smart heading components promote the first table cell to a heading', () => {
@@ -97,12 +104,21 @@ test('smart quote components map table cells to quote attribution fields', () =>
     assert.match(html, /<cite>Source<\/cite>/);
 });
 
-test('chart conversion keeps the source table in the text version', () => {
+test('chart conversion uses a placeholder instead of copying the source table into the text version', () => {
     const component = defaultComponentLibrary.components.find(item => item.id === 'chart-figure');
     const html = applySmartComponent(component, '<table><tr><td>Chart 1</td><td><img src="chart.png" alt="Chart 1"></td></tr></table>');
     assert.match(html, /<figure class="panel panel-default">/);
-    assert.match(html, /<summary>Text version<\/summary>[\s\S]*<table[^>]*data-propel-component-source="true"/);
+    assert.match(html, /<summary>Text version<\/summary>\s*<p>Enter the chart text version\.<\/p>/);
+    assert.doesNotMatch(html, /<table|data-propel-component-source/);
     assert.match(html, /img-responsive full-width/);
+});
+
+test('double-chart conversion uses placeholders instead of source content for text versions', () => {
+    const component = defaultComponentLibrary.components.find(item => item.id === 'charts-double');
+    const source = '<table><tr><td>Chart 1</td><td>Chart 2</td></tr><tr><td>Source table details</td></tr></table>';
+    const html = applySmartComponent(component, source);
+    assert.match(html, /<summary>Text version<\/summary><p>Enter the chart text version\.<\/p>/);
+    assert.doesNotMatch(html, /Source table details|<table|data-propel-component-source/);
 });
 
 test('chart conversion maps number, title, notes, and sources into guide positions', () => {
@@ -119,6 +135,7 @@ test('French chart conversion recognizes French metadata labels', () => {
     const html = applySmartComponent(component, source, { language: 'fr' });
     assert.match(html, /Graphique 2<br>\s*<b>Revenus annuels<\/b>/);
     assert.match(html, /Remarque : Valeurs arrondies.[\s\S]*Source : Données ministérielles[\s\S]*<summary>Version texte/);
+    assert.match(html, /<summary>Version texte<\/summary>\s*<p>Saisissez la version texte du graphique\.<\/p>/);
 });
 
 test('chart conversion remains compatible with previously stored chart templates', () => {

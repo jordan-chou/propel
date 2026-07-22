@@ -12,42 +12,42 @@ export const defaultComponentLibrary = Object.freeze({
         Object.freeze({
             id: 'box-heading-panel',
             name: 'Box: Heading panel',
-            description: 'Uses the first table cell or heading as the panel heading.',
+            description: 'Inserts a panel with heading and body placeholders.',
             conversion: 'heading-content',
             template: '<section class="panel panel-default mrgn-tp-md mrgn-bttm-md">\n<header class="panel-heading">\n<div class="panel-title mrgn-tp-0 h4">{{heading}}</div>\n</header>\n<div class="panel-body">\n{{content}}\n</div>\n</section>'
         }),
         Object.freeze({
             id: 'box-gray',
             name: 'Box: Gray',
-            description: 'Uses the first table cell or heading as the box heading.',
+            description: 'Inserts a gray box with heading and body placeholders.',
             conversion: 'heading-content',
             template: '<section class="well mrgn-tp-md mrgn-bttm-md">\n<h4 class="mrgn-tp-0 h4">{{heading}}</h4>\n{{content}}\n</section>'
         }),
         Object.freeze({
             id: 'box-white',
             name: 'Box: White',
-            description: 'Uses the first table cell or heading as the box heading.',
+            description: 'Inserts a white box with heading and body placeholders.',
             conversion: 'heading-content',
             template: '<section class="panel panel-default mrgn-tp-md mrgn-bttm-md">\n<div class="panel-body">\n<h4 class="mrgn-tp-0 h4">{{heading}}</h4>\n{{content}}\n</div>\n</section>'
         }),
         Object.freeze({
             id: 'chart-figure',
             name: 'Charts and Figures',
-            description: 'Uses the first image as the chart and preserves the table as its accessible text version.',
+            description: 'Inserts a chart layout with publishing placeholders.',
             conversion: 'chart',
-            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{chartNumber}}<br>\n<b>{{chartTitle}}</b></figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n{{footerMetadata}}\n<details class="mrgn-tp-sm">\n<summary>{{textVersionLabel}}</summary>\n</details>\n</footer>\n</figure>'
+            template: '<figure class="panel panel-default">\n<figcaption class="panel-heading">{{chartNumber}}<br>\n<b>{{chartTitle}}</b></figcaption>\n<div class="panel-body">{{image}}</div>\n<footer class="panel-footer">\n{{footerMetadata}}\n<details class="mrgn-tp-sm">\n<summary>{{textVersionLabel}}</summary>\n{{content}}\n</details>\n</footer>\n</figure>'
         }),
         Object.freeze({
             id: 'charts-double',
             name: 'Charts: Double',
-            description: 'Creates a two-column chart row while preserving the selected table as a text version.',
+            description: 'Inserts a two-column chart layout with publishing placeholders.',
             conversion: 'double-chart',
             template: '<div class="row">\n<div class="col-md-6">{{figureOne}}</div>\n<div class="col-md-6">{{figureTwo}}</div>\n</div>\n<div class="wb-inv component-text-version">{{content}}</div>'
         }),
         Object.freeze({
             id: 'quote',
             name: 'Quote',
-            description: 'Uses the first three table cells as quote, author, and citation.',
+            description: 'Inserts a quote with quote, author, and citation placeholders.',
             conversion: 'quote',
             template: '<div class="row">\n<div class="col-lg-10 col-lg-offset-1">\n<blockquote>\n{{content}}\n<footer class="text-right">{{author}}<br>\n<cite>{{citation}}</cite>\n</footer>\n</blockquote>\n</div>\n</div>'
         })
@@ -285,6 +285,7 @@ export function applySmartComponent(component, selectedHTML, { language = 'en' }
         notes: 'Notes',
         sources: 'Sources',
         textVersion: isFrench ? 'Version texte' : 'Text version',
+        textVersionPlaceholder: isFrench ? 'Saisissez la version texte du graphique.' : 'Enter the chart text version.',
         author: isFrench ? 'Nom de l’auteur' : 'Author’s name',
         citation: isFrench ? 'Titre du contenu cité' : 'Title of cited source content'
     };
@@ -303,7 +304,7 @@ export function applySmartComponent(component, selectedHTML, { language = 'en' }
     }
     if (component.conversion === 'chart' || component.conversion === 'double-chart') {
         const images = Array.from(selectedHTML.matchAll(/<img\b[^>]*>/gi), match => normalizeChartImage(match[0]));
-        const textVersion = /<table\b/i.test(selectedHTML) ? componentSourceHTML : asParagraph(selectedHTML);
+        const textVersion = `<p>${labels.textVersionPlaceholder}</p>`;
         if (component.conversion === 'double-chart') {
             const figureOne = chartFigure({ heading: cells[0] || `${labels.chartNumber}<br><b>${labels.chartTitle}</b>`, image: images[0] || '', content: textVersion, labels });
             const figureTwo = chartFigure({ heading: cells[1] || `${labels.chartNumber}<br><b>${labels.chartTitle}</b>`, image: images[1] || images[0] || '', content: textVersion, labels });
@@ -320,17 +321,24 @@ export function applySmartComponent(component, selectedHTML, { language = 'en' }
     return applyComponentTemplate(component.template, componentSourceHTML);
 }
 
-export function convertSelectionToComponent({ html, selectionStart, selectionEnd, component, language = 'en' }) {
+/** Builds insertion-ready component markup with editable placeholder text. */
+export function createComponentSnippet(component, { language = 'en' } = {}) {
+    if (!component) throw new TypeError('A component is required.');
+    const placeholder = language === 'fr' ? '<p>Texte indicatif.</p>' : '<p>Placeholder text.</p>';
+    return applySmartComponent(component, placeholder, { language });
+}
+
+/** Inserts a component at a Code view caret without replacing surrounding content. */
+export function insertComponentAtCaret({ html, insertionIndex, component, language = 'en' }) {
     if (typeof html !== 'string' || !component) throw new TypeError('HTML and a component are required.');
-    if (!Number.isInteger(selectionStart) || !Number.isInteger(selectionEnd) || selectionStart < 0 || selectionEnd <= selectionStart || selectionEnd > html.length) {
-        throw new Error('Select text or HTML before converting it to a component.');
+    if (!Number.isInteger(insertionIndex) || insertionIndex < 0 || insertionIndex > html.length) {
+        throw new Error('Place the cursor in the document before inserting a component.');
     }
-    const selectedHTML = html.slice(selectionStart, selectionEnd);
-    const converted = applySmartComponent(component, selectedHTML, { language });
+    const snippet = createComponentSnippet(component, { language });
     return createCommandResult({
-        html: `${html.slice(0, selectionStart)}${converted}${html.slice(selectionEnd)}`,
-        summary: `Converted selection to ${component.name}.`,
-        changes: [{ type: 'replace-selection', componentId: component.id, selectionStart, selectionEnd }],
-        affectedPaths: ['selection']
+        html: `${html.slice(0, insertionIndex)}${snippet}${html.slice(insertionIndex)}`,
+        summary: `Inserted ${component.name}.`,
+        changes: [{ type: 'insert-component', componentId: component.id, insertionIndex }],
+        affectedPaths: ['insertion']
     });
 }

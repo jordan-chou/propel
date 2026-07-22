@@ -381,16 +381,17 @@ test('table option refresh preserves manual bold and source markup', () => {
     equal(value.getAttribute('width'), '80');
 });
 
-test('live table hover shows the edit table pill', () => {
+test('live table hover shows edit and component conversion pills', () => {
     const liveEditorHost = document.createElement('div');
     const liveEditor = document.createElement('div');
     const popover = document.createElement('button');
+    const componentPopover = document.createElement('button');
     liveEditor.innerHTML = '<table><tbody><tr><td>Value</td></tr></tbody></table>';
-    liveEditorHost.append(liveEditor, popover);
+    liveEditorHost.append(liveEditor, popover, componentPopover);
     document.body.append(liveEditorHost);
 
     const controller = createTableEditorController({
-        elements: { liveTableEditPopover: popover },
+        elements: { liveTableEditPopover: popover, liveTableComponentPopover: componentPopover },
         inputHTML: document.createElement('div'),
         liveEditor,
         liveEditorHost,
@@ -405,12 +406,14 @@ test('live table hover shows the edit table pill', () => {
 
     controller.handleLiveTableHover({ target: liveEditor.querySelector('td') });
     equal(popover.classList.contains('visible'), true);
+    equal(componentPopover.classList.contains('visible'), true);
     liveEditorHost.remove();
 });
 
 test('live table overlay controls keep focus and remain valid hover targets', () => {
     const host = document.createElement('div');
-    document.body.append(host);
+    const outsideButton = document.createElement('button');
+    document.body.append(host, outsideButton);
     const editor = createWetLiveEditor(host);
     const shadow = editor.getRootNode();
     const editButton = shadow.getElementById('tableEditPopover');
@@ -421,14 +424,17 @@ test('live table overlay controls keep focus and remain valid hover targets', ()
         focusWetLiveEditorFromHost(event, host, editor);
     });
 
+    editButton.classList.add('visible');
     editButton.focus();
     equal(shadow.activeElement, editButton);
     equal(isWetLiveEditorOverlayTarget(editButtonLabel, [editButton, convertButton]), true);
 
+    outsideButton.focus();
     host.focus();
     equal(shadow.activeElement, editor);
 
     host.remove();
+    outsideButton.remove();
 });
 
 test('reciprocal caret maps the same text position between source and Live view', () => {

@@ -14,7 +14,7 @@ The application runs locally in the browser and currently has no production buil
 - Adds stable IDs to headings, tables, and figures.
 - Generates publishing markup for footnotes.
 - Corrects language-specific non-breaking spaces.
-- Converts selected Live or Code content with previewable, importable component libraries.
+- Inserts previewable component snippets with editable placeholder text in Live or Code view.
 - Cleans and interactively edits financial and complex tables, including their headers, footers, rows, columns, formatting, and accessibility relationships.
 - Reports structural issues such as missing IDs, empty links, heading-level skips, unclean tables, and missing image `alt` attributes.
 - Supports document and table-editor undo/redo.
@@ -66,16 +66,16 @@ exported when they need to move with the release.
 
 ## Component libraries
 
-Select content in Live or Code view and choose **Convert to component** to preview and apply a reusable HTML component. Tables can also be converted from their Live view hover control or with **Convert current table to component** in the table editor. Converted source tables are removed from the table-editor pagination list, including tables retained inside chart text versions for accessibility.
+Place the cursor in Live or Code view and choose **Insert component** to preview and insert a reusable HTML snippet. The inserted component includes editable placeholder text and does not replace highlighted document content. Tables can still be converted from their Live view hover control or with **Convert current table to component** in the table editor; those table actions use the source table to populate the chosen component. Chart text versions receive an editable placeholder rather than copied source-table content.
 
 The starter library includes boxes, chart and figure layouts, a two-chart layout, and a quote. The component modal can also:
 
 - Create components from a name, description, and HTML template containing exactly one `{{content}}` slot.
-- Preview highlighted content and component output before conversion.
+- Preview placeholder-filled insertion or source-table conversion output.
 - Delete components while preserving at least one library entry.
 - Import and export versioned JSON libraries from the ellipsis menu.
 
-Custom libraries and locally created components are stored in browser `localStorage` under `propel.componentLibrary`, so they persist between sessions for the same browser and origin. Clearing site data removes this saved library. See [docs/component-libraries.md](docs/component-libraries.md) for the file format and supported smart-conversion modes.
+Custom libraries and locally created components are stored in browser `localStorage` under `propel.componentLibrary`, so they persist between sessions for the same browser and origin. Clearing site data removes this saved library. See [docs/component-libraries.md](docs/component-libraries.md) for the file format and insertion behavior.
 
 ## Table cleanup workflow
 

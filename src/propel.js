@@ -22,8 +22,9 @@ import { createDeferredWork } from './app/deferred-work.js';
 import { CommandRegistry } from './commands/command-registry.js';
 import {
     applySmartComponent,
-    convertSelectionToComponent,
+    createComponentSnippet,
     defaultComponentLibrary,
+    insertComponentAtCaret,
     parseComponentLibrary,
     serializeComponentLibrary
 } from './commands/component-library.js';
@@ -215,7 +216,8 @@ const commandRegistry = new CommandRegistry()
     .register('document.addIds', { label: 'Add IDs', execute: addIDsCommand })
     .register('document.generateFootnotes', { label: 'Generate footnotes', execute: generateFootnotesCommand })
     .register('document.fixSpacing', { label: 'Validate non-breaking spaces', execute: validateNbspCommand })
-    .register('document.convertSelectionToComponent', { label: 'Convert to component', execute: convertToComponentCommand })
+    .register('document.insertComponent', { label: 'Insert component', execute: insertComponentCommand })
+    .register('document.convertTableToComponent', { label: 'Convert table to component', execute: convertTableToComponentCommand })
     .register('table.openCleanup', { label: 'Table cleanup', execute: tableCleanupCommand });
 
 /* Global Variables */
@@ -249,7 +251,7 @@ const onboarding = createOnboardingController({
 const componentLibraryStorageKey = 'componentLibrary';
 let activeComponentLibrary = loadComponentLibrary();
 let activeComponentId = activeComponentLibrary.components[0]?.id || null;
-let pendingComponentSelection = null;
+let pendingComponentAction = null;
 const paneSplitterStorageKey = 'livePaneWidthRatio';
 const paneSplitterSnapRatios = [1 / 2, 2 / 3];
 const paneSplitterSnapZone = 24;
@@ -481,7 +483,6 @@ function createModernDashboardListeners() {
                 tableEditor.hideLiveTablePopover();
             });
         }
-
         liveEditor.addEventListener('dblclick', (event) => {
             if (tableEditor.isOpen()) {
                 return;
@@ -844,7 +845,7 @@ function createListeners() {
     updateAddIDsSettingsState();
 
     if (componentLibraryBtn && componentLibraryDialog) {
-        componentLibraryBtn.addEventListener('pointerdown', captureComponentSelection);
+        componentLibraryBtn.addEventListener('pointerdown', captureComponentInsertionPoint);
         componentLibraryBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             openComponentLibrary();
@@ -987,15 +988,16 @@ function renderComponentLibrary() {
         previewButton.setAttribute('aria-label', `Preview ${component.name}`);
         previewButton.innerHTML = '<svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M1.5 9s2.7-4.5 7.5-4.5S16.5 9 16.5 9 13.8 13.5 9 13.5 1.5 9 1.5 9Z"></path><circle cx="9" cy="9" r="2.25"></circle></svg>';
         previewButton.addEventListener('click', () => previewComponent(component));
-        const convertButton = document.createElement('button');
-        convertButton.type = 'button';
-        convertButton.className = 'btn btn-primary btn-sm';
-        convertButton.textContent = 'Convert';
-        convertButton.addEventListener('click', () => {
+        const insertButton = document.createElement('button');
+        insertButton.type = 'button';
+        insertButton.className = 'btn btn-primary btn-sm';
+        const isTableConversion = pendingComponentAction?.view === 'table';
+        insertButton.textContent = isTableConversion ? 'Convert' : 'Insert';
+        insertButton.addEventListener('click', () => {
             activeComponentId = component.id;
-            commandRegistry.execute('document.convertSelectionToComponent');
+            commandRegistry.execute(isTableConversion ? 'document.convertTableToComponent' : 'document.insertComponent');
         });
-        actions.append(previewButton, convertButton);
+        actions.append(previewButton, insertButton);
         card.append(deleteButton, label, description, actions);
         return card;
     }));
@@ -1022,49 +1024,43 @@ function deleteComponent(component) {
     activeComponentId = remainingComponents[0]?.id || null;
     uiPreferences.set(componentLibraryStorageKey, activeComponentLibrary);
     renderComponentLibrary();
-    showHighlightedContentPreview();
+    previewComponent(getSelectedComponent());
     addProcessingLog(`Deleted component “${component.name}”.`, 'success');
 }
 
-/** Captures a selection before focus moves into the component menu. */
-function captureComponentSelection() {
+/** Captures an insertion point before focus moves into the component menu. */
+function captureComponentInsertionPoint() {
     if (activeEditorView === 'code') {
-        pendingComponentSelection = {
+        pendingComponentAction = {
             view: 'code',
-            start: outputText.selectionStart,
-            end: outputText.selectionEnd,
-            html: outputText.value.slice(outputText.selectionStart, outputText.selectionEnd)
+            index: outputText.selectionEnd
         };
         return;
     }
     const selection = getEditorSelection(liveEditor);
     const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
-    pendingComponentSelection = range && !range.collapsed && liveEditor.contains(range.commonAncestorContainer)
-        ? { view: 'live', range: range.cloneRange(), html: getRangeHTML(range) }
-        : null;
-}
-
-function getRangeHTML(range) {
-    const container = document.createElement('div');
-    container.appendChild(range.cloneContents());
-    return container.innerHTML;
+    const insertionRange = range && liveEditor.contains(range.commonAncestorContainer)
+        ? range.cloneRange()
+        : document.createRange();
+    if (!range || !liveEditor.contains(range.commonAncestorContainer)) {
+        insertionRange.selectNodeContents(liveEditor);
+    }
+    insertionRange.collapse(false);
+    pendingComponentAction = { view: 'live', range: insertionRange };
 }
 
 function openComponentLibrary() {
-    if (!pendingComponentSelection?.html) {
-        addProcessingLog('Select text or HTML before opening the component library.', 'warning');
-        showActivityToast('Select content to convert first.', 'warning');
-        return;
-    }
+    if (!pendingComponentAction) captureComponentInsertionPoint();
+    renderComponentLibrary();
     componentLibraryModal.classList.add('open');
     componentLibraryBtn.setAttribute('aria-expanded', 'true');
-    showHighlightedContentPreview();
+    previewComponent(getSelectedComponent());
     componentLibraryList.querySelector('button')?.focus();
 }
 
 /** Opens the shared chooser with a whole table as its conversion context. */
 function openComponentLibraryForTable({ html, apply }) {
-    pendingComponentSelection = { view: 'table', html, apply };
+    pendingComponentAction = { view: 'table', html, apply };
     openComponentLibrary();
 }
 
@@ -1075,6 +1071,7 @@ function closeComponentLibrary() {
     closeComponentLibraryOptions();
     closeComponentCreator();
     hideComponentPreview();
+    pendingComponentAction = null;
 }
 
 function toggleComponentCreator() {
@@ -1156,15 +1153,13 @@ function closeComponentLibraryOptions() {
 }
 
 function previewComponent(component) {
+    if (!component || !componentPreviewFrame) return;
     activeComponentId = component.id;
-    if (!component || !pendingComponentSelection?.html || !componentPreviewFrame) return;
-    const converted = applySmartComponent(component, pendingComponentSelection.html, { language: isEngLang ? 'en' : 'fr' });
-    renderComponentPreview(converted, component.name);
-}
-
-function showHighlightedContentPreview() {
-    if (!pendingComponentSelection?.html) return;
-    renderComponentPreview(pendingComponentSelection.html, '');
+    const language = isEngLang ? 'en' : 'fr';
+    const previewHTML = pendingComponentAction?.view === 'table'
+        ? applySmartComponent(component, pendingComponentAction.html, { language })
+        : createComponentSnippet(component, { language });
+    renderComponentPreview(previewHTML, component.name);
 }
 
 function renderComponentPreview(html, title) {
@@ -1184,7 +1179,7 @@ async function importComponentLibrary() {
         activeComponentLibrary = parseComponentLibrary(await selectedFile.text());
         uiPreferences.set(componentLibraryStorageKey, activeComponentLibrary);
         renderComponentLibrary();
-        showHighlightedContentPreview();
+        previewComponent(getSelectedComponent());
         addProcessingLog(`Imported component library “${activeComponentLibrary.name}” with ${activeComponentLibrary.components.length} component(s).`, 'success');
         closeComponentLibraryOptions();
     } catch (error) {
@@ -2546,47 +2541,61 @@ function validateNbspCommand() {
     }
 }
 
-/** Converts the captured Live or Code selection with the chosen component template. */
-function convertToComponentCommand() {
+/** Inserts the chosen component at the captured Live or Code caret. */
+function insertComponentCommand() {
     const component = getSelectedComponent();
     try {
-        if (!component || !pendingComponentSelection?.html) {
-            throw new Error('Select text or HTML before converting it to a component.');
+        if (!component || !pendingComponentAction || pendingComponentAction.view === 'table') {
+            throw new Error('Place the cursor in the document before inserting a component.');
         }
         commitDocumentHistory('typing');
-        activeDocumentCommandLabel = `Convert to ${component.name}`;
+        activeDocumentCommandLabel = `Insert ${component.name}`;
 
-        if (pendingComponentSelection.view === 'table') {
-            pendingComponentSelection.apply(applySmartComponent(component, pendingComponentSelection.html, { language: isEngLang ? 'en' : 'fr' }));
-        } else if (pendingComponentSelection.view === 'code') {
-            const result = convertSelectionToComponent({
+        if (pendingComponentAction.view === 'code') {
+            const result = insertComponentAtCaret({
                 html: outputText.value,
-                selectionStart: pendingComponentSelection.start,
-                selectionEnd: pendingComponentSelection.end,
+                insertionIndex: pendingComponentAction.index,
                 component,
                 language: isEngLang ? 'en' : 'fr'
             });
             outputText.value = result.html;
             syncEditorToInputHTML();
         } else {
-            const range = pendingComponentSelection.range;
-            if (!range || range.collapsed || !liveEditor.contains(range.commonAncestorContainer)) {
-                throw new Error('The Live view selection is no longer available. Select it again.');
+            const range = pendingComponentAction.range;
+            if (!range || !liveEditor.contains(range.commonAncestorContainer)) {
+                throw new Error('The Live view insertion point is no longer available. Place the cursor again.');
             }
-            const converted = applySmartComponent(component, pendingComponentSelection.html, { language: isEngLang ? 'en' : 'fr' });
-            const fragment = range.createContextualFragment(converted);
-            range.deleteContents();
+            const fragment = range.createContextualFragment(createComponentSnippet(component, { language: isEngLang ? 'en' : 'fr' }));
             range.insertNode(fragment);
             syncLiveToInputHTML();
         }
 
         updateOutputText();
-        addProcessingLog(`Converted selection to ${component.name}.`, 'success');
+        addProcessingLog(`Inserted ${component.name}.`, 'success');
         closeComponentLibrary();
-        pendingComponentSelection = null;
     } catch (error) {
         activeDocumentCommandLabel = null;
-        addProcessingLog(`Could not convert selection: ${error.message}`, 'danger');
+        addProcessingLog(`Could not insert component: ${error.message}`, 'danger');
+        console.error(error);
+    }
+}
+
+/** Converts the table supplied by a Live or table-editor entry point. */
+function convertTableToComponentCommand() {
+    const component = getSelectedComponent();
+    try {
+        if (!component || pendingComponentAction?.view !== 'table' || typeof pendingComponentAction.apply !== 'function') {
+            throw new Error('Open component conversion from a table before choosing a component.');
+        }
+        commitDocumentHistory('typing');
+        activeDocumentCommandLabel = `Convert table to ${component.name}`;
+        pendingComponentAction.apply(applySmartComponent(component, pendingComponentAction.html, { language: isEngLang ? 'en' : 'fr' }));
+        updateOutputText();
+        addProcessingLog(`Converted table to ${component.name}.`, 'success');
+        closeComponentLibrary();
+    } catch (error) {
+        activeDocumentCommandLabel = null;
+        addProcessingLog(`Could not convert table: ${error.message}`, 'danger');
         console.error(error);
     }
 }
