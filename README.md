@@ -36,7 +36,7 @@ Then open `http://localhost:8000/` and upload a Word document. No `npm install` 
 Propel can also be packaged for offline use on secured networks. The portable
 release uses classic local scripts, embeds data that would otherwise require a
 runtime request, inlines its SVG icon sprite, and removes remote stylesheet
-resources. Every GitHub release will include a clearly labelled ZIP containing
+resources. Every GitHub release will include a ZIP containing
 this bundled portable version.
 
 To use the portable release, download its ZIP from the corresponding GitHub

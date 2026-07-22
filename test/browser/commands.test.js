@@ -29,6 +29,7 @@ import {
 } from '../../src/ui/wet-live-editor.js';
 import { buildElementSourceMap } from '../../src/app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../src/app/reciprocal-caret.js';
+import { captureLiveEditBaseline, normalizeLiveEditClone } from '../../src/document/live-edit-normalization.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -98,6 +99,56 @@ test('block formatting ignores whitespace at element-selection boundaries', () =
     equal(host.querySelectorAll('h2, h3').length, 0);
     selection.removeAllRanges();
     host.remove();
+});
+
+test('Live edit normalization removes browser-created presentation spans', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p>Before</p>';
+    const baseline = captureLiveEditBaseline(live);
+    const artifact = document.createElement('span');
+    artifact.setAttribute('style', 'font-family: Arial; font-size: 16px; font-weight: 400;');
+    artifact.textContent = ' after';
+    live.firstElementChild.append(artifact);
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<p>Before after</p>');
+});
+
+test('Live edit normalization converts browser-created semantic styles', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p>Before</p>';
+    const baseline = captureLiveEditBaseline(live);
+    const artifact = document.createElement('span');
+    artifact.setAttribute('style', 'font-weight: 700; font-style: italic;');
+    artifact.textContent = 'formatted';
+    live.firstElementChild.append(artifact);
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<p>Before<strong><em>formatted</em></strong></p>');
+});
+
+test('Live edit normalization preserves authored styles and meaningful spans', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p style="text-align: center"><span class="wb-inv" lang="fr" style="color: red">Texte</span></p>';
+    const baseline = captureLiveEditBaseline(live);
+    live.firstElementChild.style.textAlign = 'right';
+    live.querySelector('span').style.color = 'blue';
+    const accessibleSpan = document.createElement('span');
+    accessibleSpan.lang = 'en';
+    accessibleSpan.style.fontFamily = 'Arial';
+    accessibleSpan.textContent = 'Text';
+    live.firstElementChild.append(accessibleSpan);
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.firstElementChild.getAttribute('style'), 'text-align: center');
+    equal(clone.querySelector('.wb-inv').getAttribute('style'), 'color: red');
+    equal(clone.querySelector('span[lang="en"]').outerHTML, '<span lang="en">Text</span>');
 });
 
 test('starting with a blank file dismisses onboarding for the current session', () => {

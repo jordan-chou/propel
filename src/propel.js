@@ -16,6 +16,7 @@ import { engStrings, frStrings } from './strings.js';
 import * as Utils from './util.js';
 import { DocumentStore } from './document/document-store.js';
 import { runStandardCleanup } from './document/cleanup.js';
+import { captureLiveEditBaseline, normalizeLiveEditClone } from './document/live-edit-normalization.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { createDeferredWork } from './app/deferred-work.js';
 import { CommandRegistry } from './commands/command-registry.js';
@@ -132,6 +133,7 @@ const editorOnboarding = document.getElementById('editorOnboarding');
 const documentLoader = document.getElementById('loader');
 const liveEditorHost = document.getElementById('liveEditor');
 const liveEditor = createWetLiveEditor(liveEditorHost);
+let liveEditBaseline = captureLiveEditBaseline(liveEditor);
 const editorDropZone = document.getElementById('editorDropZone');
 const editorPanel = document.querySelector('.editor-panel');
 const paneSplitter = document.getElementById('paneSplitter');
@@ -2735,6 +2737,7 @@ function syncLiveToInputHTML() {
 
     cancelPendingTypingRefresh();
     const clone = liveEditor.cloneNode(true);
+    normalizeLiveEditClone(liveEditor, clone, liveEditBaseline);
     clone.querySelectorAll('.review-flag-button').forEach(element => element.remove());
     clone.querySelectorAll('.review-flagged-component, .review-flag-target').forEach((element) => {
         element.classList.remove('review-flagged-component', 'review-flag-error', 'review-flag-target');
@@ -2773,6 +2776,7 @@ function updateLiveView() {
     const clone = inputHTML.cloneNode(true);
     clone.querySelectorAll('script, style, link').forEach(element => element.remove());
     liveEditor.innerHTML = hasInput() ? clone.innerHTML : '';
+    liveEditBaseline = captureLiveEditBaseline(liveEditor);
     updateFileDropZoneState(hasInput());
 }
 
