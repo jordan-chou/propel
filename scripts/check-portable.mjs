@@ -33,7 +33,7 @@ assertAbsent(html, 'type="module"', 'portable HTML still loads an ES module');
 assertAbsent(html, 'src="src/propel.js"', 'portable HTML still loads the source entry point');
 assertAbsent(html, 'assets/fontawesome/solid.svg#', 'portable HTML still loads an external SVG sprite');
 assertPresent(html, 'src="src/propel.bundle.js"', 'portable HTML does not load the classic bundle');
-assertPresent(html, '<symbol id="undo"', 'portable HTML does not contain the inline icon sprite');
+assertPresent(html, '<symbol id="rotate-left"', 'portable HTML does not contain the inline icon sprite');
 assertAbsent(bundle, 'assets/fontawesome/solid.svg#', 'portable bundle still loads an external SVG sprite');
 assertAbsent(bundle, 'presetButtons.json', 'portable bundle still requests preset JSON');
 assertAbsent(bundle, 'fetch(', 'portable bundle still performs a runtime fetch');

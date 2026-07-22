@@ -239,8 +239,8 @@
                             <button class="btn btn-default" type="button" id="codeViewBtn" data-editor-view="code">Code</button>
                         </div>
                         <div class="wysiwyg-toolbar" id="wysiwygToolbar" aria-label="Live view formatting">
-                            <button class="btn btn-default" type="button" id="documentUndoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></button>
-                            <button class="btn btn-default toolbar-divider" type="button" id="documentRedoBtn" title="Redo (Ctrl+Y or Cmd+Shift+Z)" aria-label="Redo" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></button>
+                            <button class="btn btn-default" type="button" id="documentUndoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-left"></use></svg></button>
+                            <button class="btn btn-default toolbar-divider" type="button" id="documentRedoBtn" title="Redo (Ctrl+Y or Cmd+Shift+Z)" aria-label="Redo" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-right"></use></svg></button>
                             <label class="wb-inv" for="blockFormatSelect">Block format</label>
                             <select class="toolbar-format-select" id="blockFormatSelect" title="Block format (Ctrl+Alt+0-6 or Cmd+Option+0-6)" aria-label="Block format" aria-keyshortcuts="Control+Alt+0 Meta+Alt+0 Control+Alt+1 Meta+Alt+1 Control+Alt+2 Meta+Alt+2 Control+Alt+3 Meta+Alt+3 Control+Alt+4 Meta+Alt+4 Control+Alt+5 Meta+Alt+5 Control+Alt+6 Meta+Alt+6">
                                 <option value="p">Paragraph</option>
@@ -366,8 +366,8 @@
             <section>
                 <h3>History</h3>
                 <dl class="shortcut-list">
-                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></span>Undo</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Z</kbd></dd></div>
-                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></span>Redo</span></dt><dd><span data-shortcut-platform="non-apple"><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Y</kbd></span><span data-shortcut-platform="apple"><kbd data-shortcut-key="primary">Cmd</kbd><kbd>Shift</kbd><kbd>Z</kbd></span></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-left"></use></svg></span>Undo</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Z</kbd></dd></div>
+                    <div><dt><span class="shortcut-command"><span class="shortcut-icon"><svg class="wysiwyg-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-right"></use></svg></span>Redo</span></dt><dd><span data-shortcut-platform="non-apple"><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Y</kbd></span><span data-shortcut-platform="apple"><kbd data-shortcut-key="primary">Cmd</kbd><kbd>Shift</kbd><kbd>Z</kbd></span></dd></div>
                 </dl>
             </section>
             <section>
@@ -442,10 +442,10 @@
                         <span class="table-editor-nav-hint">Select a table to edit</span>
                     </div>
                     <div class="table-editor-nav-controls">
-                        <button type="button" class="btn btn-default btn-sm table-editor-nav-end" id="tableEditorFirstBtn" aria-label="First table" title="First table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3v10M12 3.5 7.5 8l4.5 4.5"></path></svg></button>
-                        <button type="button" class="btn btn-default btn-sm" id="tableEditorPrevBtn" aria-label="Previous table" title="Previous table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10.5 3.5 6 8l4.5 4.5"></path></svg></button>
-                        <button type="button" class="btn btn-default btn-sm" id="tableEditorNextBtn" aria-label="Next table" title="Next table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m5.5 3.5 4.5 4.5-4.5 4.5"></path></svg></button>
-                        <button type="button" class="btn btn-default btn-sm table-editor-nav-end" id="tableEditorLastBtn" aria-label="Last table" title="Last table"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 3v10M4 3.5 8.5 8 4 12.5"></path></svg></button>
+                        <button type="button" class="btn btn-default btn-sm table-editor-nav-end" id="tableEditorFirstBtn" aria-label="First table" title="First table"><svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#backward-step"></use></svg></button>
+                        <button type="button" class="btn btn-default btn-sm" id="tableEditorPrevBtn" aria-label="Previous table" title="Previous table"><svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#chevron-left"></use></svg></button>
+                        <button type="button" class="btn btn-default btn-sm" id="tableEditorNextBtn" aria-label="Next table" title="Next table"><svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#chevron-right"></use></svg></button>
+                        <button type="button" class="btn btn-default btn-sm table-editor-nav-end" id="tableEditorLastBtn" aria-label="Last table" title="Last table"><svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#forward-step"></use></svg></button>
                     </div>
                     <div class="table-editor-pages" id="tableEditorPages" aria-label="Jump to table"></div>
                 </div>
@@ -456,21 +456,21 @@
                     <label for="tableEditorNumber">Table number</label>
                     <div class="table-caption-field">
                         <input type="text" class="form-control" id="tableEditorNumber">
-                        <button type="button" class="table-caption-suggestion" id="tableEditorNumberSuggestion" aria-label="Use suggested table number" title="Use suggestion" hidden><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m3.5 8.25 2.75 2.75 6.25-6.25"></path></svg></button>
+                        <button type="button" class="table-caption-suggestion" id="tableEditorNumberSuggestion" aria-label="Use suggested table number" title="Use suggestion" hidden><svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#check"></use></svg></button>
                     </div>
                 </div>
                 <div class="form-row">
                     <label for="tableEditorCaption">Title</label>
                     <div class="table-caption-field">
                         <input type="text" class="form-control" id="tableEditorCaption">
-                        <button type="button" class="table-caption-suggestion" id="tableEditorCaptionSuggestion" aria-label="Use suggested table title" title="Use suggestion" hidden><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m3.5 8.25 2.75 2.75 6.25-6.25"></path></svg></button>
+                        <button type="button" class="table-caption-suggestion" id="tableEditorCaptionSuggestion" aria-label="Use suggested table title" title="Use suggestion" hidden><svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#check"></use></svg></button>
                     </div>
                 </div>
                 <div class="form-row">
                     <label for="tableEditorUnit">Unit</label>
                     <div class="table-caption-field">
                         <input type="text" class="form-control" id="tableEditorUnit">
-                        <button type="button" class="table-caption-suggestion" id="tableEditorUnitSuggestion" aria-label="Use suggested table unit" title="Use suggestion" hidden><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m3.5 8.25 2.75 2.75 6.25-6.25"></path></svg></button>
+                        <button type="button" class="table-caption-suggestion" id="tableEditorUnitSuggestion" aria-label="Use suggested table unit" title="Use suggestion" hidden><svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#check"></use></svg></button>
                     </div>
                 </div>
 
@@ -508,12 +508,12 @@
             <div class="table-editor-workspace">
                 <div class="table-editor-toolbar" aria-label="Table editing">
                     <div class="table-toolbar-group" aria-label="History">
-                        <button type="button" class="table-tool-btn" id="tableEditorUndoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#undo"></use></svg></button>
-                        <button type="button" class="table-tool-btn" id="tableEditorRedoBtn" title="Redo (Ctrl+Y or Cmd+Shift+Z)" aria-label="Redo" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#redo"></use></svg></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorUndoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-left"></use></svg></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorRedoBtn" title="Redo (Ctrl+Y or Cmd+Shift+Z)" aria-label="Redo" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-right"></use></svg></button>
                     </div>
                     <div class="table-toolbar-group" aria-label="Selection">
                         <button type="button" class="table-tool-btn" id="tableEditorDeselectBtn" title="Deselect cells" aria-label="Deselect cells"><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#xmark"></use></svg></button>
-                        <button type="button" class="table-tool-btn" id="tableEditorScopingModeBtn" title="Inspect and paint scoping relationships" aria-label="Scoping mode" aria-describedby="tableEditorScopingModeHelp" aria-pressed="false"><svg class="table-tool-icon table-tool-icon-stroke" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><circle cx="7.5" cy="7.5" r="4.75"></circle><path d="m11 11 4 4"></path></svg></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorScopingModeBtn" title="Inspect and paint scoping relationships" aria-label="Scoping mode" aria-describedby="tableEditorScopingModeHelp" aria-pressed="false"><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#binoculars"></use></svg></button>
                         <span class="wb-inv" id="tableEditorScopingModeHelp">Select a parent header, then click or drag over child cells to add or remove their relationship.</span>
                     </div>
                     <div class="table-toolbar-group" aria-label="Structure">

@@ -986,7 +986,7 @@ function renderComponentLibrary() {
         previewButton.className = 'btn btn-default btn-sm component-preview-button';
         previewButton.title = `Preview ${component.name}`;
         previewButton.setAttribute('aria-label', `Preview ${component.name}`);
-        previewButton.innerHTML = '<svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M1.5 9s2.7-4.5 7.5-4.5S16.5 9 16.5 9 13.8 13.5 9 13.5 1.5 9 1.5 9Z"></path><circle cx="9" cy="9" r="2.25"></circle></svg>';
+        previewButton.innerHTML = '<svg aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#eye"></use></svg>';
         previewButton.addEventListener('click', () => previewComponent(component));
         const insertButton = document.createElement('button');
         insertButton.type = 'button';

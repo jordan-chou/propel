@@ -911,11 +911,7 @@ textarea {
     width: 14px;
     height: 14px;
     margin: auto;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    fill: currentColor;
 }
 
 .component-preview-panel {
@@ -1298,11 +1294,7 @@ textarea {
 .table-editor-nav-controls svg {
     width: 14px;
     height: 14px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.75;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    fill: currentColor;
 }
 
 .table-editor-nav-controls .btn:disabled,
@@ -1411,11 +1403,7 @@ textarea {
 .table-caption-suggestion svg {
     width: 12px;
     height: 12px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    fill: currentColor;
 }
 
 .table-caption-suggestion:hover,
@@ -1633,13 +1621,6 @@ textarea {
     height: 18px;
     fill: currentColor;
     color: currentColor;
-}
-
-.table-tool-icon-stroke {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
 }
 
 .table-tool-icon-grid {
