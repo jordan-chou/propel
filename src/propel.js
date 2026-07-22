@@ -39,6 +39,7 @@ import {
 } from './ui/wet-live-editor.js';
 import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
+import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
 import { presetButtons } from './preset-buttons.js';
@@ -140,6 +141,11 @@ const paneSplitter = document.getElementById('paneSplitter');
 const paneSnapGuides = document.querySelectorAll('.pane-snap-guide');
 const codeEditor = document.getElementById('codeEditor');
 const codeHighlight = document.getElementById('codeHighlight');
+const codeHighlightViewport = createCodeHighlightViewport({
+    overlay: codeHighlight,
+    textarea: outputText,
+    highlight: highlightHTML
+});
 const codeReciprocalCaret = document.getElementById('codeReciprocalCaret');
 const liveReciprocalCaret = liveEditor?.getRootNode().getElementById('liveReciprocalCaret');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
@@ -721,7 +727,6 @@ function startPaneResize(event) {
     paneSplitter.setPointerCapture(event.pointerId);
     paneSplitter.classList.add('drag-active');
     editorDropZone.classList.add('pane-resizing');
-    codeEditor?.classList.add('is-resizing');
     updatePaneSnapGuides();
 
     const handleMove = (moveEvent) => {
@@ -738,7 +743,6 @@ function startPaneResize(event) {
     const stopResize = () => {
         paneSplitter.classList.remove('drag-active');
         editorDropZone.classList.remove('pane-resizing');
-        codeEditor?.classList.remove('is-resizing');
         showActivePaneSnap(null);
         savePaneSplitterLocation();
         paneSplitter.removeEventListener('pointermove', handleMove);
@@ -863,7 +867,7 @@ function createListeners() {
 
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
-        codeEditor?.classList.add('is-typing');
+        codeHighlightViewport.update(outputText.value);
         scheduleTypingRefresh('code');
         hideReciprocalCaret(liveReciprocalCaret);
     });
@@ -3090,9 +3094,7 @@ function updateCodeHighlight() {
         return;
     }
 
-    const code = codeHighlight.querySelector('code') || codeHighlight;
-    code.innerHTML = highlightHTML(outputText.value);
-    codeEditor?.classList.remove('is-typing');
+    codeHighlightViewport.update(outputText.value);
     syncCodeHighlightScroll();
 }
 
@@ -3102,8 +3104,7 @@ function syncCodeHighlightScroll() {
         return;
     }
 
-    codeHighlight.scrollTop = outputText.scrollTop;
-    codeHighlight.scrollLeft = outputText.scrollLeft;
+    codeHighlightViewport.schedule();
 }
 
 /** Escapes HTML source and applies syntax-highlighting spans. */

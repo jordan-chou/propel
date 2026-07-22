@@ -2548,12 +2548,15 @@ textarea {
 
 #codeHighlight {
     z-index: 0;
-    overflow: scroll;
+    padding: 0;
+    overflow: hidden;
     color: #d7deea;
     pointer-events: none;
 }
 
 #codeHighlight code {
+    position: absolute;
+    display: block;
     padding: 0;
     border-radius: 0;
     background: transparent;
@@ -2601,18 +2604,6 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
     .code-reciprocal-caret { animation: none; }
-}
-
-/* Avoid rebuilding the full syntax-highlight DOM for every keystroke. */
-.code-editor.is-typing #codeHighlight,
-.code-editor.is-resizing #codeHighlight {
-    display: none;
-}
-
-.code-editor.is-typing #outputText,
-.code-editor.is-resizing #outputText {
-    color: #dce7ff;
-    -webkit-text-fill-color: #dce7ff;
 }
 
 .syntax-tag,

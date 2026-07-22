@@ -30,6 +30,7 @@ import {
 import { buildElementSourceMap } from '../../src/app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../src/app/reciprocal-caret.js';
 import { captureLiveEditBaseline, normalizeLiveEditClone } from '../../src/document/live-edit-normalization.js';
+import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -149,6 +150,85 @@ test('Live edit normalization preserves authored styles and meaningful spans', (
     equal(clone.firstElementChild.getAttribute('style'), 'text-align: center');
     equal(clone.querySelector('.wb-inv').getAttribute('style'), 'color: red');
     equal(clone.querySelector('span[lang="en"]').outerHTML, '<span lang="en">Text</span>');
+});
+
+test('code highlighting renders only the visible source window', () => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position: relative; width: 420px; height: 110px;';
+    host.innerHTML = `
+        <pre style="position:absolute;inset:0;margin:0;overflow:hidden"><code></code></pre>
+        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:0;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
+    document.body.append(host);
+    const overlay = host.querySelector('pre');
+    const textarea = host.querySelector('textarea');
+    const source = Array.from({ length: 200 }, (_, index) => `<p>Line ${index}</p>`).join('\n');
+    textarea.value = source;
+    const viewport = createCodeHighlightViewport({
+        overlay,
+        textarea,
+        highlight: value => value.replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+        overscanLines: 2
+    });
+    viewport.update(source);
+    textarea.scrollTop = 1100;
+    viewport.render();
+    const code = overlay.querySelector('code');
+    const start = Number(code.dataset.highlightStart);
+    const end = Number(code.dataset.highlightEnd);
+
+    equal(start > 0, true);
+    equal(end < source.length, true);
+    equal(code.textContent, source.slice(start, end));
+    equal(code.textContent.includes('Line 0</p>'), false);
+    equal(code.textContent.length < source.length / 4, true);
+    viewport.destroy();
+    host.remove();
+});
+
+test('virtualized code highlighting stays aligned after wrapped lines', () => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position: relative; width: 260px; height: 88px;';
+    host.innerHTML = `
+        <pre style="position:absolute;inset:0;margin:0;padding:0;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"><code style="position:absolute;display:block;white-space:inherit;overflow-wrap:inherit;font:inherit"></code></pre>
+        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:8px;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
+    document.body.append(host);
+    const overlay = host.querySelector('pre');
+    const textarea = host.querySelector('textarea');
+    const longLine = 'A'.repeat(120);
+    const source = Array.from({ length: 80 }, (_, index) => index % 5 === 0 ? longLine : `Line ${index}`).join('\n');
+    textarea.value = source;
+    const viewport = createCodeHighlightViewport({
+        overlay,
+        textarea,
+        highlight: value => value,
+        overscanLines: 1
+    });
+    viewport.update(source);
+    textarea.scrollTop = 700;
+    viewport.render();
+
+    const code = overlay.querySelector('code');
+    const start = Number(code.dataset.highlightStart);
+    const reference = document.createElement('div');
+    reference.style.cssText = `position:fixed;visibility:hidden;left:-10000px;top:0;box-sizing:border-box;width:${textarea.clientWidth}px;height:auto;margin:0;padding:8px;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace`;
+    const referenceText = document.createTextNode(`${source}\u200b`);
+    reference.append(referenceText);
+    document.body.append(reference);
+    const range = document.createRange();
+    range.setStart(referenceText, start);
+    range.setEnd(referenceText, start + 1);
+    const expectedTop = range.getBoundingClientRect().top - reference.getBoundingClientRect().top - textarea.scrollTop;
+    const actualTop = code.getBoundingClientRect().top - overlay.getBoundingClientRect().top;
+
+    equal(Math.abs(actualTop - expectedTop) < 1, true);
+    equal(code.textContent.length < source.length / 3, true);
+    reference.remove();
+    viewport.destroy();
+    host.remove();
+});
+
+test('code highlight line indexes include empty and trailing lines', () => {
+    equal(getLineStarts('first\n\nthird\n').join(','), '0,6,7,13');
 });
 
 test('starting with a blank file dismisses onboarding for the current session', () => {
