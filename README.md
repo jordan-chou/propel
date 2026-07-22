@@ -107,6 +107,15 @@ Clearing the site’s browser data removes these values and restores their defau
 
 The onboarding card uses `sessionStorage` under `propel.onboardingDismissed`. Starting with a blank file hides the card for the current browser tab session, including page reloads; it returns in a new session.
 
+## Feedback and issue reporting
+
+Open **Information > Feedback** in Propel and choose one of two submission routes. GitHub Issues is preferred and requires a GitHub account:
+
+- [Report a problem](https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml)
+- [Suggest an improvement](https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml)
+
+Alternatively, if you do not have a GitHub account or prefer email, email [web@fin.gc.ca](mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&subject=Propel%20feedback), with `jordan.chou@fin.gc.ca` copied. The app also provides a shorter email option for comments or compliments. Review every report before submitting it. Do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.
+
 ## Philosophy
 
 Propel is intended to keep document conversion and editing simple, understandable, and under the user's control. It should never perform destructive or drastic changes without explicit user intervention. When a change could significantly alter content or structure, Propel should make the action clear and leave the decision to the user.

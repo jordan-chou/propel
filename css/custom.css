@@ -1083,6 +1083,167 @@ textarea {
     margin: 0;
 }
 
+.feedback-intro {
+    display: grid;
+    gap: 4px;
+}
+
+.feedback-intro h3,
+.feedback-route h3 {
+    color: var(--text);
+    font-size: 1rem;
+    text-transform: none;
+}
+
+.feedback-intro p,
+.feedback-route p,
+.feedback-privacy {
+    margin: 0;
+    color: var(--muted);
+}
+
+.feedback-routes {
+    display: grid;
+    gap: 0;
+    margin-top: 12px;
+}
+
+.feedback-route {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+}
+
+.feedback-route-preferred {
+    border-color: #9dbbfa;
+    background: #f2f6ff;
+    box-shadow: inset 4px 0 0 #2f6fed;
+}
+
+.feedback-route-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.feedback-route-heading > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.feedback-route-number {
+    display: inline-grid;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+}
+
+.feedback-route-badge {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #dce8ff;
+    color: #184ca8;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.feedback-route-badge-alternative {
+    background: #e8ebf0;
+    color: #536074;
+}
+
+.feedback-github-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.feedback-github-options > div {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid #c6d7fa;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.feedback-github-options span:not(.wb-inv) {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.feedback-route .btn {
+    justify-self: start;
+}
+
+.feedback-route .feedback-general-option {
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.feedback-general-option a {
+    font-weight: 700;
+}
+
+.feedback-route-separator {
+    position: relative;
+    display: grid;
+    height: 34px;
+    place-items: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.feedback-route-separator::before {
+    position: absolute;
+    right: 0;
+    left: 0;
+    height: 1px;
+    background: var(--border);
+    content: "";
+}
+
+.feedback-route-separator span {
+    z-index: 1;
+    padding: 0 10px;
+    background: #fff;
+}
+
+.feedback-privacy {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--warning);
+    background: #fff8e6;
+    color: var(--text);
+    font-size: 0.82rem;
+}
+
+@media (max-width: 620px) {
+    .cheatsheet-tabs {
+        flex-wrap: wrap;
+    }
+
+    .feedback-github-options {
+        grid-template-columns: 1fr;
+    }
+}
+
 .table-editor-dialog {
     position: fixed;
     top: var(--header-height);
@@ -3787,6 +3948,20 @@ body {
 #shortcutHelpBtn:focus {
     border-color: rgba(255,255,255,0.4);
     background: rgba(255,255,255,0.12);
+    color: #fff;
+}
+
+.app-header .feedback-header-btn {
+    border-color: #78a6ff;
+    background: #2f6fed;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(120, 166, 255, 0.18);
+}
+
+.app-header .feedback-header-btn:hover,
+.app-header .feedback-header-btn:focus-visible {
+    border-color: #b8d0ff;
+    background: #1f5fd6;
     color: #fff;
 }
 

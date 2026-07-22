@@ -33,6 +33,7 @@
             <div class="header-actions">
                 <span id="healthScore" class="label label-default" role="button" tabindex="0" aria-controls="processingLogPanel" title="Open review panel">Not checked</span>
                 <button type="button" class="btn btn-sm" id="activityToggleBtn" aria-expanded="false" aria-controls="processingLogPanel">Activity</button>
+                <button type="button" class="btn btn-sm feedback-header-btn" id="feedbackBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="shortcutHelpDialog">Feedback</button>
                 <button type="button" class="btn btn-sm icon-btn" id="shortcutHelpBtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="shortcutHelpDialog" title="Propel help and shortcuts">
                     <span class="question-icon" aria-hidden="true">?</span>
                     <span class="wb-inv">Open Propel cheatsheet</span>
@@ -337,6 +338,7 @@
             <button type="button" id="cheatsheetInstructionsTab" role="tab" aria-selected="true" aria-controls="cheatsheetInstructionsPanel" tabindex="0" data-cheatsheet-tab="instructions">Instructions</button>
             <button type="button" id="cheatsheetTipsTab" role="tab" aria-selected="false" aria-controls="cheatsheetTipsPanel" tabindex="-1" data-cheatsheet-tab="tips">Tips</button>
             <button type="button" id="cheatsheetShortcutsTab" role="tab" aria-selected="false" aria-controls="cheatsheetShortcutsPanel" tabindex="-1" data-cheatsheet-tab="shortcuts">Keyboard shortcuts</button>
+            <button type="button" id="cheatsheetFeedbackTab" role="tab" aria-selected="false" aria-controls="cheatsheetFeedbackPanel" tabindex="-1" data-cheatsheet-tab="feedback">Feedback</button>
             <button type="button" id="cheatsheetAboutTab" role="tab" aria-selected="false" aria-controls="cheatsheetAboutPanel" tabindex="-1" data-cheatsheet-tab="about">About</button>
         </div>
         <section class="cheatsheet-panel" id="cheatsheetInstructionsPanel" role="tabpanel" aria-labelledby="cheatsheetInstructionsTab" data-cheatsheet-panel="instructions">
@@ -404,6 +406,50 @@
                 </dl>
             </section>
             </div>
+        </section>
+        <section class="cheatsheet-panel feedback-panel" id="cheatsheetFeedbackPanel" role="tabpanel" aria-labelledby="cheatsheetFeedbackTab" data-cheatsheet-panel="feedback" hidden>
+            <div class="feedback-intro">
+                <h3>Choose how to submit feedback</h3>
+                <p>There are two distinct submission routes. GitHub Issues is preferred.</p>
+            </div>
+            <div class="feedback-routes">
+                <section class="feedback-route feedback-route-preferred" aria-labelledby="feedbackGitHubTitle">
+                    <div class="feedback-route-heading">
+                        <span class="feedback-route-number" aria-hidden="true">1</span>
+                        <div>
+                            <h3 id="feedbackGitHubTitle">Submit through GitHub Issues</h3>
+                            <span class="feedback-route-badge">Preferred</span>
+                        </div>
+                    </div>
+                    <p>This route requires a GitHub account.</p>
+                    <div class="feedback-github-options">
+                        <div>
+                            <strong>Report a problem</strong>
+                            <span>Something is broken, unexpected, or preventing your work.</span>
+                            <a class="btn btn-primary btn-sm" href="https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer">Report a problem<span class="wb-inv"> in a new tab</span></a>
+                        </div>
+                        <div>
+                            <strong>Suggest an improvement</strong>
+                            <span>Propose a publishing need, workflow change, or enhancement.</span>
+                            <a class="btn btn-primary btn-sm" href="https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml" target="_blank" rel="noopener noreferrer">Request a feature<span class="wb-inv"> in a new tab</span></a>
+                        </div>
+                    </div>
+                </section>
+                <div class="feedback-route-separator" aria-hidden="true"><span>or</span></div>
+                <section class="feedback-route feedback-route-email" aria-labelledby="feedbackEmailTitle">
+                    <div class="feedback-route-heading">
+                        <span class="feedback-route-number" aria-hidden="true">2</span>
+                        <div>
+                            <h3 id="feedbackEmailTitle">Submit by email</h3>
+                            <span class="feedback-route-badge feedback-route-badge-alternative">Alternative</span>
+                        </div>
+                    </div>
+                    <p id="feedbackEmailHelp">Use this route if you do not have a GitHub account or prefer email. A preformatted draft will open in your email application for you to review before sending.</p>
+                    <a class="btn btn-default btn-sm" id="feedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20feedback" aria-describedby="feedbackEmailHelp">Prepare feedback email</a>
+                    <p class="feedback-general-option">Have a comment or compliment? <a id="generalFeedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20comment%20or%20compliment">Send a short note</a>.</p>
+                </section>
+            </div>
+            <p class="feedback-privacy"><strong>Protect information:</strong> Do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots in GitHub or email reports.</p>
         </section>
         <section class="cheatsheet-panel" id="cheatsheetAboutPanel" role="tabpanel" aria-labelledby="cheatsheetAboutTab" data-cheatsheet-panel="about" hidden>
             <dl class="cheatsheet-about">
