@@ -507,13 +507,20 @@
 
             <div class="table-editor-workspace">
                 <div class="table-editor-toolbar" aria-label="Table editing">
+                    <div class="table-editor-scoping-banner" id="tableEditorScopingModeBanner" role="status" aria-live="polite" hidden>
+                        <div>
+                            <strong>Scoping mode is on</strong>
+                            <span id="tableEditorScopingModeInstructions">Table editing is locked. Select a header cell to use as the parent.</span>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="tableEditorScopingModeExitBtn">Exit scoping mode</button>
+                    </div>
                     <div class="table-toolbar-group" aria-label="History">
                         <button type="button" class="table-tool-btn" id="tableEditorUndoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-left"></use></svg></button>
                         <button type="button" class="table-tool-btn" id="tableEditorRedoBtn" title="Redo (Ctrl+Y or Cmd+Shift+Z)" aria-label="Redo" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#rotate-right"></use></svg></button>
                     </div>
                     <div class="table-toolbar-group" aria-label="Selection">
                         <button type="button" class="table-tool-btn" id="tableEditorDeselectBtn" title="Deselect cells" aria-label="Deselect cells"><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#xmark"></use></svg></button>
-                        <button type="button" class="table-tool-btn" id="tableEditorScopingModeBtn" title="Inspect and paint scoping relationships" aria-label="Scoping mode" aria-describedby="tableEditorScopingModeHelp" aria-pressed="false"><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#binoculars"></use></svg></button>
+                        <button type="button" class="table-tool-btn" id="tableEditorScopingModeBtn" title="Enter scoping mode" aria-label="Enter scoping mode" aria-describedby="tableEditorScopingModeHelp" aria-pressed="false"><svg class="table-tool-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#binoculars"></use></svg></button>
                         <span class="wb-inv" id="tableEditorScopingModeHelp">Select a parent header, then click or drag over child cells to add or remove their relationship.</span>
                     </div>
                     <div class="table-toolbar-group" aria-label="Structure">

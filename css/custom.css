@@ -1539,7 +1539,83 @@ textarea {
     min-height: 0;
 }
 
+.table-editor-scoping-banner {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    padding: 4px 6px;
+    border-radius: inherit;
+    background: #eff6ff;
+    color: #172554;
+}
+
+.table-editor-scoping-banner[hidden] {
+    display: none;
+}
+
+.table-editor-scoping-banner > div {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.table-editor-scoping-banner strong {
+    flex: 0 0 auto;
+    font-size: 0.88rem;
+}
+
+.table-editor-scoping-banner span {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.table-editor-scoping-banner .btn {
+    flex: 0 0 auto;
+}
+
+.table-editor-dialog.table-editor-scoping-locked {
+    box-shadow: -10px 0 30px rgba(37, 99, 235, 0.18);
+}
+
+.table-editor-dialog.table-editor-scoping-locked .table-editor-panel {
+    background: #f4f6f9;
+    opacity: 0.58;
+}
+
+.table-editor-dialog.table-editor-scoping-locked .table-editor-toolbar {
+    border-color: rgba(37, 99, 235, 0.55);
+    background: #f8fbff;
+}
+
+.table-editor-dialog.table-editor-scoping-locked .table-editor-toolbar > .table-toolbar-group {
+    visibility: hidden;
+}
+
+.table-editor-dialog.table-editor-scoping-locked :is(button, input, select, textarea):disabled {
+    cursor: not-allowed;
+}
+
+.table-editor-dialog.table-editor-scoping-locked .table-tool-btn:disabled {
+    opacity: 0.28;
+}
+
+.table-editor-dialog.table-editor-scoping-locked #tableEditorScopingModeBtn {
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+}
+
 .table-editor-toolbar {
+    position: relative;
     flex-wrap: nowrap;
     gap: 6px;
     min-width: 0;
@@ -1998,23 +2074,29 @@ textarea {
 }
 
 .table-editor-canvas.scoping-mode .scope-parent-candidate {
-    box-shadow: inset 0 0 0 3px var(--scope-color);
+    outline: 2px dashed #f59e0b;
+    outline-offset: -3px;
     cursor: pointer;
 }
 
 .table-editor-canvas.scoping-mode .scope-parent {
-    background: var(--scope-color) !important;
+    background: #1d4ed8 !important;
     color: #fff !important;
     box-shadow: inset 0 0 0 3px rgba(255,255,255,.65);
 }
 
 .table-editor-canvas.scoping-mode .scope-child {
-    background: color-mix(in srgb, var(--scope-color) 22%, white) !important;
-    box-shadow: inset 0 0 0 2px var(--scope-color);
+    background: #dbeafe !important;
+    box-shadow: inset 0 0 0 2px #2563eb;
 }
 
 .table-editor-canvas.scoping-mode .scope-unrelated {
     opacity: .38;
+}
+
+.table-editor-dialog.table-editor-scoping-locked .table-editor-canvas {
+    border-color: #2563eb;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16);
 }
 
 .table-editor-actions {

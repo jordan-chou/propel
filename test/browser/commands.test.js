@@ -356,6 +356,160 @@ test('table editor commits preserve the Live editor scroll position', () => {
     liveEditor.remove();
 });
 
+test('table scoping mode locks editing controls and provides an explicit exit', () => {
+    const fixture = createTableEditorScopingFixture();
+
+    fixture.elements.tableEditorScopingModeBtn.click();
+
+    equal(fixture.elements.tableEditorDialog.classList.contains('table-editor-scoping-locked'), true);
+    equal(fixture.elements.tableEditorScopingModeBanner.hidden, false);
+    equal(fixture.elements.tableEditorScopingModeBanner.parentElement.classList.contains('table-editor-toolbar'), true);
+    equal(fixture.elements.tableEditorHeaderBtn.disabled, true);
+    equal(fixture.elements.tableEditorNumber.disabled, true);
+    equal(fixture.elements.tableEditorApplyBtn.disabled, true);
+    equal(fixture.elements.tableEditorScopingModeBtn.disabled, false);
+    equal(fixture.elements.tableEditorScopingModeBtn.getAttribute('aria-label'), 'Exit scoping mode');
+
+    fixture.elements.tableEditorScopingModeExitBtn.click();
+
+    equal(fixture.elements.tableEditorDialog.classList.contains('table-editor-scoping-locked'), false);
+    equal(fixture.elements.tableEditorScopingModeBanner.hidden, true);
+    equal(fixture.elements.tableEditorHeaderBtn.disabled, false);
+    equal(fixture.elements.tableEditorNumber.disabled, false);
+    equal(fixture.elements.tableEditorApplyBtn.disabled, false);
+
+    fixture.elements.tableEditorScopingModeBtn.click();
+    fixture.elements.tableEditorDialog.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true
+    }));
+    equal(fixture.elements.tableEditorScopingModeBanner.hidden, true);
+    equal(document.activeElement, fixture.elements.tableEditorScopingModeBtn);
+    fixture.remove();
+});
+
+test('table scoping drag paints the same live rectangle as cell selection', () => {
+    const fixture = createTableEditorScopingFixture();
+    fixture.elements.tableEditorScopingModeBtn.click();
+    const cells = fixture.elements.tableEditorCanvas.querySelectorAll('th, td');
+    const parent = cells[0];
+    const first = cells[4];
+    const second = cells[5];
+    const third = cells[7];
+    const fourth = cells[8];
+
+    parent.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    equal(parent.classList.contains('scope-parent'), true);
+    equal(parent.style.getPropertyValue('--scope-color'), '');
+
+    first.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    fourth.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    equal(hasHeaderRelationship(parent, first), true);
+    equal(hasHeaderRelationship(parent, second), true);
+    equal(hasHeaderRelationship(parent, third), true);
+    equal(hasHeaderRelationship(parent, fourth), true);
+
+    second.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    equal(hasHeaderRelationship(parent, first), true);
+    equal(hasHeaderRelationship(parent, second), true);
+    equal(hasHeaderRelationship(parent, third), false);
+    equal(hasHeaderRelationship(parent, fourth), false);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    fixture.remove();
+});
+
+function createTableEditorScopingFixture() {
+    const host = document.createElement('div');
+    host.innerHTML = `
+        <section id="tableEditorDialog" hidden>
+            <button id="tableEditorFullscreenBtn">Fullscreen</button>
+            <button id="tableEditorCloseBtn">Close</button>
+            <aside class="table-editor-panel">
+                <button id="tableEditorFirstBtn">First</button>
+                <button id="tableEditorPrevBtn">Previous</button>
+                <button id="tableEditorNextBtn">Next</button>
+                <button id="tableEditorLastBtn">Last</button>
+                <div id="tableEditorPages"></div>
+                <button id="tableEditorComponentBtn">Component</button>
+                <input id="tableEditorNumber"><button id="tableEditorNumberSuggestion"></button>
+                <input id="tableEditorCaption"><button id="tableEditorCaptionSuggestion"></button>
+                <input id="tableEditorUnit"><button id="tableEditorUnitSuggestion"></button>
+                <input id="tableEditorComplexScoping" type="checkbox" checked>
+                <input id="tableEditorFinancial" type="checkbox">
+                <input id="tableEditorFrench" type="checkbox">
+            </aside>
+            <div class="table-editor-workspace">
+                <div class="table-editor-toolbar">
+                    <div id="tableEditorScopingModeBanner" hidden>
+                        <span id="tableEditorScopingModeInstructions"></span>
+                        <button id="tableEditorScopingModeExitBtn">Exit scoping mode</button>
+                    </div>
+                    <button id="tableEditorUndoBtn">Undo</button><button id="tableEditorRedoBtn">Redo</button>
+                    <button id="tableEditorDeselectBtn">Deselect</button>
+                    <button id="tableEditorScopingModeBtn" aria-label="Enter scoping mode" aria-pressed="false">Scope</button>
+                    <button id="tableEditorHeaderBtn">Header</button><button id="tableEditorMergeRowBtn">Merge row</button>
+                    <button id="tableEditorMergeCellsBtn">Merge cells</button><button id="tableEditorActiveBtn">Highlight</button>
+                    <button id="tableEditorAddFooterBtn">Add footer</button><button id="tableEditorTfootBtn">Move footer</button>
+                    <button id="tableEditorIndentBtn">Indent</button><button id="tableEditorOutdentBtn">Outdent</button>
+                    <button id="tableEditorBoldBtn">Bold</button><button id="tableEditorLeftBtn">Left</button>
+                    <button id="tableEditorCenterBtn">Center</button><button id="tableEditorRightBtn">Right</button>
+                    <button id="tableEditorDeleteRowBtn">Delete row</button><button id="tableEditorDeleteColumnBtn">Delete column</button>
+                </div>
+                <div id="tableEditorCanvas" contenteditable="true"></div>
+            </div>
+            <span id="tableEditorStatus"></span>
+            <button id="tableEditorCancelBtn">Cancel</button>
+            <button id="tableEditorApplyNextBtn">Apply next</button>
+            <button id="tableEditorApplyBtn">Apply</button>
+        </section>`;
+    document.body.append(host);
+    const ids = [
+        'tableEditorDialog', 'tableEditorFullscreenBtn', 'tableEditorCloseBtn', 'tableEditorCancelBtn',
+        'tableEditorApplyBtn', 'tableEditorApplyNextBtn', 'tableEditorComponentBtn', 'tableEditorFirstBtn',
+        'tableEditorPrevBtn', 'tableEditorNextBtn', 'tableEditorLastBtn', 'tableEditorPages',
+        'tableEditorUndoBtn', 'tableEditorRedoBtn', 'tableEditorDeselectBtn', 'tableEditorScopingModeBtn',
+        'tableEditorScopingModeBanner', 'tableEditorScopingModeInstructions', 'tableEditorScopingModeExitBtn',
+        'tableEditorHeaderBtn', 'tableEditorMergeRowBtn', 'tableEditorMergeCellsBtn', 'tableEditorActiveBtn',
+        'tableEditorAddFooterBtn', 'tableEditorTfootBtn', 'tableEditorIndentBtn', 'tableEditorOutdentBtn',
+        'tableEditorBoldBtn', 'tableEditorLeftBtn', 'tableEditorCenterBtn', 'tableEditorRightBtn',
+        'tableEditorDeleteRowBtn', 'tableEditorDeleteColumnBtn', 'tableEditorStatus', 'tableEditorCanvas',
+        'tableEditorNumber', 'tableEditorCaption', 'tableEditorUnit', 'tableEditorNumberSuggestion',
+        'tableEditorCaptionSuggestion', 'tableEditorUnitSuggestion', 'tableEditorComplexScoping',
+        'tableEditorFinancial', 'tableEditorFrench'
+    ];
+    const elements = Object.fromEntries(ids.map((id) => [id, host.querySelector(`#${id}`)]));
+    elements.tableEditorSnapGuides = [];
+    elements.optionHelpButtons = [];
+    const inputHTML = document.createElement('div');
+    inputHTML.innerHTML = '<table id="t1"><thead><tr><th id="parent">Label</th><th id="column-a">A</th><th id="column-b">B</th></tr></thead><tbody><tr><th id="row-a">One</th><td>1</td><td>2</td></tr><tr><th id="row-b">Two</th><td>3</td><td>4</td></tr></tbody></table>';
+    const controller = createTableEditorController({
+        elements,
+        inputHTML,
+        liveEditor: document.createElement('div'),
+        liveEditorHost: document.createElement('div'),
+        uiPreferences: { get: () => ({}), set: () => {} },
+        cleanupTable,
+        isCleanedTable,
+        defaultTableCleanupOptions,
+        renameTag,
+        getEditorSelection: () => null,
+        getClosestElement: () => null,
+        preserveParagraphsOnEnter: () => {},
+        getFocusableElements: (root) => Array.from(root.querySelectorAll('button:not(:disabled), input:not(:disabled)')),
+        addProcessingLog: () => {},
+        showActivityToast: () => {},
+        syncLiveToInputHTML: () => {},
+        scrollLiveElementIntoView: () => {},
+        commitTableChanges: () => {},
+        isLiveEditorSelectingText: () => false,
+        isEnglish: () => true
+    });
+    controller.createListeners();
+    controller.open(0, { previewCleanup: false });
+    return { controller, elements, remove: () => { controller.close(); host.remove(); } };
+}
+
 test('table option refresh preserves manual bold and source markup', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr><tr><td><p>Manually bold</p></td><td width="80">1</td></tr></tbody></table>';

@@ -1,4 +1,4 @@
-import { buildCellGrid, getCellPosition } from './model.js';
+import { buildCellGrid, getCellPosition, getCellsInRange } from './model.js';
 import { toggleCellsBold, toggleRowsActive } from './formatting.js';
 import { moveRowsToTableFooter } from './footer.js';
 import { deleteSelectedTableColumns } from './columns.js';
@@ -62,7 +62,9 @@ export function createTableEditorController(config) {
         tableEditorApplyBtn, tableEditorApplyNextBtn, tableEditorFirstBtn,
         tableEditorPrevBtn, tableEditorNextBtn, tableEditorLastBtn, tableEditorPages,
         tableEditorUndoBtn, tableEditorRedoBtn,
-        tableEditorDeselectBtn, tableEditorScopingModeBtn, tableEditorHeaderBtn, tableEditorMergeRowBtn,
+        tableEditorDeselectBtn, tableEditorScopingModeBtn, tableEditorScopingModeBanner,
+        tableEditorScopingModeInstructions, tableEditorScopingModeExitBtn,
+        tableEditorHeaderBtn, tableEditorMergeRowBtn,
         tableEditorMergeCellsBtn, tableEditorActiveBtn, tableEditorAddFooterBtn,
         tableEditorTfootBtn, tableEditorIndentBtn, tableEditorOutdentBtn,
         tableEditorBoldBtn, tableEditorLeftBtn, tableEditorCenterBtn,
@@ -91,6 +93,8 @@ export function createTableEditorController(config) {
     let tableEditorScopingMode = false;
     let tableEditorScopeParent = null;
     let tableEditorScopePaintEnabled = null;
+    let tableEditorScopePaintBaseline = new Map();
+    let tableEditorScopePaintRange = [];
     const tableEditorSizeStorageKey = 'tableEditorSize';
     const tableEditorBottomLayoutQuery = window.matchMedia('(orientation: portrait) and (min-width: 768px), (max-width: 767px)');
     const tableEditorMobileLayoutQuery = window.matchMedia('(max-width: 767px)');
@@ -163,6 +167,9 @@ export function createTableEditorController(config) {
         }
         if (tableEditorScopingModeBtn) {
             tableEditorScopingModeBtn.addEventListener('click', toggleTableEditorScopingMode);
+        }
+        if (tableEditorScopingModeExitBtn) {
+            tableEditorScopingModeExitBtn.addEventListener('click', exitTableEditorScopingMode);
         }
         if (tableEditorHeaderBtn) {
             tableEditorHeaderBtn.addEventListener('click', () => runTableEditorMutation(toggleTableEditorHeaderRows, 'Header row'));
@@ -635,7 +642,7 @@ export function createTableEditorController(config) {
         }
     
         const key = (event.key || '').toLowerCase();
-        if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && key === 'b') {
+        if (!tableEditorScopingMode && (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && key === 'b') {
             event.preventDefault();
             event.stopPropagation();
             boldTableEditorSelection();
@@ -689,6 +696,9 @@ export function createTableEditorController(config) {
     
         event.preventDefault();
         event.stopPropagation();
+        if (tableEditorScopingMode) {
+            return true;
+        }
         if (isRedo) {
             redoTableEditorChange();
         } else {
@@ -908,16 +918,21 @@ export function createTableEditorController(config) {
     /** Refreshes table editor history buttons. */
     function updateTableEditorHistoryButtons() {
         if (tableEditorUndoBtn) {
-            tableEditorUndoBtn.disabled = tableEditorHistoryIndex <= 0;
+            tableEditorUndoBtn.disabled = tableEditorScopingMode || tableEditorHistoryIndex <= 0;
         }
         if (tableEditorRedoBtn) {
-            tableEditorRedoBtn.disabled = tableEditorHistoryIndex >= tableEditorHistory.length - 1;
+            tableEditorRedoBtn.disabled = tableEditorScopingMode || tableEditorHistoryIndex >= tableEditorHistory.length - 1;
         }
     }
     
     /** Handles table editor escape. */
     function handleTableEditorEscape() {
         if (!tableEditorDialog || tableEditorDialog.hidden) {
+            return;
+        }
+
+        if (tableEditorScopingMode) {
+            exitTableEditorScopingMode();
             return;
         }
     
@@ -1108,19 +1123,19 @@ export function createTableEditorController(config) {
             tableEditorStatus.textContent = `Table ${tableEditorIndex + 1} of ${tableCount}. Use the Live view Edit table button or double-click a table to edit it here.`;
         }
         if (tableEditorFirstBtn) {
-            tableEditorFirstBtn.disabled = tableEditorIndex <= 0;
+            tableEditorFirstBtn.disabled = tableEditorScopingMode || tableEditorIndex <= 0;
         }
         if (tableEditorPrevBtn) {
-            tableEditorPrevBtn.disabled = tableEditorIndex <= 0;
+            tableEditorPrevBtn.disabled = tableEditorScopingMode || tableEditorIndex <= 0;
         }
         if (tableEditorNextBtn) {
-            tableEditorNextBtn.disabled = tableEditorIndex >= tableCount - 1;
+            tableEditorNextBtn.disabled = tableEditorScopingMode || tableEditorIndex >= tableCount - 1;
         }
         if (tableEditorLastBtn) {
-            tableEditorLastBtn.disabled = tableEditorIndex >= tableCount - 1;
+            tableEditorLastBtn.disabled = tableEditorScopingMode || tableEditorIndex >= tableCount - 1;
         }
         if (tableEditorApplyNextBtn) {
-            tableEditorApplyNextBtn.disabled = tableEditorIndex >= tableCount - 1;
+            tableEditorApplyNextBtn.disabled = tableEditorScopingMode || tableEditorIndex >= tableCount - 1;
             tableEditorApplyNextBtn.hidden = tableEditorIndex >= tableCount - 1;
         }
         renderTableEditorPagination(tableCount);
@@ -1141,6 +1156,7 @@ export function createTableEditorController(config) {
             button.className = 'table-editor-page-btn';
             button.textContent = String(index + 1);
             button.setAttribute('aria-label', `Edit table ${index + 1}`);
+            button.disabled = tableEditorScopingMode;
     
             if (index === tableEditorIndex) {
                 button.classList.add('active');
@@ -1459,9 +1475,11 @@ export function createTableEditorController(config) {
             event.preventDefault();
             if (!tableEditorScopeParent || cell === tableEditorScopeParent) return;
             tableEditorScopePaintEnabled = !hasHeaderRelationship(tableEditorScopeParent, cell);
-            paintTableEditorScopeCell(cell);
+            tableEditorScopePaintBaseline = captureScopePaintBaseline();
+            tableEditorScopePaintRange = [];
             tableEditorDragStartCell = cell;
             tableEditorIsDragging = false;
+            paintTableEditorScopeRange(cell);
             return;
         }
     
@@ -1478,9 +1496,12 @@ export function createTableEditorController(config) {
         }
 
         if (tableEditorScopingMode) {
+            if (cell === tableEditorDragStartCell && !tableEditorIsDragging) {
+                return;
+            }
             event.preventDefault();
             tableEditorIsDragging = true;
-            paintTableEditorScopeCell(cell);
+            paintTableEditorScopeRange(cell);
             return;
         }
     
@@ -1499,12 +1520,12 @@ export function createTableEditorController(config) {
     function handleTableEditorDocumentMouseUp() {
         const paintedScope = tableEditorScopingMode && tableEditorScopePaintEnabled !== null;
         tableEditorDragStartCell = null;
-        tableEditorScopePaintEnabled = null;
 
         if (paintedScope) {
             commitTableEditorHistory('Paint scoping relationship');
             refreshScopeVisualization();
         }
+        clearScopePaintState();
     
         if (!tableEditorIsDragging) {
             return;
@@ -1521,18 +1542,43 @@ export function createTableEditorController(config) {
         setTableEditorScopingMode(!tableEditorScopingMode);
     }
 
+    function exitTableEditorScopingMode() {
+        setTableEditorScopingMode(false);
+        if (tableEditorScopingModeBtn && typeof tableEditorScopingModeBtn.focus === 'function') {
+            tableEditorScopingModeBtn.focus();
+        }
+    }
+
     function setTableEditorScopingMode(enabled) {
-        tableEditorScopingMode = Boolean(enabled);
+        const nextEnabled = Boolean(enabled);
+        if (!nextEnabled && tableEditorScopePaintEnabled !== null) {
+            commitTableEditorHistory('Paint scoping relationship');
+        }
+        tableEditorScopingMode = nextEnabled;
         tableEditorScopeParent = null;
-        tableEditorScopePaintEnabled = null;
+        tableEditorDragStartCell = null;
+        tableEditorIsDragging = false;
+        clearScopePaintState();
         if (tableEditorScopingMode) {
+            deselectTableEditorCells();
+            tableEditorLastSelectedCell = null;
             if (tableEditorComplexScoping && !tableEditorComplexScoping.checked) {
                 tableEditorComplexScoping.checked = true;
                 commitTableEditorHistory('Turn on complex scoping');
             }
             applyCurrentTableScopes(getTableEditorTable());
         }
-        if (tableEditorScopingModeBtn) tableEditorScopingModeBtn.setAttribute('aria-pressed', String(tableEditorScopingMode));
+        if (tableEditorScopingModeBtn) {
+            tableEditorScopingModeBtn.setAttribute('aria-pressed', String(tableEditorScopingMode));
+            tableEditorScopingModeBtn.setAttribute('aria-label', tableEditorScopingMode ? 'Exit scoping mode' : 'Enter scoping mode');
+            tableEditorScopingModeBtn.title = tableEditorScopingMode ? 'Exit scoping mode' : 'Enter scoping mode';
+        }
+        if (tableEditorDialog) {
+            tableEditorDialog.classList.toggle('table-editor-scoping-locked', tableEditorScopingMode);
+        }
+        if (tableEditorScopingModeBanner) {
+            tableEditorScopingModeBanner.hidden = !tableEditorScopingMode;
+        }
         if (tableEditorCanvas) {
             tableEditorCanvas.classList.toggle('scoping-mode', tableEditorScopingMode);
             tableEditorCanvas.setAttribute('contenteditable', String(!tableEditorScopingMode));
@@ -1540,33 +1586,101 @@ export function createTableEditorController(config) {
                 ? 'Table scoping editor. Select a parent header, then paint child cells.'
                 : 'Editable table');
         }
+        setTableEditorScopingControlsLocked(tableEditorScopingMode);
+        if (!tableEditorScopingMode) {
+            updateTableEditorStatus();
+            updateTableEditorHistoryButtons();
+        }
         refreshScopeVisualization();
     }
 
-    function paintTableEditorScopeCell(cell) {
-        if (!tableEditorScopeParent || cell === tableEditorScopeParent) return;
-        setManualHeaderRelationship(tableEditorScopeParent, cell, tableEditorScopePaintEnabled);
+    /** Locks every table mutation except the mode exits and dialog-level view controls. */
+    function setTableEditorScopingControlsLocked(locked) {
+        const controls = [
+            tableEditorComponentBtn, tableEditorApplyBtn, tableEditorApplyNextBtn,
+            tableEditorFirstBtn, tableEditorPrevBtn, tableEditorNextBtn, tableEditorLastBtn,
+            tableEditorUndoBtn, tableEditorRedoBtn, tableEditorDeselectBtn,
+            tableEditorHeaderBtn, tableEditorMergeRowBtn, tableEditorMergeCellsBtn,
+            tableEditorActiveBtn, tableEditorAddFooterBtn, tableEditorTfootBtn,
+            tableEditorIndentBtn, tableEditorOutdentBtn, tableEditorBoldBtn,
+            tableEditorLeftBtn, tableEditorCenterBtn, tableEditorRightBtn,
+            tableEditorDeleteRowBtn, tableEditorDeleteColumnBtn,
+            tableEditorNumber, tableEditorCaption, tableEditorUnit,
+            tableEditorNumberSuggestion, tableEditorCaptionSuggestion, tableEditorUnitSuggestion,
+            tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
+            ...Array.from(optionHelpButtons || []),
+            ...Array.from(tableEditorPages?.querySelectorAll('button') || [])
+        ].filter(Boolean);
+
+        controls.forEach((control) => {
+            if (locked) {
+                if (!control.hasAttribute('data-scoping-previous-disabled')) {
+                    control.setAttribute('data-scoping-previous-disabled', String(Boolean(control.disabled)));
+                }
+                control.disabled = true;
+                return;
+            }
+
+            if (!control.hasAttribute('data-scoping-previous-disabled')) return;
+            control.disabled = control.getAttribute('data-scoping-previous-disabled') === 'true';
+            control.removeAttribute('data-scoping-previous-disabled');
+        });
+    }
+
+    /** Captures exact relationship attributes so a shrinking drag rectangle can restore cells. */
+    function captureScopePaintBaseline() {
+        const attributes = ['headers', ...MANUAL_SCOPE_ATTRIBUTES];
+        return new Map(Array.from(tableEditorCanvas.querySelectorAll('th, td'), (cell) => [
+            cell,
+            Object.fromEntries(attributes.map((attribute) => [attribute, cell.getAttribute(attribute)]))
+        ]));
+    }
+
+    function restoreScopePaintCell(cell) {
+        const state = tableEditorScopePaintBaseline.get(cell);
+        if (!state) return;
+        Object.entries(state).forEach(([attribute, value]) => {
+            if (value === null) cell.removeAttribute(attribute);
+            else cell.setAttribute(attribute, value);
+        });
+    }
+
+    /** Paints the current rectangular drag range, matching ordinary cell selection behavior. */
+    function paintTableEditorScopeRange(endCell) {
+        if (!tableEditorScopeParent || !tableEditorDragStartCell || !endCell) return;
+        tableEditorScopePaintRange.forEach(restoreScopePaintCell);
+        tableEditorScopePaintRange = getCellsInRange(
+            getTableEditorTable(),
+            tableEditorDragStartCell,
+            endCell
+        ).filter((cell) => cell !== tableEditorScopeParent);
+        tableEditorScopePaintRange.forEach((cell) => {
+            setManualHeaderRelationship(tableEditorScopeParent, cell, tableEditorScopePaintEnabled);
+        });
         refreshScopeVisualization();
+    }
+
+    function clearScopePaintState() {
+        tableEditorScopePaintEnabled = null;
+        tableEditorScopePaintBaseline = new Map();
+        tableEditorScopePaintRange = [];
     }
 
     function refreshScopeVisualization() {
         if (!tableEditorCanvas) return;
         clearScopeVisualization(tableEditorCanvas);
+        refreshTableEditorScopingInstructions();
         if (!tableEditorScopingMode) return;
 
         const cells = Array.from(tableEditorCanvas.querySelectorAll('th, td'));
         if (!tableEditorScopeParent) {
-            cells.filter((cell) => cell.tagName.toLowerCase() === 'th').forEach((cell, index) => {
+            cells.filter((cell) => cell.tagName.toLowerCase() === 'th').forEach((cell) => {
                 cell.classList.add('scope-parent-candidate');
-                cell.style.setProperty('--scope-color', getScopeColor(index));
             });
             return;
         }
 
-        const headers = Array.from(tableEditorCanvas.querySelectorAll('th'));
-        const color = getScopeColor(headers.indexOf(tableEditorScopeParent));
         cells.forEach((cell) => {
-            cell.style.setProperty('--scope-color', color);
             cell.classList.add(hasHeaderRelationship(tableEditorScopeParent, cell) ? 'scope-child' : 'scope-unrelated');
         });
         tableEditorScopeParent.classList.remove('scope-child', 'scope-unrelated');
@@ -1576,14 +1690,18 @@ export function createTableEditorController(config) {
     function clearScopeVisualization(root) {
         root.querySelectorAll('.scope-parent, .scope-parent-candidate, .scope-child, .scope-unrelated').forEach((cell) => {
             cell.classList.remove('scope-parent', 'scope-parent-candidate', 'scope-child', 'scope-unrelated');
-            cell.style.removeProperty('--scope-color');
-            if (!cell.getAttribute('style')) cell.removeAttribute('style');
         });
     }
 
-    function getScopeColor(index) {
-        const colors = ['#2563eb', '#7c3aed', '#db2777', '#c2410c', '#047857', '#0369a1'];
-        return colors[Math.max(0, index) % colors.length];
+    function refreshTableEditorScopingInstructions() {
+        if (!tableEditorScopingModeInstructions) return;
+        if (!tableEditorScopingMode || !tableEditorScopeParent) {
+            tableEditorScopingModeInstructions.textContent = 'Table editing is locked. Select a header cell to use as the parent.';
+            return;
+        }
+
+        const parentLabel = tableEditorScopeParent.textContent.replace(/\s+/g, ' ').trim() || 'Selected header';
+        tableEditorScopingModeInstructions.textContent = `Parent: ${parentLabel}. Click or drag a rectangle over child cells to add or remove the relationship.`;
     }
     
     /** Clears selection from table editor cells. */
