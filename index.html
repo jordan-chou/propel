@@ -421,17 +421,17 @@
                             <span class="feedback-route-badge">Preferred</span>
                         </div>
                     </div>
-                    <p>This route requires a GitHub account.</p>
+                    <p id="feedbackGitHubHelp">This route requires a GitHub account. The Propel version and privacy-safe browser details will be prefilled for you to review.</p>
                     <div class="feedback-github-options">
                         <div>
                             <strong>Report a problem</strong>
                             <span>Something is broken, unexpected, or preventing your work.</span>
-                            <a class="btn btn-primary btn-sm" href="https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer">Report a problem<span class="wb-inv"> in a new tab</span></a>
+                            <a class="btn btn-primary btn-sm" id="bugReportLink" href="https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Report a problem<span class="wb-inv"> in a new tab</span></a>
                         </div>
                         <div>
                             <strong>Suggest an improvement</strong>
                             <span>Propose a publishing need, workflow change, or enhancement.</span>
-                            <a class="btn btn-primary btn-sm" href="https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml" target="_blank" rel="noopener noreferrer">Request a feature<span class="wb-inv"> in a new tab</span></a>
+                            <a class="btn btn-primary btn-sm" id="featureRequestLink" href="https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Request a feature<span class="wb-inv"> in a new tab</span></a>
                         </div>
                     </div>
                 </section>
@@ -444,7 +444,7 @@
                             <span class="feedback-route-badge feedback-route-badge-alternative">Alternative</span>
                         </div>
                     </div>
-                    <p id="feedbackEmailHelp">Use this route if you do not have a GitHub account or prefer email. A preformatted draft will open in your email application for you to review before sending.</p>
+                    <p id="feedbackEmailHelp">Use this route if you do not have a GitHub account or prefer email. A preformatted draft will include the Propel version and privacy-safe browser details for you to review before sending.</p>
                     <a class="btn btn-default btn-sm" id="feedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20feedback" aria-describedby="feedbackEmailHelp">Prepare feedback email</a>
                     <p class="feedback-general-option">Have a comment or compliment? <a id="generalFeedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20comment%20or%20compliment">Send a short note</a>.</p>
                 </section>

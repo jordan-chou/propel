@@ -67,6 +67,12 @@ body:
       required: true
 
   - type: textarea
+    id: environment
+    attributes:
+      label: Propel environment
+      description: These technical details are prefilled when the form is opened from the app. You may remove them if they are not relevant.
+
+  - type: textarea
     id: accessibility-languages
     attributes:
       label: Accessibility or official-languages implications

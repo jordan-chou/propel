@@ -41,7 +41,11 @@ import {
 import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
-import { configureFeedbackEmailLink, configureGeneralFeedbackEmailLink } from './support/feedback.js';
+import {
+    configureFeedbackEmailLink,
+    configureGeneralFeedbackEmailLink,
+    configureGitHubIssueLinks
+} from './support/feedback.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
 import { presetButtons } from './preset-buttons.js';
@@ -111,6 +115,8 @@ const shortcutHelpCloseBtn = document.getElementById('shortcutHelpCloseBtn');
 const shortcutHelpBackdrop = document.getElementById('shortcutHelpBackdrop');
 const feedbackEmailLink = document.getElementById('feedbackEmailLink');
 const generalFeedbackEmailLink = document.getElementById('generalFeedbackEmailLink');
+const bugReportLink = document.getElementById('bugReportLink');
+const featureRequestLink = document.getElementById('featureRequestLink');
 const toastRegion = document.getElementById('toastRegion');
 const documentHealth = document.getElementById('documentHealth');
 const documentOutline = document.getElementById('documentOutline');
@@ -313,7 +319,14 @@ const drawers = createDrawerControllers({
 });
 
 /* Main */
-configureFeedbackEmailLink(feedbackEmailLink);
+const feedbackEnvironment = {
+    protocol: window.location.protocol,
+    hostname: window.location.hostname,
+    userAgent: navigator.userAgent,
+    browserLanguage: navigator.language
+};
+configureGitHubIssueLinks({ bugReportLink, featureRequestLink }, feedbackEnvironment);
+configureFeedbackEmailLink(feedbackEmailLink, feedbackEnvironment);
 configureGeneralFeedbackEmailLink(generalFeedbackEmailLink);
 createListeners();
 createModernDashboardListeners();

@@ -21,17 +21,12 @@ body:
     validations:
       required: true
 
-  - type: dropdown
+  - type: input
     id: distribution
     attributes:
       label: Distribution
-      description: How are you running Propel?
-      options:
-        - Portable release opened from the local filesystem
-        - Hosted version
-        - Locally deployed version
-        - Development version
-        - Unknown
+      description: How are you running Propel? This is prefilled when the form is opened from the app.
+      placeholder: "Example: Portable or local-file version, web deployment, or development"
     validations:
       required: true
 
@@ -48,6 +43,15 @@ body:
     attributes:
       label: Operating system
       placeholder: "Example: Windows 11 or macOS 15"
+    validations:
+      required: true
+
+  - type: input
+    id: browser-language
+    attributes:
+      label: Browser language
+      description: This is the browser interface language, not the language of your document.
+      placeholder: "Example: en-CA or fr-CA"
     validations:
       required: true
 

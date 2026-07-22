@@ -114,7 +114,11 @@ Open **Information > Feedback** in Propel and choose one of two submission route
 - [Report a problem](https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml)
 - [Suggest an improvement](https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml)
 
-Alternatively, if you do not have a GitHub account or prefer email, email [web@fin.gc.ca](mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&subject=Propel%20feedback), with `jordan.chou@fin.gc.ca` copied. The app also provides a shorter email option for comments or compliments. Review every report before submitting it. Do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.
+When these forms are opened from Propel, their technical environment fields are prefilled using the same privacy-safe values as the email draft. GitHub Issue Forms support URL prefills through each text field's YAML `id`.
+
+Alternatively, if you do not have a GitHub account or prefer email, email [web@fin.gc.ca](mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&subject=Propel%20feedback), with `jordan.chou@fin.gc.ca` copied. The draft prefills the Propel version, broad distribution category, browser and operating-system versions, and browser language. It does not include the current URL or hostname. The app also provides a shorter email option for comments or compliments. Review every report before submitting it. Do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.
+
+The application version is stored in `src/app/app-info.js`. Update `PROPEL_VERSION` when preparing a tagged release.
 
 ## Philosophy
 

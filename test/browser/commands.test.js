@@ -31,7 +31,13 @@ import { buildElementSourceMap } from '../../src/app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../src/app/reciprocal-caret.js';
 import { captureLiveEditBaseline, normalizeLiveEditClone } from '../../src/document/live-edit-normalization.js';
 import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
-import { buildFeedbackEmailUrl, configureFeedbackEmailLink } from '../../src/support/feedback.js';
+import {
+    buildBugReportUrl,
+    buildFeedbackEmailUrl,
+    buildFeatureRequestUrl,
+    configureFeedbackEmailLink,
+    configureGitHubIssueLinks
+} from '../../src/support/feedback.js';
 
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
@@ -314,13 +320,43 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
 
 test('feedback email link is populated with a reviewable mail draft', () => {
     const link = document.createElement('a');
-    configureFeedbackEmailLink(link);
+    const environment = {
+        protocol: 'https:',
+        hostname: 'propel.example',
+        userAgent: navigator.userAgent,
+        browserLanguage: 'en-CA'
+    };
+    configureFeedbackEmailLink(link, environment);
 
-    equal(link.href, buildFeedbackEmailUrl());
+    equal(link.href, buildFeedbackEmailUrl(environment));
     const url = new URL(link.href);
     equal(url.pathname, 'web@fin.gc.ca');
     equal(url.searchParams.get('cc'), 'jordan.chou@fin.gc.ca');
+    equal(url.searchParams.get('body').includes('Distribution: Web deployment'), true);
+    equal(url.searchParams.get('body').includes('Browser language: en-CA'), true);
+    equal(url.searchParams.get('body').includes('propel.example'), false);
     equal(url.searchParams.get('body').includes('do not include document content'), true);
+});
+
+test('GitHub feedback links prefill privacy-safe browser details', () => {
+    const bugReportLink = document.createElement('a');
+    const featureRequestLink = document.createElement('a');
+    const environment = {
+        appVersion: '1.2.3',
+        protocol: 'https:',
+        hostname: 'internal.example',
+        userAgent: navigator.userAgent,
+        browserLanguage: 'en-CA'
+    };
+
+    configureGitHubIssueLinks({ bugReportLink, featureRequestLink }, environment);
+
+    equal(bugReportLink.href, buildBugReportUrl(environment));
+    equal(featureRequestLink.href, buildFeatureRequestUrl(environment));
+    const bugUrl = new URL(bugReportLink.href);
+    equal(bugUrl.searchParams.get('version'), '1.2.3');
+    equal(bugUrl.searchParams.get('browser-language'), 'en-CA');
+    equal(bugReportLink.href.includes('internal.example'), false);
 });
 
 test('English footnote return text is preserved', () => {
