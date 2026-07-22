@@ -18,6 +18,7 @@ The application runs locally in the browser and currently has no production buil
 - Cleans and interactively edits financial and complex tables, including their headers, footers, rows, columns, formatting, and accessibility relationships.
 - Reports structural issues such as missing IDs, empty links, heading-level skips, unclean tables, and missing image `alt` attributes.
 - Supports document and table-editor undo/redo.
+- Offers structured problem reports and improvement requests through GitHub, with email options for detailed feedback or a short note.
 
 ## Running locally
 
@@ -109,14 +110,16 @@ The onboarding card uses `sessionStorage` under `propel.onboardingDismissed`. St
 
 ## Feedback and issue reporting
 
-Open **Information > Feedback** in Propel and choose one of two submission routes. GitHub Issues is preferred and requires a GitHub account:
+Choose **Feedback** in Propel's header, or open **Information > Feedback**, to see the available options. GitHub Issues is the preferred route for feedback that should be tracked:
 
 - [Report a problem](https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml)
 - [Suggest an improvement](https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml)
 
-When these forms are opened from Propel, their technical environment fields are prefilled using the same privacy-safe values as the email draft. GitHub Issue Forms support URL prefills through each text field's YAML `id`.
+Both GitHub options require an account. When opened from Propel, the forms prefill the Propel version, broad distribution category, browser and operating-system versions, and browser language. Review these details and complete the form before submitting it.
 
-Alternatively, if you do not have a GitHub account or prefer email, email [web@fin.gc.ca](mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&subject=Propel%20feedback), with `jordan.chou@fin.gc.ca` copied. The draft prefills the Propel version, broad distribution category, browser and operating-system versions, and browser language. It does not include the current URL or hostname. The app also provides a shorter email option for comments or compliments. Review every report before submitting it. Do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.
+If you do not have a GitHub account or prefer email, choose **Prepare feedback email** to open a detailed, preformatted draft to [web@fin.gc.ca](mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&subject=Propel%20feedback), with `jordan.chou@fin.gc.ca` copied. For a general comment or compliment, choose **Send a short note** instead.
+
+The detailed email and GitHub forms use the same privacy-safe environment details. Propel does not include the current URL or hostname. Review every report before sending it, and do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.
 
 The application version is stored in `src/app/app-info.js`. Update `PROPEL_VERSION` when preparing a tagged release.
 

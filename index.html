@@ -346,7 +346,7 @@
                 <li><strong>Open a Word document.</strong><span>Choose a .doc or .docx file, or drop it into the editor.</span></li>
                 <li><strong>Review and edit.</strong><span>Use Live view for visual editing and Code view for direct HTML changes. Both views stay synchronized.</span></li>
                 <li><strong>Enhance the markup.</strong><span>Use the tools to add IDs, generate footnotes, validate non-breaking spaces, and clean tables.</span></li>
-                <li><strong>Insert reusable components.</strong><span>Place the cursor in Live or Code view, choose Insert component, then preview and insert a snippet with editable placeholder text.</span></li>
+                <li><strong>Insert reusable components.</strong><span>Place the cursor in Live or Code view, choose Insert component, preview a library entry, then select Insert. The snippet is added at the captured cursor position with editable placeholder text.</span></li>
                 <li><strong>Check the result.</strong><span>Open Activity and review the Report and Review tabs for structural issues.</span></li>
                 <li><strong>Copy the HTML.</strong><span>When the document is ready, select Copy HTML at the bottom of the Tools panel.</span></li>
             </ol>
@@ -356,9 +356,10 @@
                 <li>Run cleanup tools after the document is imported so they work from the converted HTML.</li>
                 <li>Use undo and redo in whichever editor or table editor is currently active.</li>
                 <li>Check both Live and Code views after structural changes such as footnotes or table cleanup.</li>
-                <li>Place the cursor where a reusable component belongs, insert it, then replace its placeholder text in Live or Code view. To transform a source table, use its Live hover action or <strong>Convert current table to component</strong> in the table editor.</li>
-                <li>Create custom components with exactly one <code>{{content}}</code> slot. Components and imported libraries persist in this browser until its site data is cleared.</li>
-                <li>Use the component library ellipsis menu to import or export a versioned JSON library before sharing it with another browser.</li>
+                <li>Component insertion uses the captured Live or Code cursor position and does not replace highlighted content. Replace the inserted placeholder text in either editor.</li>
+                <li>To populate a component from a source table, use the table's Live hover action or <strong>Convert current table to component</strong> in the table editor. Chart text versions receive editable placeholders rather than copied table content.</li>
+                <li>Choose <strong>Create new component</strong> to add a name, optional description, and HTML template containing exactly one <code>{{content}}</code> slot. Library changes, including created or deleted components and imports, persist for the same browser and app origin until that site's data is cleared.</li>
+                <li>Use the component library ellipsis menu to export the active versioned JSON library or import another one. Importing replaces the active library, so export it first if you want a backup.</li>
                 <li>Use the language switch before generating language-specific publishing text.</li>
                 <li>Resolve items in the Review panel before copying the final HTML.</li>
             </ul>
@@ -398,10 +399,10 @@
                 </dl>
             </section>
             <section>
-                <h3>Component selection</h3>
+                <h3>HTML element selection</h3>
                 <dl class="shortcut-list">
-                    <div><dt><span class="shortcut-command">Select parent component</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>[</kbd></dd></div>
-                    <div><dt><span class="shortcut-command">Select child component</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>]</kbd></dd></div>
+                    <div><dt><span class="shortcut-command">Select parent element</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>[</kbd></dd></div>
+                    <div><dt><span class="shortcut-command">Select child element</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>]</kbd></dd></div>
                     <div><dt><span class="shortcut-command">Wrap with tag</span></dt><dd><kbd data-shortcut-key="alternate">Alt</kbd><kbd>W</kbd></dd></div>
                 </dl>
             </section>
@@ -410,7 +411,7 @@
         <section class="cheatsheet-panel feedback-panel" id="cheatsheetFeedbackPanel" role="tabpanel" aria-labelledby="cheatsheetFeedbackTab" data-cheatsheet-panel="feedback" hidden>
             <div class="feedback-intro">
                 <h3>Choose how to submit feedback</h3>
-                <p>There are two distinct submission routes. GitHub Issues is preferred.</p>
+                <p>Use GitHub Issues for feedback that should be tracked, or choose an email option.</p>
             </div>
             <div class="feedback-routes">
                 <section class="feedback-route feedback-route-preferred" aria-labelledby="feedbackGitHubTitle">
@@ -421,17 +422,17 @@
                             <span class="feedback-route-badge">Preferred</span>
                         </div>
                     </div>
-                    <p id="feedbackGitHubHelp">This route requires a GitHub account. The Propel version and privacy-safe browser details will be prefilled for you to review.</p>
+                    <p id="feedbackGitHubHelp">A GitHub account is required. Propel will prefill privacy-safe environment details for you to review before submitting the form.</p>
                     <div class="feedback-github-options">
                         <div>
                             <strong>Report a problem</strong>
                             <span>Something is broken, unexpected, or preventing your work.</span>
-                            <a class="btn btn-primary btn-sm" id="bugReportLink" href="https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Report a problem<span class="wb-inv"> in a new tab</span></a>
+                            <a class="btn btn-primary btn-sm" id="bugReportLink" href="https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Open problem form<span class="wb-inv"> in a new tab</span></a>
                         </div>
                         <div>
                             <strong>Suggest an improvement</strong>
                             <span>Propose a publishing need, workflow change, or enhancement.</span>
-                            <a class="btn btn-primary btn-sm" id="featureRequestLink" href="https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Request a feature<span class="wb-inv"> in a new tab</span></a>
+                            <a class="btn btn-primary btn-sm" id="featureRequestLink" href="https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Open improvement form<span class="wb-inv"> in a new tab</span></a>
                         </div>
                     </div>
                 </section>
@@ -444,12 +445,12 @@
                             <span class="feedback-route-badge feedback-route-badge-alternative">Alternative</span>
                         </div>
                     </div>
-                    <p id="feedbackEmailHelp">Use this route if you do not have a GitHub account or prefer email. A preformatted draft will include the Propel version and privacy-safe browser details for you to review before sending.</p>
+                    <p id="feedbackEmailHelp">No GitHub account is needed. Open a detailed, preformatted draft with the same privacy-safe environment details for you to review before sending.</p>
                     <a class="btn btn-default btn-sm" id="feedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20feedback" aria-describedby="feedbackEmailHelp">Prepare feedback email</a>
-                    <p class="feedback-general-option">Have a comment or compliment? <a id="generalFeedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20comment%20or%20compliment">Send a short note</a>.</p>
+                    <p class="feedback-general-option">For a general comment or compliment, <a id="generalFeedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20comment%20or%20compliment">send a short note</a> instead.</p>
                 </section>
             </div>
-            <p class="feedback-privacy"><strong>Protect information:</strong> Do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots in GitHub or email reports.</p>
+            <p class="feedback-privacy"><strong>Protect information:</strong> Propel does not include the current URL or hostname. Do not add document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots to GitHub or email reports.</p>
         </section>
         <section class="cheatsheet-panel" id="cheatsheetAboutPanel" role="tabpanel" aria-labelledby="cheatsheetAboutTab" data-cheatsheet-panel="about" hidden>
             <dl class="cheatsheet-about">
