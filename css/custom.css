@@ -1149,6 +1149,7 @@ textarea {
 .feedback-type-card-content {
     display: grid;
     grid-template-columns: 32px minmax(0, 1fr);
+    align-items: center;
     gap: 9px;
     height: 100%;
     padding: 10px;
@@ -1178,7 +1179,7 @@ textarea {
 .feedback-type-icon {
     width: 20px;
     height: 20px;
-    margin: 2px auto 0;
+    margin: 0 auto;
     fill: currentColor;
 }
 
