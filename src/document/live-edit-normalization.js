@@ -13,7 +13,9 @@ export function captureLiveEditBaseline(root) {
 
 /**
  * Removes presentation markup introduced by contenteditable while retaining
- * authored styles and semantic formatting.
+ * authored styles and semantic formatting. Empty paragraphs created by Live
+ * editing are omitted from the committed clone, without disturbing the active
+ * contenteditable surface or its caret.
  */
 export function normalizeLiveEditClone(sourceRoot, cloneRoot, baseline) {
     if (!sourceRoot || !cloneRoot || !baseline) {
@@ -37,7 +39,61 @@ export function normalizeLiveEditClone(sourceRoot, cloneRoot, baseline) {
         normalizeBrowserCreatedElement(clone, cloneRoot);
     }
 
+    for (let index = 0; index < sourceElements.length; index += 1) {
+        const clone = cloneElements[index];
+        if (isEmptyParagraph(clone)) {
+            clone.remove();
+        }
+    }
+
     return cloneRoot;
+}
+
+/**
+ * Removes empty paragraphs generated in the Live editor, except for the
+ * paragraph that currently holds the caret or selection.
+ */
+export function removeEmptyLiveParagraphs(root, selection = null) {
+    if (!root) {
+        return 0;
+    }
+
+    let removed = 0;
+    for (const paragraph of root.querySelectorAll('p')) {
+        if (isEmptyParagraph(paragraph) && !selectionIntersects(selection, paragraph)) {
+            paragraph.remove();
+            removed += 1;
+        }
+    }
+    return removed;
+}
+
+function isEmptyParagraph(element) {
+    if (!element || element.tagName !== 'P') {
+        return false;
+    }
+
+    const text = element.textContent.replace(/[\s\u00a0\u00ad\u200b-\u200d\u2060\ufeff]/g, '');
+    if (text) {
+        return false;
+    }
+
+    return !element.querySelector(
+        'a[id], a[name], a[aria-label], img, picture, video, audio, iframe, canvas, svg, math, object, embed, input, textarea, select, button, hr'
+    );
+}
+
+function selectionIntersects(selection, element) {
+    if (!selection || selection.rangeCount === 0) {
+        return false;
+    }
+
+    for (let index = 0; index < selection.rangeCount; index += 1) {
+        if (selection.getRangeAt(index).intersectsNode(element)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function restoreAuthoredStyle(element, style) {

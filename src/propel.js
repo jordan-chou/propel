@@ -16,7 +16,11 @@ import { engStrings, frStrings } from './strings.js';
 import * as Utils from './util.js';
 import { DocumentStore } from './document/document-store.js';
 import { runStandardCleanup } from './document/cleanup.js';
-import { captureLiveEditBaseline, normalizeLiveEditClone } from './document/live-edit-normalization.js';
+import {
+    captureLiveEditBaseline,
+    normalizeLiveEditClone,
+    removeEmptyLiveParagraphs
+} from './document/live-edit-normalization.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { createDeferredWork } from './app/deferred-work.js';
 import { CommandRegistry } from './commands/command-registry.js';
@@ -198,6 +202,7 @@ const deferredTypingRefresh = createDeferredWork(() => {
     const sourceView = pendingTypingView;
     pendingTypingView = null;
     if (sourceView === 'live') {
+        removeEmptyLiveParagraphs(liveEditor, getEditorSelection(liveEditor));
         syncLiveToInputHTML();
         scheduleDocumentHistoryCommit('typing');
         updateCodeView();

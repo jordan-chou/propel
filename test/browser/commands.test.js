@@ -29,7 +29,11 @@ import {
 } from '../../src/ui/wet-live-editor.js';
 import { buildElementSourceMap } from '../../src/app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../src/app/reciprocal-caret.js';
-import { captureLiveEditBaseline, normalizeLiveEditClone } from '../../src/document/live-edit-normalization.js';
+import {
+    captureLiveEditBaseline,
+    normalizeLiveEditClone,
+    removeEmptyLiveParagraphs
+} from '../../src/document/live-edit-normalization.js';
 import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
 import {
     buildBugReportUrl,
@@ -157,6 +161,104 @@ test('Live edit normalization preserves authored styles and meaningful spans', (
     equal(clone.firstElementChild.getAttribute('style'), 'text-align: center');
     equal(clone.querySelector('.wb-inv').getAttribute('style'), 'color: red');
     equal(clone.querySelector('span[lang="en"]').outerHTML, '<span lang="en">Text</span>');
+});
+
+test('Live edit normalization omits empty paragraphs created by Enter', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p>Before</p>';
+    const baseline = captureLiveEditBaseline(live);
+    live.insertAdjacentHTML('beforeend', '<p><br></p><p>&nbsp;</p><p><span><br></span></p><p>After</p>');
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<p>Before</p><p>After</p>');
+});
+
+test('Live edit normalization omits an authored paragraph emptied by Enter', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p>Before</p><p>After</p>';
+    const baseline = captureLiveEditBaseline(live);
+    live.firstElementChild.innerHTML = '<br>';
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<p>After</p>');
+});
+
+test('Live edit normalization removes existing empty paragraphs but preserves non-text content', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p><br></p>';
+    const baseline = captureLiveEditBaseline(live);
+    live.insertAdjacentHTML(
+        'beforeend',
+        '<p><a href="#unused"></a></p><p><a id="destination"></a></p><p><img src="chart.png" alt=""></p>'
+    );
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<p><a id="destination"></a></p><p><img src="chart.png" alt=""></p>');
+});
+
+test('Live edit cleanup removes generated empty paragraphs before synchronization', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p>Before</p>';
+    live.insertAdjacentHTML('beforeend', '<p></p><p><br></p><p>After</p>');
+
+    const removed = removeEmptyLiveParagraphs(live);
+
+    equal(removed, 2);
+    equal(live.innerHTML, '<p>Before</p><p>After</p>');
+});
+
+test('Live edit cleanup keeps the empty paragraph containing the caret', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p>Before</p>';
+    document.body.append(live);
+    live.insertAdjacentHTML('beforeend', '<p><br></p><p><br></p>');
+    const activeParagraph = live.children[1];
+    const range = document.createRange();
+    range.selectNodeContents(activeParagraph);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    const removed = removeEmptyLiveParagraphs(live, selection);
+
+    equal(removed, 1);
+    equal(live.innerHTML, '<p>Before</p><p><br></p>');
+    selection.removeAllRanges();
+    live.remove();
+});
+
+test('repeated native Enter commands do not leave empty paragraphs in synchronized HTML', () => {
+    const live = document.createElement('div');
+    live.contentEditable = 'true';
+    live.innerHTML = '<p>Before</p>';
+    document.body.append(live);
+    live.focus();
+    const range = document.createRange();
+    range.selectNodeContents(live.firstElementChild);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    const baseline = captureLiveEditBaseline(live);
+
+    for (let index = 0; index < 2; index += 1) {
+        document.execCommand('formatBlock', false, 'p');
+        document.execCommand('insertParagraph', false, null);
+    }
+    removeEmptyLiveParagraphs(live, selection);
+    const clone = live.cloneNode(true);
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<p>Before</p>');
+    selection.removeAllRanges();
+    live.remove();
 });
 
 test('code highlighting renders only the visible source window', () => {
