@@ -18,8 +18,7 @@ import { DocumentStore } from './document/document-store.js';
 import { runStandardCleanup } from './document/cleanup.js';
 import {
     captureLiveEditBaseline,
-    normalizeLiveEditClone,
-    removeEmptyLiveParagraphs
+    normalizeLiveEditClone
 } from './document/live-edit-normalization.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { createDeferredWork } from './app/deferred-work.js';
@@ -202,7 +201,6 @@ const deferredTypingRefresh = createDeferredWork(() => {
     const sourceView = pendingTypingView;
     pendingTypingView = null;
     if (sourceView === 'live') {
-        removeEmptyLiveParagraphs(liveEditor, getEditorSelection(liveEditor));
         syncLiveToInputHTML();
         scheduleDocumentHistoryCommit('typing');
         updateCodeView();
