@@ -34,6 +34,7 @@ import {
     normalizeLiveEditClone,
     removeEmptyLiveParagraphs
 } from '../../src/document/live-edit-normalization.js';
+import { runStandardCleanup } from '../../src/document/cleanup.js';
 import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
 import {
     buildBugReportUrl,
@@ -111,6 +112,25 @@ test('block formatting ignores whitespace at element-selection boundaries', () =
     equal(host.querySelectorAll('h2, h3').length, 0);
     selection.removeAllRanges();
     host.remove();
+});
+
+test('standard cleanup removes all empty anchors while preserving element content', () => {
+    const host = document.createElement('div');
+    host.innerHTML = [
+        '<p><a href="#unused"></a><a href="#blank"> &nbsp; </a></p>',
+        '<a id="destination"></a><a name="legacy-destination"></a>',
+        '<a href="/chart"><img src="chart.png" alt="Chart"></a>',
+        '<a href="/icon"><span class="icon"></span></a>'
+    ].join('');
+
+    const changes = runStandardCleanup(host);
+
+    equal(changes.emptyAnchors, 4);
+    equal(host.querySelectorAll('a').length, 2);
+    equal(host.querySelector('#destination') === null, true);
+    equal(host.querySelector('a[name="legacy-destination"]') === null, true);
+    equal(host.querySelector('a[href="/chart"] img') !== null, true);
+    equal(host.querySelector('a[href="/icon"] .icon') !== null, true);
 });
 
 test('Live edit normalization removes browser-created presentation spans', () => {
