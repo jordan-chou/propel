@@ -4042,17 +4042,23 @@ body {
 }
 
 .app-header .feedback-header-btn {
-    border-color: #78a6ff;
-    background: #2f6fed;
+    border-color: #5eead4;
+    background: #0f766e;
     color: #fff;
-    box-shadow: 0 0 0 1px rgba(120, 166, 255, 0.18);
+    box-shadow: 0 0 0 1px rgba(94, 234, 212, 0.18);
 }
 
 .app-header .feedback-header-btn:hover,
 .app-header .feedback-header-btn:focus-visible {
-    border-color: #b8d0ff;
-    background: #1f5fd6;
+    border-color: #99f6e4;
+    background: #115e59;
     color: #fff;
+}
+
+.feedback-header-icon {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
 }
 
 .app-header .label-default {
