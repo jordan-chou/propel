@@ -1,6 +1,6 @@
 name: Report a problem
 description: Report behaviour that is broken, unexpected, or preventing work in Propel.
-title: "[Bug]: "
+title: ""
 labels:
   - "type: bug"
   - "needs-reproduction"
@@ -8,132 +8,18 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping improve Propel.
+        Review the prefilled information before submitting. Do not include document content, personal or protected information, credentials, internal URLs, or full local file paths.
 
-        Do not include document content, protected or personal information, credentials, internal URLs, full local file paths, or sensitive screenshots. If the report should not be public, use the email option in Propel's **Information > Feedback** tab.
-
-  - type: input
-    id: version
+  - type: textarea
+    id: details
     attributes:
-      label: Propel version
-      description: Enter the release number or identify this as a development build. Use "Unknown" if necessary.
-      placeholder: "Example: 1.4.0, portable release, or development build"
-    validations:
-      required: true
-
-  - type: input
-    id: distribution
-    attributes:
-      label: Distribution
-      description: How are you running Propel? This is prefilled when the form is opened from the app.
-      placeholder: "Example: Portable or local-file version, web deployment, or development"
-    validations:
-      required: true
-
-  - type: input
-    id: browser
-    attributes:
-      label: Browser and version
-      placeholder: "Example: Microsoft Edge 150"
-    validations:
-      required: true
-
-  - type: input
-    id: operating-system
-    attributes:
-      label: Operating system
-      placeholder: "Example: Windows 11 or macOS 15"
-    validations:
-      required: true
-
-  - type: input
-    id: browser-language
-    attributes:
-      label: Browser language
-      description: This is the browser interface language, not the language of your document.
-      placeholder: "Example: en-CA or fr-CA"
-    validations:
-      required: true
-
-  - type: dropdown
-    id: managed-device
-    attributes:
-      label: Managed organizational device
-      description: Is the device managed by an organization with browser, network, or storage policies?
-      options:
-        - "Yes"
-        - "No"
-        - Unsure
+      label: Problem details
+      description: Briefly describe what you did, what happened, and what you expected.
     validations:
       required: true
 
   - type: textarea
-    id: description
+    id: environment
     attributes:
-      label: What happened?
-      description: Describe the problem and the action you were performing when it occurred.
-    validations:
-      required: true
-
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: Steps to reproduce
-      description: Provide the smallest safe sequence that consistently demonstrates the problem.
-      placeholder: |
-        1. Open Propel using...
-        2. Choose...
-        3. Observe...
-    validations:
-      required: true
-
-  - type: textarea
-    id: expected
-    attributes:
-      label: Expected result
-      description: What did you expect Propel to do?
-    validations:
-      required: true
-
-  - type: textarea
-    id: actual
-    attributes:
-      label: Actual result
-      description: What did Propel do instead? Include a sanitized error message if one appeared.
-    validations:
-      required: true
-
-  - type: dropdown
-    id: impact
-    attributes:
-      label: Operational impact
-      options:
-        - Work is blocked
-        - A key workflow is impaired
-        - A workaround is available
-        - Minor inconvenience
-        - Unsure
-    validations:
-      required: true
-
-  - type: textarea
-    id: accessibility-languages
-    attributes:
-      label: Accessibility or official-languages impact
-      description: Describe any accessibility, English, or French impact. Enter "None known" when not applicable.
-    validations:
-      required: true
-
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional sanitized context
-      description: Add safe details about hosting, network restrictions, proxy or VPN use, or a workaround. Do not attach a source document containing sensitive information.
-
-  - type: checkboxes
-    id: privacy-confirmation
-    attributes:
-      label: Privacy confirmation
-      options:
-        - label: I have removed document content, personal or protected information, credentials, internal URLs, and full local file paths from this report.
-          required: true
+      label: Propel environment
+      description: Prefilled by Propel. Revise or remove it if needed.

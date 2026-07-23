@@ -45,8 +45,7 @@ import {
     buildBugReportUrl,
     buildFeedbackEmailUrl,
     buildFeatureRequestUrl,
-    configureFeedbackEmailLink,
-    configureGitHubIssueLinks
+    createFeedbackComposer
 } from '../../src/support/feedback.js';
 
 const tests = [];
@@ -573,29 +572,18 @@ test('cheatsheet starts on Instructions and preserves the selected tab', () => {
     host.remove();
 });
 
-test('feedback email link is populated with a reviewable mail draft', () => {
-    const link = document.createElement('a');
-    const environment = {
-        protocol: 'https:',
-        hostname: 'propel.example',
-        userAgent: navigator.userAgent,
-        browserLanguage: 'en-CA'
-    };
-    configureFeedbackEmailLink(link, environment);
-
-    equal(link.href, buildFeedbackEmailUrl(environment));
-    const url = new URL(link.href);
-    equal(url.pathname, 'web@fin.gc.ca');
-    equal(url.searchParams.get('cc'), 'jordan.chou@fin.gc.ca');
-    equal(url.searchParams.get('body').includes('Distribution: Web deployment'), true);
-    equal(url.searchParams.get('body').includes('Browser language: en-CA'), true);
-    equal(url.searchParams.get('body').includes('propel.example'), false);
-    equal(url.searchParams.get('body').includes('do not include document content'), true);
-});
-
-test('GitHub feedback links prefill privacy-safe browser details', () => {
-    const bugReportLink = document.createElement('a');
-    const featureRequestLink = document.createElement('a');
+test('feedback composer changes prompts and prefills either destination', () => {
+    const host = document.createElement('form');
+    host.innerHTML = `
+        <input type="radio" name="type" value="problem" checked>
+        <input type="radio" name="type" value="improvement">
+        <input data-title required>
+        <label data-details-label></label>
+        <textarea data-details required></textarea>
+        <a data-github></a>
+        <a data-email></a>
+    `;
+    document.body.append(host);
     const environment = {
         appVersion: '1.2.3',
         protocol: 'https:',
@@ -603,15 +591,86 @@ test('GitHub feedback links prefill privacy-safe browser details', () => {
         userAgent: navigator.userAgent,
         browserLanguage: 'en-CA'
     };
+    const typeInputs = host.querySelectorAll('[name="type"]');
+    const titleInput = host.querySelector('[data-title]');
+    const detailsInput = host.querySelector('[data-details]');
+    const detailsLabel = host.querySelector('[data-details-label]');
+    const githubIssueLink = host.querySelector('[data-github]');
+    const feedbackEmailLink = host.querySelector('[data-email]');
+    createFeedbackComposer({
+        form: host,
+        typeInputs,
+        titleInput,
+        detailsInput,
+        detailsLabel,
+        githubIssueLink,
+        feedbackEmailLink
+    }, environment);
 
-    configureGitHubIssueLinks({ bugReportLink, featureRequestLink }, environment);
+    equal(detailsLabel.textContent, 'What happened?');
+    equal(titleInput.placeholder.includes('Table cleanup'), true);
+    titleInput.value = 'Pin common components';
+    detailsInput.value = 'Keep selected components at the top.';
+    typeInputs[1].checked = true;
+    typeInputs[1].dispatchEvent(new Event('change'));
 
-    equal(bugReportLink.href, buildBugReportUrl(environment));
-    equal(featureRequestLink.href, buildFeatureRequestUrl(environment));
-    const bugUrl = new URL(bugReportLink.href);
-    equal(bugUrl.searchParams.get('version'), '1.2.3');
-    equal(bugUrl.searchParams.get('browser-language'), 'en-CA');
-    equal(bugReportLink.href.includes('internal.example'), false);
+    equal(detailsLabel.textContent, 'What would improve Propel?');
+    equal(detailsInput.placeholder.includes('pin frequently used components'), true);
+    equal(githubIssueLink.href, buildFeatureRequestUrl(environment, {
+        type: 'improvement',
+        title: titleInput.value,
+        details: detailsInput.value
+    }));
+    equal(feedbackEmailLink.href, buildFeedbackEmailUrl(environment, {
+        type: 'improvement',
+        title: titleInput.value,
+        details: detailsInput.value
+    }));
+    const issueUrl = new URL(githubIssueLink.href);
+    equal(issueUrl.searchParams.get('template'), 'feature_request.yml');
+    equal(issueUrl.searchParams.get('title'), 'Pin common components');
+    equal(issueUrl.searchParams.get('details'), 'Keep selected components at the top.');
+    equal(issueUrl.searchParams.get('environment').includes('internal.example'), false);
+    const emailUrl = new URL(feedbackEmailLink.href);
+    equal(emailUrl.searchParams.get('subject'), 'Propel feedback: Pin common components');
+    equal(emailUrl.searchParams.get('body').includes('Type: Suggestion'), true);
+    host.remove();
+});
+
+test('feedback composer prevents an empty destination handoff', () => {
+    const host = document.createElement('form');
+    host.innerHTML = `
+        <input type="radio" name="type" value="problem" checked>
+        <input data-title required>
+        <textarea data-details required></textarea>
+        <a data-github href="#destination">GitHub</a>
+    `;
+    document.body.append(host);
+    const githubIssueLink = host.querySelector('[data-github]');
+    createFeedbackComposer({
+        form: host,
+        typeInputs: host.querySelectorAll('[name="type"]'),
+        titleInput: host.querySelector('[data-title]'),
+        detailsInput: host.querySelector('[data-details]'),
+        githubIssueLink
+    }, {});
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+
+    githubIssueLink.dispatchEvent(event);
+
+    equal(event.defaultPrevented, true);
+    host.remove();
+});
+
+test('feedback URL builders omit the current hostname', () => {
+    const environment = {
+        protocol: 'https:',
+        hostname: 'internal.example',
+        userAgent: navigator.userAgent,
+        browserLanguage: 'en-CA'
+    };
+    equal(buildBugReportUrl(environment).includes('internal.example'), false);
+    equal(buildFeedbackEmailUrl(environment).includes('internal.example'), false);
 });
 
 test('English footnote return text is preserved', () => {

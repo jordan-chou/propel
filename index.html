@@ -423,47 +423,52 @@
         </section>
         <section class="cheatsheet-panel feedback-panel" id="cheatsheetFeedbackPanel" role="tabpanel" aria-labelledby="cheatsheetFeedbackTab" data-cheatsheet-panel="feedback" hidden>
             <div class="feedback-intro">
-                <h3>Choose how to submit feedback</h3>
-                <p>Use GitHub Issues for feedback that should be tracked, or choose an email option.</p>
+                <h3>Send feedback</h3>
+                <p>Enter the essentials here, then review and send through GitHub or email.</p>
             </div>
-            <div class="feedback-routes">
-                <section class="feedback-route feedback-route-preferred" aria-labelledby="feedbackGitHubTitle">
-                    <div class="feedback-route-heading">
-                        <span class="feedback-route-number" aria-hidden="true">1</span>
-                        <div>
-                            <h3 id="feedbackGitHubTitle">Submit through GitHub Issues</h3>
-                            <span class="feedback-route-badge">Preferred</span>
-                        </div>
+            <form class="feedback-form" id="feedbackForm">
+                <fieldset class="feedback-type-toggle">
+                    <legend>Feedback type</legend>
+                    <div>
+                        <label class="feedback-type-card">
+                            <input type="radio" name="feedback-type" value="problem" checked>
+                            <span class="feedback-type-card-content">
+                                <svg class="feedback-type-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#binoculars"></use></svg>
+                                <span>
+                                    <strong>Issue</strong>
+                                    <span>Report something broken or unexpected.</span>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="feedback-type-card">
+                            <input type="radio" name="feedback-type" value="improvement">
+                            <span class="feedback-type-card-content">
+                                <svg class="feedback-type-icon" aria-hidden="true" focusable="false"><use href="assets/fontawesome/solid.svg#square-plus"></use></svg>
+                                <span>
+                                    <strong>Suggestion</strong>
+                                    <span>Share an idea that could improve Propel.</span>
+                                </span>
+                            </span>
+                        </label>
                     </div>
-                    <p id="feedbackGitHubHelp">A GitHub account is required. Propel will prefill privacy-safe environment details for you to review before submitting the form.</p>
-                    <div class="feedback-github-options">
-                        <div>
-                            <strong>Report a problem</strong>
-                            <span>Something is broken, unexpected, or preventing your work.</span>
-                            <a class="btn btn-primary btn-sm" id="bugReportLink" href="https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Open problem form<span class="wb-inv"> in a new tab</span></a>
-                        </div>
-                        <div>
-                            <strong>Suggest an improvement</strong>
-                            <span>Propose a publishing need, workflow change, or enhancement.</span>
-                            <a class="btn btn-primary btn-sm" id="featureRequestLink" href="https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml" target="_blank" rel="noopener noreferrer" aria-describedby="feedbackGitHubHelp">Open improvement form<span class="wb-inv"> in a new tab</span></a>
-                        </div>
+                </fieldset>
+                <div class="feedback-form-row">
+                    <div class="feedback-title-field">
+                        <label for="feedbackTitle">Short title</label>
+                        <input id="feedbackTitle" name="feedback-title" type="text" maxlength="120" placeholder="Example: Table cleanup does not open" required>
                     </div>
-                </section>
-                <div class="feedback-route-separator" aria-hidden="true"><span>or</span></div>
-                <section class="feedback-route feedback-route-email" aria-labelledby="feedbackEmailTitle">
-                    <div class="feedback-route-heading">
-                        <span class="feedback-route-number" aria-hidden="true">2</span>
-                        <div>
-                            <h3 id="feedbackEmailTitle">Submit by email</h3>
-                            <span class="feedback-route-badge feedback-route-badge-alternative">Alternative</span>
-                        </div>
-                    </div>
-                    <p id="feedbackEmailHelp">No GitHub account is needed. Open a detailed, preformatted draft with the same privacy-safe environment details for you to review before sending.</p>
-                    <a class="btn btn-default btn-sm" id="feedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20feedback" aria-describedby="feedbackEmailHelp">Prepare feedback email</a>
-                    <p class="feedback-general-option">For a general comment or compliment, <a id="generalFeedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20comment%20or%20compliment">send a short note</a> instead.</p>
-                </section>
-            </div>
-            <p class="feedback-privacy"><strong>Protect information:</strong> Propel does not include the current URL or hostname. Do not add document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots to GitHub or email reports.</p>
+                </div>
+                <div>
+                    <label for="feedbackDetails" id="feedbackDetailsLabel">What happened?</label>
+                    <textarea id="feedbackDetails" name="feedback-details" rows="4" placeholder="Example: I selected a table and chose Table cleanup, but the editor did not open. I expected to see the table editor." required></textarea>
+                </div>
+                <p class="feedback-privacy"><strong>Keep it safe:</strong> Do not include document content, personal or protected information, credentials, internal URLs, or full local file paths.</p>
+                <div class="feedback-actions">
+                    <span class="feedback-actions-label">Choose where to send it:</span>
+                    <a class="btn btn-primary btn-sm" id="githubIssueLink" href="https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer">GitHub Issues<span class="wb-inv">, opens in a new tab</span></a>
+                    <a class="btn btn-default btn-sm" id="feedbackEmailLink" href="mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&amp;subject=Propel%20feedback">Email</a>
+                </div>
+            </form>
         </section>
         <section class="cheatsheet-panel" id="cheatsheetAboutPanel" role="tabpanel" aria-labelledby="cheatsheetAboutTab" data-cheatsheet-panel="about" hidden>
             <dl class="cheatsheet-about">

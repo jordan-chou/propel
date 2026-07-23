@@ -51,11 +51,7 @@ import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
-import {
-    configureFeedbackEmailLink,
-    configureGeneralFeedbackEmailLink,
-    configureGitHubIssueLinks
-} from './support/feedback.js';
+import { createFeedbackComposer } from './support/feedback.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
 import { presetButtons } from './preset-buttons.js';
@@ -123,10 +119,13 @@ const shortcutHelpBtn = document.getElementById('shortcutHelpBtn');
 const shortcutHelpDialog = document.getElementById('shortcutHelpDialog');
 const shortcutHelpCloseBtn = document.getElementById('shortcutHelpCloseBtn');
 const shortcutHelpBackdrop = document.getElementById('shortcutHelpBackdrop');
+const feedbackForm = document.getElementById('feedbackForm');
+const feedbackTypeInputs = document.querySelectorAll('[name="feedback-type"]');
+const feedbackTitle = document.getElementById('feedbackTitle');
+const feedbackDetails = document.getElementById('feedbackDetails');
+const feedbackDetailsLabel = document.getElementById('feedbackDetailsLabel');
+const githubIssueLink = document.getElementById('githubIssueLink');
 const feedbackEmailLink = document.getElementById('feedbackEmailLink');
-const generalFeedbackEmailLink = document.getElementById('generalFeedbackEmailLink');
-const bugReportLink = document.getElementById('bugReportLink');
-const featureRequestLink = document.getElementById('featureRequestLink');
 const toastRegion = document.getElementById('toastRegion');
 const documentHealth = document.getElementById('documentHealth');
 const documentOutline = document.getElementById('documentOutline');
@@ -367,9 +366,15 @@ const feedbackEnvironment = {
     userAgent: navigator.userAgent,
     browserLanguage: navigator.language
 };
-configureGitHubIssueLinks({ bugReportLink, featureRequestLink }, feedbackEnvironment);
-configureFeedbackEmailLink(feedbackEmailLink, feedbackEnvironment);
-configureGeneralFeedbackEmailLink(generalFeedbackEmailLink);
+createFeedbackComposer({
+    form: feedbackForm,
+    typeInputs: feedbackTypeInputs,
+    titleInput: feedbackTitle,
+    detailsInput: feedbackDetails,
+    detailsLabel: feedbackDetailsLabel,
+    githubIssueLink,
+    feedbackEmailLink
+}, feedbackEnvironment);
 createListeners();
 createModernDashboardListeners();
 drawers.bind();

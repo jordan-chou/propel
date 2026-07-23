@@ -1089,149 +1089,174 @@ textarea {
 }
 
 .feedback-intro h3,
-.feedback-route h3 {
+.feedback-form label {
     color: var(--text);
     font-size: 1rem;
     text-transform: none;
 }
 
 .feedback-intro p,
-.feedback-route p,
 .feedback-privacy {
     margin: 0;
     color: var(--muted);
 }
 
-.feedback-routes {
+.feedback-form {
     display: grid;
-    gap: 0;
-    margin-top: 12px;
-}
-
-.feedback-route {
-    display: grid;
-    align-content: start;
     gap: 10px;
-    padding: 14px;
+    margin-top: 12px;
+    padding: 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-2);
 }
 
-.feedback-route-preferred {
-    border-color: #9dbbfa;
-    background: #f2f6ff;
-    box-shadow: inset 4px 0 0 #2f6fed;
+.feedback-type-toggle {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 
-.feedback-route-heading {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.feedback-type-toggle legend {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 700;
 }
 
-.feedback-route-heading > div {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-}
-
-.feedback-route-number {
-    display: inline-grid;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--primary);
-    color: #fff;
-    font-weight: 800;
-}
-
-.feedback-route-badge {
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: #dce8ff;
-    color: #184ca8;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
-.feedback-route-badge-alternative {
-    background: #e8ebf0;
-    color: #536074;
-}
-
-.feedback-github-options {
+.feedback-type-toggle > div {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
 }
 
-.feedback-github-options > div {
+.feedback-type-toggle .feedback-type-card {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+
+.feedback-type-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.feedback-type-card-content {
     display: grid;
-    align-content: start;
-    gap: 6px;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 9px;
+    height: 100%;
     padding: 10px;
-    border: 1px solid #c6d7fa;
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
     background: #fff;
+    color: var(--muted);
+    transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
 
-.feedback-github-options span:not(.wb-inv) {
-    color: var(--muted);
+.feedback-type-card-content > span {
+    display: grid;
+    gap: 2px;
+}
+
+.feedback-type-card-content strong {
+    color: var(--text);
+    font-size: 0.88rem;
+}
+
+.feedback-type-card-content > span > span {
+    font-size: 0.76rem;
+    font-weight: 400;
+    line-height: 1.35;
+}
+
+.feedback-type-icon {
+    width: 20px;
+    height: 20px;
+    margin: 2px auto 0;
+    fill: currentColor;
+}
+
+.feedback-type-toggle input:checked + .feedback-type-card-content {
+    border-color: var(--primary);
+    background: #eef4ff;
+    box-shadow: inset 0 0 0 1px var(--primary);
+    color: var(--primary);
+}
+
+.feedback-type-toggle input:checked + .feedback-type-card-content strong {
+    color: #184ca8;
+}
+
+.feedback-type-toggle input:focus-visible + .feedback-type-card-content {
+    outline: 3px solid rgba(37, 99, 235, 0.3);
+    outline-offset: 1px;
+}
+
+.feedback-type-card:hover .feedback-type-card-content {
+    border-color: var(--primary);
+}
+
+.feedback-form-row {
+    display: grid;
+    gap: 10px;
+}
+
+.feedback-form-row > div,
+.feedback-form > div:not(.feedback-form-row):not(.feedback-actions) {
+    display: grid;
+    gap: 4px;
+}
+
+.feedback-form label {
     font-size: 0.82rem;
-}
-
-.feedback-route .btn {
-    justify-self: start;
-}
-
-.feedback-route .feedback-general-option {
-    color: var(--muted);
-    font-size: 0.78rem;
-}
-
-.feedback-general-option a {
     font-weight: 700;
 }
 
-.feedback-route-separator {
-    position: relative;
-    display: grid;
-    height: 34px;
-    place-items: center;
+.feedback-form :is(input:not([type="radio"]), textarea) {
+    width: 100%;
+}
+
+.feedback-form textarea {
+    min-height: 88px;
+    resize: vertical;
+}
+
+.feedback-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.feedback-actions > span {
     color: var(--muted);
     font-size: 0.78rem;
-    font-weight: 800;
-    text-transform: uppercase;
 }
 
-.feedback-route-separator::before {
-    position: absolute;
-    right: 0;
-    left: 0;
-    height: 1px;
-    background: var(--border);
-    content: "";
+.feedback-actions .feedback-actions-label {
+    flex-basis: 100%;
+    color: var(--text);
+    font-weight: 700;
 }
 
-.feedback-route-separator span {
-    z-index: 1;
-    padding: 0 10px;
-    background: #fff;
+.feedback-actions {
+    color: inherit;
+    font-size: inherit;
+    font-weight: 400;
 }
 
-.feedback-privacy {
-    margin-top: 12px;
-    padding: 10px 12px;
+.feedback-form .feedback-privacy {
+    padding: 7px 9px;
     border-left: 3px solid var(--warning);
     background: #fff8e6;
     color: var(--text);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
 }
 
 @media (max-width: 620px) {
@@ -1239,7 +1264,8 @@ textarea {
         flex-wrap: wrap;
     }
 
-    .feedback-github-options {
+    .feedback-type-toggle > div,
+    .feedback-form-row {
         grid-template-columns: 1fr;
     }
 }

@@ -122,16 +122,9 @@ reload reconnects to that tab’s saved copy.
 
 ## Feedback and issue reporting
 
-Choose **Feedback** in Propel's header, or open **Information > Feedback**, to see the available options. GitHub Issues is the preferred route for feedback that should be tracked:
+Choose **Feedback** in Propel's header, or open **Information > Feedback**. Select issue or suggestion, add a short title and the essential details, then continue in either GitHub Issues or email. Propel prefills that entry and a privacy-safe environment summary in the selected destination; users only need to review, revise, and send.
 
-- [Report a problem](https://github.com/jordan-chou/propel/issues/new?template=bug_report.yml)
-- [Suggest an improvement](https://github.com/jordan-chou/propel/issues/new?template=feature_request.yml)
-
-Both GitHub options require an account. When opened from Propel, the forms prefill the Propel version, broad distribution category, browser and operating-system versions, and browser language. Review these details and complete the form before submitting it.
-
-If you do not have a GitHub account or prefer email, choose **Prepare feedback email** to open a detailed, preformatted draft to [web@fin.gc.ca](mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&subject=Propel%20feedback), with `jordan.chou@fin.gc.ca` copied. For a general comment or compliment, choose **Send a short note** instead.
-
-The detailed email and GitHub forms use the same privacy-safe environment details. Propel does not include the current URL or hostname. Review every report before sending it, and do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.
+GitHub requires an account. Email drafts are addressed to [web@fin.gc.ca](mailto:web@fin.gc.ca?cc=jordan.chou@fin.gc.ca&subject=Propel%20feedback), with `jordan.chou@fin.gc.ca` copied. Propel does not include the current URL or hostname. Do not include document content, personal or protected information, credentials, internal URLs, or full local file paths.
 
 The application version is stored in `src/app/app-info.js`. Update `PROPEL_VERSION` when preparing a tagged release.
 

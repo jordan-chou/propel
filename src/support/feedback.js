@@ -3,7 +3,6 @@ import { PROPEL_VERSION } from '../app/app-info.js';
 export const FEEDBACK_EMAIL_ADDRESS = 'web@fin.gc.ca';
 export const FEEDBACK_EMAIL_CC = 'jordan.chou@fin.gc.ca';
 export const FEEDBACK_EMAIL_SUBJECT = 'Propel feedback';
-export const GENERAL_FEEDBACK_EMAIL_SUBJECT = 'Propel comment or compliment';
 export const GITHUB_NEW_ISSUE_URL = 'https://github.com/jordan-chou/propel/issues/new';
 export const BUG_REPORT_TEMPLATE = 'bug_report.yml';
 export const FEATURE_REQUEST_TEMPLATE = 'feature_request.yml';
@@ -94,15 +93,35 @@ export function getFeedbackEnvironmentDetails({
     };
 }
 
-/** Builds a draft using only selected, privacy-safe environment details. */
+function getFeedbackContent({ type = 'problem', title = '', details = '' } = {}) {
+    return {
+        type: type === 'improvement' ? 'Suggestion' : 'Issue',
+        title: title.trim(),
+        details: details.trim()
+    };
+}
+
+function buildEnvironmentSummary(environment) {
+    const details = getFeedbackEnvironmentDetails(environment);
+    return [
+        `Propel version: ${details.version}`,
+        `Distribution: ${details.distribution}`,
+        `Browser: ${details.browser}`,
+        `Operating system: ${details.operatingSystem}`,
+        `Browser language: ${details.browserLanguage}`
+    ].join('\n');
+}
+
+/** Builds a short draft using the user's in-app entry and privacy-safe environment details. */
 export function buildFeedbackEmailBody({
     appVersion = PROPEL_VERSION,
     protocol = '',
     hostname = '',
     userAgent = '',
     browserLanguage = ''
-} = {}) {
-    const details = getFeedbackEnvironmentDetails({
+} = {}, feedback = {}) {
+    const content = getFeedbackContent(feedback);
+    const environment = buildEnvironmentSummary({
         appVersion,
         protocol,
         hostname,
@@ -112,46 +131,19 @@ export function buildFeedbackEmailBody({
 
     return `Hello Propel team,
 
-Feedback type: [Problem / improvement / accessibility / documentation / help]
-Summary:
+Type: ${content.type}
+Title: ${content.title}
 
-Propel version or release: ${details.version}
-Distribution: ${details.distribution}
-Browser and version: ${details.browser}
-Operating system: ${details.operatingSystem}
-Browser language: ${details.browserLanguage}
-Managed organizational device: [Yes / No / Unsure]
+Details:
+${content.details}
 
-What were you trying to accomplish?
+Environment:
+${environment}
 
-What happened or what would you like improved?
-
-What result did you expect?
-
-Steps to reproduce, if reporting a problem:
-1.
-2.
-3.
-
-Operational impact:
-
-Accessibility or official-languages implications:
-
-Additional sanitized context:
-
-Please do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.`;
+Please remove document content, personal or protected information, credentials, internal URLs, and full local file paths before sending.`;
 }
 
 export const FEEDBACK_EMAIL_BODY = buildFeedbackEmailBody();
-
-export const GENERAL_FEEDBACK_EMAIL_BODY = `Hello Propel team,
-
-Comment or compliment:
-
-
-May we contact you for follow-up? [Yes / No]
-
-Please do not include document content, personal or protected information, credentials, internal URLs, full local file paths, or sensitive screenshots.`;
 
 function buildEmailUrl(subject, body) {
     const query = [
@@ -169,55 +161,95 @@ function buildGitHubIssueUrl(template, fields) {
     return url.toString();
 }
 
-/** Builds a GitHub Issue Form URL with technical fields prefilled. */
-export function buildBugReportUrl(environment) {
-    const details = getFeedbackEnvironmentDetails(environment);
+/** Builds a problem form URL from the user's in-app entry. */
+export function buildBugReportUrl(environment, feedback = {}) {
+    const content = getFeedbackContent(feedback);
     return buildGitHubIssueUrl(BUG_REPORT_TEMPLATE, {
-        version: details.version,
-        distribution: details.distribution,
-        browser: details.browser,
-        'operating-system': details.operatingSystem,
-        'browser-language': details.browserLanguage
+        title: content.title,
+        details: content.details,
+        environment: buildEnvironmentSummary(environment)
     });
 }
 
-/** Builds a feature-request URL with an optional prefilled environment summary. */
-export function buildFeatureRequestUrl(environment) {
-    const details = getFeedbackEnvironmentDetails(environment);
-    const summary = [
-        `Propel version: ${details.version}`,
-        `Distribution: ${details.distribution}`,
-        `Browser and version: ${details.browser}`,
-        `Operating system: ${details.operatingSystem}`,
-        `Browser language: ${details.browserLanguage}`
-    ].join('\n');
-    return buildGitHubIssueUrl(FEATURE_REQUEST_TEMPLATE, { environment: summary });
-}
-
-/** Configures both GitHub links without retaining or transmitting document state. */
-export function configureGitHubIssueLinks({ bugReportLink, featureRequestLink }, environment) {
-    if (bugReportLink) bugReportLink.href = buildBugReportUrl(environment);
-    if (featureRequestLink) featureRequestLink.href = buildFeatureRequestUrl(environment);
+/** Builds an improvement form URL from the user's in-app entry. */
+export function buildFeatureRequestUrl(environment, feedback = {}) {
+    const content = getFeedbackContent(feedback);
+    return buildGitHubIssueUrl(FEATURE_REQUEST_TEMPLATE, {
+        title: content.title,
+        details: content.details,
+        environment: buildEnvironmentSummary(environment)
+    });
 }
 
 /** Builds a mailto URL that users can inspect and edit before sending. */
-export function buildFeedbackEmailUrl(environment) {
-    return buildEmailUrl(FEEDBACK_EMAIL_SUBJECT, buildFeedbackEmailBody(environment));
+export function buildFeedbackEmailUrl(environment, feedback = {}) {
+    const content = getFeedbackContent(feedback);
+    const subject = content.title
+        ? `${FEEDBACK_EMAIL_SUBJECT}: ${content.title}`
+        : FEEDBACK_EMAIL_SUBJECT;
+    return buildEmailUrl(subject, buildFeedbackEmailBody(environment, feedback));
 }
 
-/** Builds a shorter mail draft for comments and compliments. */
-export function buildGeneralFeedbackEmailUrl() {
-    return buildEmailUrl(GENERAL_FEEDBACK_EMAIL_SUBJECT, GENERAL_FEEDBACK_EMAIL_BODY);
-}
+/**
+ * Keeps both submission routes synchronized with the compact in-app form.
+ * No document or editor content is read or retained.
+ */
+export function createFeedbackComposer({
+    form,
+    typeInputs = [],
+    titleInput,
+    detailsInput,
+    detailsLabel,
+    githubIssueLink,
+    feedbackEmailLink
+}, environment) {
+    const inputList = Array.from(typeInputs);
+    const getFeedback = () => ({
+        type: inputList.find(input => input.checked)?.value || 'problem',
+        title: titleInput?.value || '',
+        details: detailsInput?.value || ''
+    });
 
-/** Configures the feedback email link without reading document or editor state. */
-export function configureFeedbackEmailLink(link, environment) {
-    if (!link) return;
-    link.href = buildFeedbackEmailUrl(environment);
-}
+    const update = () => {
+        const feedback = getFeedback();
+        const isImprovement = feedback.type === 'improvement';
+        if (titleInput) {
+            titleInput.placeholder = isImprovement
+                ? 'Example: Add a faster way to insert common components'
+                : 'Example: Table cleanup does not open';
+        }
+        if (detailsLabel) {
+            detailsLabel.textContent = isImprovement
+                ? 'What would improve Propel?'
+                : 'What happened?';
+        }
+        if (detailsInput) {
+            detailsInput.placeholder = isImprovement
+                ? 'Example: Let me pin frequently used components so I can insert them without searching each time.'
+                : 'Example: I selected a table and chose Table cleanup, but the editor did not open. I expected to see the table editor.';
+        }
+        if (githubIssueLink) {
+            githubIssueLink.href = isImprovement
+                ? buildFeatureRequestUrl(environment, feedback)
+                : buildBugReportUrl(environment, feedback);
+        }
+        if (feedbackEmailLink) {
+            feedbackEmailLink.href = buildFeedbackEmailUrl(environment, feedback);
+        }
+    };
 
-/** Configures the lightweight comments-and-compliments email link. */
-export function configureGeneralFeedbackEmailLink(link) {
-    if (!link) return;
-    link.href = buildGeneralFeedbackEmailUrl();
+    const requireCompleteEntry = event => {
+        update();
+        if (form && !form.reportValidity()) event.preventDefault();
+    };
+
+    [...inputList, titleInput, detailsInput].forEach(input => {
+        input?.addEventListener('input', update);
+        input?.addEventListener('change', update);
+    });
+    githubIssueLink?.addEventListener('click', requireCompleteEntry);
+    feedbackEmailLink?.addEventListener('click', requireCompleteEntry);
+    update();
+
+    return { update };
 }
