@@ -19,5 +19,8 @@ Before merging a structural refactor, manually verify with `test/test-document-d
 5. Table cleanup opens, supports selection and formatting, applies changes, and cancels safely.
 6. Review counts, issue navigation, outline filters, and flags update after edits.
 7. English/French switching changes relevant generated publishing text.
+8. Reload after editing, restore the offered browser recovery copy, and confirm
+   Live/Code content, document language, and undo history start in the recovered
+   state. Repeat once with **Discard recovery copy**.
 
 Browser tests are intentionally separate because Propel uses native DOM, selection, shadow DOM, file APIs, and `contenteditable` behavior that Node does not emulate accurately.

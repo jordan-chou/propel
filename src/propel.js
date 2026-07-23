@@ -22,6 +22,10 @@ import {
 } from './document/live-edit-normalization.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { createDeferredWork } from './app/deferred-work.js';
+import {
+    createDocumentRecoveryController,
+    createRecoveryDraftId
+} from './app/document-recovery.js';
 import { CommandRegistry } from './commands/command-registry.js';
 import {
     applySmartComponent,
@@ -36,6 +40,8 @@ import { readFileAsArrayBuffer, getMammothLibrary, convertWithMammoth } from './
 import { getLanguageResultFromDocxXml } from './conversion/docx-language.js';
 import { createJSONStorage } from './ui/storage.js';
 import { createOnboardingController } from './ui/onboarding.js';
+import { createRecoveryPrompt } from './ui/recovery-prompt.js';
+import { createDocumentRecoveryStore } from './document/recovery-store.js';
 import {
     createWetLiveEditor,
     focusWetLiveEditorFromHost,
@@ -146,6 +152,11 @@ const onboardingUploadBtn = document.getElementById('onboardingUploadBtn');
 const onboardingInstructionsBtn = document.getElementById('onboardingInstructionsBtn');
 const onboardingBlankBtn = document.getElementById('onboardingBlankBtn');
 const editorOnboarding = document.getElementById('editorOnboarding');
+const documentRecoveryPromptElement = document.getElementById('documentRecoveryPrompt');
+const documentRecoveryMessage = document.getElementById('documentRecoveryMessage');
+const documentRecoveryRestoreBtn = document.getElementById('documentRecoveryRestoreBtn');
+const documentRecoveryDismissBtn = document.getElementById('documentRecoveryDismissBtn');
+const documentRecoveryDiscardBtn = document.getElementById('documentRecoveryDiscardBtn');
 const documentLoader = document.getElementById('loader');
 const liveEditorHost = document.getElementById('liveEditor');
 const liveEditor = createWetLiveEditor(liveEditorHost);
@@ -213,6 +224,7 @@ const deferredTypingRefresh = createDeferredWork(() => {
         updateCodeHighlight();
         updateLiveReciprocalCaret();
     }
+    documentRecovery.schedule();
     refreshReviewPanel();
 }, 500);
 
@@ -275,6 +287,32 @@ const paneSplitterSnapZone = 24;
 var isEngLang = true;
 var langStrings = engStrings;
 
+const documentRecoverySessionKey = 'recoveryDraftId';
+const storedRecoveryDraftId = sessionPreferences.get(documentRecoverySessionKey);
+const initialRecoveryDraftId = typeof storedRecoveryDraftId === 'string' && storedRecoveryDraftId
+    ? storedRecoveryDraftId
+    : createRecoveryDraftId();
+sessionPreferences.set(documentRecoverySessionKey, initialRecoveryDraftId);
+let documentRecoveryWarningShown = false;
+const documentRecoveryStore = createDocumentRecoveryStore(window.indexedDB);
+const documentRecovery = createDocumentRecoveryController({
+    store: documentRecoveryStore,
+    draftId: initialRecoveryDraftId,
+    getSnapshot: getDocumentRecoverySnapshot,
+    onError: handleDocumentRecoveryError
+});
+const documentRecoveryPrompt = createRecoveryPrompt({
+    container: documentRecoveryPromptElement,
+    message: documentRecoveryMessage,
+    restoreButton: documentRecoveryRestoreBtn,
+    dismissButton: documentRecoveryDismissBtn,
+    discardButton: documentRecoveryDiscardBtn,
+    onRestore: restoreRecoveredDocument,
+    onDiscard: discardRecoveredDocument,
+    onDismiss: () => onboarding.update(false)
+});
+documentStore.subscribe(() => documentRecovery.schedule());
+
 const tableEditor = createTableEditorController({
     elements: tableEditorElements,
     inputHTML,
@@ -336,6 +374,8 @@ createListeners();
 createModernDashboardListeners();
 drawers.bind();
 onboarding.bind();
+documentRecoveryPrompt.bind();
+void offerRecoveredDocument();
 
 // Set up Presets without a runtime request so file:// releases remain portable.
 setUpPresetBtns(presetButtons);
@@ -793,6 +833,14 @@ function createListeners() {
     if (file) {
         file.addEventListener('change', handleFileInputChange);
     }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            void flushDocumentRecovery();
+        }
+    });
+    window.addEventListener('pagehide', () => {
+        void flushDocumentRecovery();
+    });
     updateFileDropZoneState(false);
 
     [railUploadBtn, onboardingUploadBtn].forEach((button) => {
@@ -973,6 +1021,88 @@ function createListeners() {
     collapseBtn.addEventListener('click', collapseAll);
     lightTheme.addEventListener('click', setCodeTheme);
     darkTheme.addEventListener('click', setCodeTheme);
+}
+
+/** Returns the canonical state required to reconstruct a recovered document. */
+function getDocumentRecoverySnapshot() {
+    const snapshot = documentStore.snapshot();
+    return {
+        html: snapshot.html,
+        revision: snapshot.revision,
+        language: isEngLang ? 'en' : 'fr',
+        rootAttributes: Array.from(inputHTML.attributes, attribute => ({
+            name: attribute.name,
+            value: attribute.value
+        }))
+    };
+}
+
+/** Offers the most relevant compatible recovery record without replacing current work. */
+async function offerRecoveredDocument() {
+    const candidate = await documentRecovery.findCandidate();
+    if (!candidate || hasInput()) return;
+    if (editorOnboarding) editorOnboarding.hidden = true;
+    documentRecoveryPrompt.show(candidate);
+}
+
+/** Restores a browser recovery record as the initial canonical history state. */
+async function restoreRecoveredDocument(record) {
+    cancelPendingTypingRefresh();
+    documentRecovery.setDraftId(record.draftId);
+    sessionPreferences.set(documentRecoverySessionKey, record.draftId);
+
+    Array.from(inputHTML.attributes).forEach(attribute => inputHTML.removeAttribute(attribute.name));
+    record.rootAttributes.forEach(attribute => inputHTML.setAttribute(attribute.name, attribute.value));
+    inputHTML.classList.add('content-area');
+    documentStore.replaceHTML(record.html, { source: 'recovery' });
+    setCommandLanguage(record.language);
+    resetDocumentHistory(record.html, 'Recovered document');
+    updateCodeView();
+    updateLiveView();
+    refreshReviewPanel();
+    onboarding.update(true);
+    addProcessingLog('Restored the browser recovery copy.', 'success');
+}
+
+/** Permanently removes the selected browser recovery record. */
+async function discardRecoveredDocument(record) {
+    const discarded = await documentRecovery.discard(record.draftId);
+    onboarding.update(false);
+    if (discarded) {
+        addProcessingLog('Discarded the browser recovery copy.', 'info');
+    }
+}
+
+/** Resets in-memory undo history when a recovered document becomes canonical. */
+function resetDocumentHistory(html, actionLabel) {
+    window.clearTimeout(documentHistoryTimer);
+    documentHistory.splice(0, documentHistory.length, html);
+    documentHistoryActions.splice(0, documentHistoryActions.length, actionLabel);
+    documentHistoryIndex = 0;
+    documentHistoryLastSource = 'recovery';
+    documentHistoryLastTime = Date.now();
+    updateDocumentHistoryButtons();
+}
+
+/** Synchronizes pending editor input and asks IndexedDB to persist it immediately. */
+function flushDocumentRecovery() {
+    if (pendingTypingView === 'live') {
+        syncLiveToInputHTML();
+        commitDocumentHistory('typing');
+    } else if (pendingTypingView === 'code') {
+        syncEditorToInputHTML();
+        commitDocumentHistory('typing');
+    }
+    return documentRecovery.flush();
+}
+
+/** Reports unavailable or failed browser persistence once without interrupting editing. */
+function handleDocumentRecoveryError(error) {
+    if (documentRecoveryWarningShown) return;
+    documentRecoveryWarningShown = true;
+    console.warn('Document recovery is unavailable:', error);
+    addProcessingLog('Browser recovery is unavailable. Editing can continue, but this document may not survive a closed tab or browser crash.', 'warning');
+    showActivityToast('Browser recovery is unavailable.', 'warning', 'Recovery');
 }
 
 /** Loads the last imported component library, falling back to the starter library. */

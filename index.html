@@ -263,6 +263,19 @@
                         <div class="code-toolbar" aria-label="Code view">
                             <span>Code</span>
                         </div>
+                        <div class="document-recovery-prompt" id="documentRecoveryPrompt" hidden>
+                            <div class="document-recovery-card" role="dialog" aria-labelledby="documentRecoveryTitle" aria-describedby="documentRecoveryMessage">
+                                <span class="editor-onboarding-kicker">Document recovery</span>
+                                <h2 id="documentRecoveryTitle">Continue where you left off?</h2>
+                                <p id="documentRecoveryMessage"></p>
+                                <p class="document-recovery-privacy">The copy is stored only in this browser and is not sent anywhere.</p>
+                                <div class="document-recovery-actions">
+                                    <button type="button" class="btn btn-primary" id="documentRecoveryRestoreBtn">Restore document</button>
+                                    <button type="button" class="btn btn-default" id="documentRecoveryDismissBtn">Not now</button>
+                                    <button type="button" class="btn document-recovery-discard" id="documentRecoveryDiscardBtn">Discard recovery copy</button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="editor-onboarding" id="editorOnboarding">
                             <div class="editor-onboarding-card">
                                 <span class="editor-onboarding-kicker">Start a document</span>

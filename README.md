@@ -96,7 +96,14 @@ Within the table editor, an editor can:
 
 ## Local browser storage
 
-Propel stores the following JSON-encoded values in `localStorage`. They remain on the current browser and origin between sessions; they are not transmitted by Propel.
+Propel periodically saves the current canonical HTML to an IndexedDB database named
+`propel-document-recovery`. After an unexpected browser or tab closure, returning
+to Propel offers to restore, ignore, or discard the most recent compatible local
+copy. Live or Code input is synchronized before a page-hide save is requested.
+Recovery copies remain in the current browser and origin, are not transmitted by
+Propel, and are removed when discarded or when the document is empty.
+
+Propel also stores the following JSON-encoded values in `localStorage`. They remain on the current browser and origin between sessions; they are not transmitted by Propel.
 
 | Key | Purpose |
 | --- | --- |
@@ -104,9 +111,14 @@ Propel stores the following JSON-encoded values in `localStorage`. They remain o
 | `propel.livePaneWidthRatio` | The selected width ratio between the synchronized Live and Code editor panes. |
 | `propel.tableEditorSize` | The table editor’s saved width or height for its current responsive layout. |
 
-Clearing the site’s browser data removes these values and restores their defaults. Propel currently does not use cookies.
+Clearing the site’s browser data removes these values and document recovery copies.
+Propel currently does not use cookies.
 
-The onboarding card uses `sessionStorage` under `propel.onboardingDismissed`. Starting with a blank file hides the card for the current browser tab session, including page reloads; it returns in a new session.
+The onboarding card uses `sessionStorage` under `propel.onboardingDismissed`.
+Starting with a blank file hides the card for the current browser tab session,
+including page reloads; it returns in a new session. The current recovery stream
+identifier is stored in the same tab session under `propel.recoveryDraftId`, so a
+reload reconnects to that tab’s saved copy.
 
 ## Feedback and issue reporting
 

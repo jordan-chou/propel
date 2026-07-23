@@ -15,6 +15,7 @@ import { applyBlockFormat } from '../../src/ui/block-format.js';
 import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from '../../src/ui/live-editing.js';
 import { renameTag as renameElementTag } from '../../src/util.js';
 import { createOnboardingController } from '../../src/ui/onboarding.js';
+import { createRecoveryPrompt } from '../../src/ui/recovery-prompt.js';
 import {
     createTableEditorController,
     runPreservingElementScroll,
@@ -34,6 +35,10 @@ import {
     captureLiveEditBaseline,
     normalizeLiveEditClone
 } from '../../src/document/live-edit-normalization.js';
+import {
+    createDocumentRecoveryStore,
+    DOCUMENT_RECOVERY_SCHEMA_VERSION
+} from '../../src/document/recovery-store.js';
 import { runStandardCleanup } from '../../src/document/cleanup.js';
 import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
 import {
@@ -453,6 +458,60 @@ test('starting with a blank file dismisses onboarding for the current session', 
     const reloadedCard = document.createElement('div');
     createOnboardingController({ card: reloadedCard, preferences }).bind();
     equal(reloadedCard.hidden, true);
+});
+
+test('document recovery prompt offers restore and hides after the choice', () => {
+    const host = document.createElement('div');
+    host.innerHTML = `
+        <section data-prompt hidden>
+            <p data-message></p>
+            <button data-restore>Restore</button>
+            <button data-discard>Discard</button>
+            <button data-dismiss>Not now</button>
+        </section>`;
+    document.body.append(host);
+    const restored = [];
+    const prompt = createRecoveryPrompt({
+        container: host.querySelector('[data-prompt]'),
+        message: host.querySelector('[data-message]'),
+        restoreButton: host.querySelector('[data-restore]'),
+        discardButton: host.querySelector('[data-discard]'),
+        dismissButton: host.querySelector('[data-dismiss]'),
+        onRestore: record => restored.push(record.draftId),
+        formatSavedAt: () => 'recently'
+    });
+    prompt.bind();
+    prompt.show({ draftId: 'draft-1', savedAt: 100 });
+
+    equal(host.querySelector('[data-prompt]').hidden, false);
+    equal(host.querySelector('[data-message]').textContent, 'Propel saved a local recovery copy recently.');
+    host.querySelector('[data-restore]').click();
+
+    equal(restored.join(','), 'draft-1');
+    equal(host.querySelector('[data-prompt]').hidden, true);
+    host.remove();
+});
+
+test('document recovery store round trips a versioned IndexedDB record', async () => {
+    const store = createDocumentRecoveryStore(window.indexedDB, {
+        databaseName: 'propel-browser-tests-v3'
+    });
+    const record = {
+        schemaVersion: DOCUMENT_RECOVERY_SCHEMA_VERSION,
+        draftId: 'browser-recovery-test',
+        savedAt: Date.now(),
+        html: '<p>Browser recovery</p>',
+        rootAttributes: [{ name: 'class', value: 'content-area' }],
+        language: 'en',
+        revision: 2
+    };
+
+    await store.save(record);
+    const restored = await store.get(record.draftId);
+    equal(restored.html, record.html);
+    equal((await store.getLatest()).draftId, record.draftId);
+    await store.delete(record.draftId);
+    equal(await store.get(record.draftId), null);
 });
 
 test('cheatsheet starts on Instructions and preserves the selected tab', () => {
@@ -1155,7 +1214,7 @@ const output = document.getElementById('results');
 let failures = 0;
 const lines = [];
 for (const item of tests) {
-    try { item.run(); lines.push(`PASS ${item.name}`); }
+    try { await item.run(); lines.push(`PASS ${item.name}`); }
     catch (error) { failures += 1; lines.push(`FAIL ${item.name}\n  ${error.message}`); }
 }
 output.textContent = `${lines.join('\n')}\n\n${tests.length - failures}/${tests.length} passed`;
