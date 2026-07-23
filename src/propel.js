@@ -43,6 +43,7 @@ import {
 } from './ui/wet-live-editor.js';
 import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
+import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
 import {
     configureFeedbackEmailLink,
@@ -452,7 +453,10 @@ function createModernDashboardListeners() {
             updateCodeReciprocalCaret();
         });
         liveEditor.addEventListener('keydown', handleLiveEditorKeydown);
-        liveEditor.addEventListener('beforeinput', combineLiveEditorComponents);
+        liveEditor.addEventListener('beforeinput', (event) => {
+            combineLiveEditorComponents(event);
+            ensureRootTextBlockForInput(event, liveEditor, getEditorSelection(liveEditor));
+        });
         liveEditor.addEventListener('keyup', () => {
             rememberLiveSelection();
             updateBlockFormatSelect();
@@ -1525,19 +1529,6 @@ function isCaretAtComponentEdge(range, component, atStart) {
         edgeRange.setStart(range.startContainer, range.startOffset);
     }
     return edgeRange.collapsed || edgeRange.toString() === '';
-}
-
-/** Ensures Enter creates paragraph blocks instead of browser-specific div wrappers. */
-function preserveParagraphsOnEnter(event) {
-    if (event.key !== 'Enter' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
-        return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    document.execCommand('formatBlock', false, 'p');
-    document.execCommand('insertParagraph', false, null);
 }
 
 /** Returns live editor shortcut. */

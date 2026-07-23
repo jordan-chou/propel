@@ -12,6 +12,7 @@ import {
 import { renameTag } from '../../src/commands/table-cleanup.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
 import { applyBlockFormat } from '../../src/ui/block-format.js';
+import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from '../../src/ui/live-editing.js';
 import { renameTag as renameElementTag } from '../../src/util.js';
 import { createOnboardingController } from '../../src/ui/onboarding.js';
 import {
@@ -111,6 +112,98 @@ test('block formatting ignores whitespace at element-selection boundaries', () =
     equal(host.querySelectorAll('h2, h3').length, 0);
     selection.removeAllRanges();
     host.remove();
+});
+
+test('Enter preserves a heading while creating a following paragraph', () => {
+    const live = document.createElement('div');
+    live.contentEditable = 'true';
+    live.innerHTML = '<h2>Heading</h2>';
+    document.body.append(live);
+    live.focus();
+    const range = document.createRange();
+    range.selectNodeContents(live.firstElementChild);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    let prevented = false;
+
+    preserveParagraphsOnEnter({
+        key: 'Enter',
+        currentTarget: live,
+        preventDefault: () => { prevented = true; }
+    });
+    document.execCommand('insertParagraph', false, null);
+
+    equal(prevented, false);
+    equal(live.innerHTML, '<h2>Heading</h2><p><br></p>');
+    selection.removeAllRanges();
+    live.remove();
+});
+
+test('typing at the Live editor root starts a paragraph', () => {
+    const host = document.createElement('div');
+    host.setAttribute('contenteditable', 'true');
+    document.body.append(host);
+    const live = createWetLiveEditor(host);
+    live.focus();
+    const range = document.createRange();
+    range.setStart(live, 0);
+    range.collapse(true);
+    const selection = live.getRootNode().getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    ensureRootTextBlockForInput({ inputType: 'insertText', defaultPrevented: false }, live, selection);
+    document.execCommand('insertText', false, 'Text');
+
+    equal(live.innerHTML, '<p>Text</p>');
+    selection.removeAllRanges();
+    host.remove();
+});
+
+test('typing alongside root phrasing content wraps the complete run in a paragraph', () => {
+    const live = document.createElement('div');
+    live.contentEditable = 'true';
+    live.innerHTML = 'Before <strong>bold</strong>';
+    document.body.append(live);
+    live.focus();
+    const range = document.createRange();
+    range.setStart(live.firstChild, live.firstChild.length);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    ensureRootTextBlockForInput({ inputType: 'insertText', defaultPrevented: false }, live, selection);
+    document.execCommand('insertText', false, 'text ');
+
+    equal(live.innerHTML, '<p>Before text&nbsp;<strong>bold</strong></p>');
+    selection.removeAllRanges();
+    live.remove();
+});
+
+test('typing inside semantic and component containers keeps their context', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<h2>Heading</h2><div class="component">Label</div>';
+    document.body.append(live);
+    const selection = window.getSelection();
+
+    for (const container of live.children) {
+        const range = document.createRange();
+        range.selectNodeContents(container);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        equal(
+            ensureRootTextBlockForInput({ inputType: 'insertText', defaultPrevented: false }, live, selection),
+            null
+        );
+    }
+
+    equal(live.innerHTML, '<h2>Heading</h2><div class="component">Label</div>');
+    selection.removeAllRanges();
+    live.remove();
 });
 
 test('standard cleanup removes all empty anchors while preserving element content', () => {
