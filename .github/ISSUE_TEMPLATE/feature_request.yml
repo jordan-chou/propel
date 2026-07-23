@@ -1,6 +1,6 @@
 name: Suggest an improvement
 description: Propose an enhancement to Propel or its publishing workflow.
-title: ""
+title: "[Suggestion]: "
 labels:
   - "type: enhancement"
 body:

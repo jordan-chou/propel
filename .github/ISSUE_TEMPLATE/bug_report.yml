@@ -1,6 +1,6 @@
 name: Report a problem
 description: Report behaviour that is broken, unexpected, or preventing work in Propel.
-title: ""
+title: "[Issue]: "
 labels:
   - "type: bug"
   - "needs-reproduction"
