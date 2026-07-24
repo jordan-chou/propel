@@ -51,6 +51,7 @@ import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
+import { goToCodeLine, isGoToLineShortcut } from './ui/code-navigation.js';
 import { createFeedbackComposer } from './support/feedback.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
@@ -166,9 +167,11 @@ const paneSplitter = document.getElementById('paneSplitter');
 const paneSnapGuides = document.querySelectorAll('.pane-snap-guide');
 const codeEditor = document.getElementById('codeEditor');
 const codeHighlight = document.getElementById('codeHighlight');
+const codeLineNumbers = document.getElementById('codeLineNumbers');
 const codeHighlightViewport = createCodeHighlightViewport({
     overlay: codeHighlight,
     textarea: outputText,
+    lineNumbers: codeLineNumbers,
     highlight: highlightHTML
 });
 const codeReciprocalCaret = document.getElementById('codeReciprocalCaret');
@@ -1721,6 +1724,20 @@ function handleCodeEditorKeydown(event) {
     }
 
     const key = (event.key || '').toLowerCase();
+
+    if (isGoToLineShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        activeEditorView = 'code';
+        const result = goToCodeLine(outputText, (currentLine, totalLines) => (
+            prompt(`Go to line (1-${totalLines})`, String(currentLine))
+        ));
+        if (result) {
+            scrollCodeToIndex(result.index);
+            requestAnimationFrame(updateLiveReciprocalCaret);
+        }
+        return;
+    }
 
     const selectionDirection = getComponentSelectionDirection(event);
     if (selectionDirection) {

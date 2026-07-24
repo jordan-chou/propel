@@ -300,8 +300,9 @@
                         <div id="liveEditor" class="editor-view active split-live-pane" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Upload a Word document, drop one here, or paste HTML in Code view."></div>
                         <div class="pane-splitter" id="paneSplitter" role="separator" aria-orientation="vertical" aria-label="Resize Live and Code panes"></div>
                         <div class="code-editor editor-view active split-code-pane" id="codeEditor">
+                            <div id="codeLineNumbers" aria-hidden="true"></div>
                             <pre id="codeHighlight" aria-hidden="true"><code></code></pre>
-                            <textarea name="outputTextArea" id="outputText" title="Paste the HTML markup" placeholder="Upload a Word document or paste HTML code here" spellcheck="false"></textarea>
+                            <textarea name="outputTextArea" id="outputText" title="Paste the HTML markup" placeholder="Upload a Word document or paste HTML code here" spellcheck="false" aria-keyshortcuts="Control+G Meta+G"></textarea>
                             <span id="codeReciprocalCaret" class="code-reciprocal-caret" aria-hidden="true"></span>
                         </div>
                     </div>
@@ -417,8 +418,9 @@
                 </dl>
             </section>
             <section>
-                <h3>HTML element selection</h3>
+                <h3>Code view</h3>
                 <dl class="shortcut-list">
+                    <div><dt><span class="shortcut-command">Go to line</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>G</kbd></dd></div>
                     <div><dt><span class="shortcut-command">Select parent element</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>[</kbd></dd></div>
                     <div><dt><span class="shortcut-command">Select child element</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>]</kbd></dd></div>
                     <div><dt><span class="shortcut-command">Wrap with tag</span></dt><dd><kbd data-shortcut-key="alternate">Alt</kbd><kbd>W</kbd></dd></div>
