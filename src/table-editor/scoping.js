@@ -36,14 +36,23 @@ export function applyTableScopes(table, options = {}) {
         return;
     }
 
-    applyExplicitAssociations(table, buildSpanningGrid(table), options.idRoot || table.ownerDocument);
+    applyExplicitAssociations(
+        table,
+        buildSpanningGrid(table),
+        options.idRoot || table.ownerDocument,
+        options.matchHeaderIdsToTable === true
+    );
 }
 
-function applyExplicitAssociations(table, grid, idRoot) {
+function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable) {
     addGenericID(idRoot, table, 't');
     const entries = grid.entries;
     const headerEntries = entries.filter(({ cell }) => cell.tagName.toLowerCase() === 'th');
-    headerEntries.forEach(({ cell }, index) => ensureHeaderId(table, cell, index + 1));
+    if (matchHeaderIdsToTable) {
+        synchronizeHeaderIds(table, idRoot, headerEntries.map(({ cell }) => cell));
+    } else {
+        headerEntries.forEach(({ cell }, index) => ensureHeaderId(table, cell, index + 1));
+    }
 
     let activeParent = null;
     let hierarchy = [];
@@ -79,6 +88,42 @@ function applyExplicitAssociations(table, grid, idRoot) {
             hierarchy[indentLevel] = rowHeader.cell;
             hierarchy.length = indentLevel + 1;
         }
+    });
+}
+
+/** Renames header-cell IDs from the current table ID and updates local ID references. */
+export function synchronizeHeaderIds(table, idRoot = table?.ownerDocument, headerCells) {
+    if (!table || !table.id) return;
+
+    const headers = headerCells || buildSpanningGrid(table).entries
+        .filter(({ cell }) => cell.tagName.toLowerCase() === 'th')
+        .map(({ cell }) => cell);
+    const headerSet = new Set(headers);
+    const sourceTable = Array.from(idRoot?.querySelectorAll?.('table') || [])
+        .find((candidate) => candidate.id === table.id && candidate !== table);
+    sourceTable?.querySelectorAll('th').forEach((header) => headerSet.add(header));
+    const reservedIds = new Set(
+        Array.from(idRoot?.querySelectorAll?.('[id]') || [])
+            .filter((element) => !headerSet.has(element))
+            .map((element) => element.id)
+    );
+    const replacements = new Map();
+
+    headers.forEach((header, index) => {
+        const base = `${table.id}-h${index + 1}`.replace(/[^A-Za-z0-9_-]/g, '-');
+        let candidate = base;
+        let suffix = 2;
+        while (reservedIds.has(candidate)) candidate = `${base}-${suffix++}`;
+        reservedIds.add(candidate);
+        if (header.id && header.id !== candidate) replacements.set(header.id, candidate);
+        header.id = candidate;
+    });
+
+    if (!replacements.size) return;
+    table.querySelectorAll('th, td').forEach((cell) => {
+        ['headers', ...MANUAL_SCOPE_ATTRIBUTES].forEach((attribute) => {
+            setIdList(cell, attribute, getIdList(cell, attribute).map((id) => replacements.get(id) || id));
+        });
     });
 }
 

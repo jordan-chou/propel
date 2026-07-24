@@ -1827,11 +1827,12 @@ export function createTableEditorController(config) {
     }
 
     /** Applies the selected simple or complex header association strategy. */
-    function applyCurrentTableScopes(table) {
+    function applyCurrentTableScopes(table, options = {}) {
         applyTableScopes(table, {
             complex: tableEditorComplexScoping ? tableEditorComplexScoping.checked : true,
             idRoot: inputHTML,
-            renameTag
+            renameTag,
+            ...options
         });
     }
     
@@ -2093,7 +2094,7 @@ export function createTableEditorController(config) {
         }
     
         updateTableEditorCaption();
-        applyCurrentTableScopes(getTableEditorTable());
+        applyCurrentTableScopes(getTableEditorTable(), { matchHeaderIdsToTable: true });
     
         const cleanClone = editedContainer.cloneNode(true);
         clearScopeVisualization(cleanClone);

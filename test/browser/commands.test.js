@@ -767,6 +767,19 @@ test('table scoping mode locks editing controls and provides an explicit exit', 
     fixture.remove();
 });
 
+test('applying complex scoping matches header IDs to the committed table ID', () => {
+    const fixture = createTableEditorScopingFixture();
+
+    fixture.elements.tableEditorApplyBtn.click();
+
+    equal(
+        Array.from(fixture.inputHTML.querySelectorAll('th'), (header) => header.id).join(' '),
+        't1-h1 t1-h2 t1-h3 t1-h4 t1-h5'
+    );
+    equal(fixture.inputHTML.querySelector('td').getAttribute('headers'), 't1-h2 t1-h4');
+    fixture.remove();
+});
+
 test('table scoping drag paints the same live rectangle as cell selection', () => {
     const fixture = createTableEditorScopingFixture();
     fixture.elements.tableEditorScopingModeBtn.click();
@@ -885,7 +898,7 @@ function createTableEditorScopingFixture() {
     });
     controller.createListeners();
     controller.open(0, { previewCleanup: false });
-    return { controller, elements, remove: () => { controller.close(); host.remove(); } };
+    return { controller, elements, inputHTML, remove: () => { controller.close(); host.remove(); } };
 }
 
 test('table option refresh preserves manual bold and source markup', () => {
@@ -1239,6 +1252,37 @@ test('complex scoping uses the next Add IDs table identifier', () => {
 
     equal(table.id, 't2');
     equal(table.querySelector('th').id, 't2-h1');
+});
+
+test('complex scoping matches header IDs and references to the current table ID on commit', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table id="expenses"><thead><tr><th id="expenses-h1">Label</th><th id="expenses-h2">Value</th></tr></thead><tbody><tr><th id="expenses-h3">Cash</th><td headers="expenses-h2 expenses-h3">10</td></tr></tbody></table>';
+    const table = host.querySelector('table').cloneNode(true);
+    table.querySelectorAll('th').forEach((header, index) => {
+        header.id = `old-${index + 1}`;
+    });
+    const value = table.querySelector('td');
+    value.setAttribute('headers', 'old-2 old-3');
+    value.setAttribute('data-propel-scope-add', 'old-3');
+    applyTableScopes(table, {
+        complex: true,
+        idRoot: host,
+        matchHeaderIdsToTable: true,
+        renameTag
+    });
+    const headers = table.querySelectorAll('th');
+
+    equal(Array.from(headers, (header) => header.id).join(' '), 'expenses-h1 expenses-h2 expenses-h3');
+    equal(value.getAttribute('headers'), 'expenses-h2 expenses-h3');
+    equal(value.getAttribute('data-propel-scope-add'), 'expenses-h3');
+
+    applyTableScopes(table, {
+        complex: true,
+        idRoot: host,
+        matchHeaderIdsToTable: true,
+        renameTag
+    });
+    equal(Array.from(headers, (header) => header.id).join(' '), 'expenses-h1 expenses-h2 expenses-h3');
 });
 
 test('painted scoping relationships override automatic associations', () => {
