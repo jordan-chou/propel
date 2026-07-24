@@ -41,6 +41,7 @@ import {
 } from '../../src/document/recovery-store.js';
 import { runStandardCleanup } from '../../src/document/cleanup.js';
 import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
+import { createCodeFindController } from '../../src/ui/code-find.js';
 import {
     buildBugReportUrl,
     buildFeedbackEmailUrl,
@@ -383,6 +384,8 @@ test('code highlighting renders only the visible source window', () => {
     textarea.scrollTop = 1100;
     viewport.render();
     const code = overlay.querySelector('code');
+    const mirror = Array.from(document.querySelectorAll('[aria-hidden="true"][inert]'))
+        .find(element => element.textContent.includes('Line 199'));
     const start = Number(code.dataset.highlightStart);
     const end = Number(code.dataset.highlightEnd);
 
@@ -394,8 +397,47 @@ test('code highlighting renders only the visible source window', () => {
     equal(Number(lineNumbers.dataset.firstLine) > 1, true);
     equal(Number(lineNumbers.dataset.lastLine) < 200, true);
     equal(lineNumbers.firstElementChild.textContent, lineNumbers.dataset.firstLine);
+    equal(Boolean(mirror), true);
     viewport.destroy();
     host.remove();
+});
+
+test('code highlighting marks the active find result', () => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position: relative; width: 420px; height: 88px;';
+    host.innerHTML = `
+        <pre style="position:absolute;inset:0;margin:0;overflow:hidden"><code></code></pre>
+        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:8px;border:0;white-space:pre-wrap;font:14px/22px monospace"></textarea>`;
+    document.body.append(host);
+    const textarea = host.querySelector('textarea');
+    const source = '<p>Find this text</p>';
+    textarea.value = source;
+    const viewport = createCodeHighlightViewport({
+        overlay: host.querySelector('pre'),
+        textarea,
+        highlight: value => value.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    });
+    viewport.update(source);
+    viewport.setSearchRange({ start: source.indexOf('this'), end: source.indexOf('this') + 4 });
+
+    const marker = host.querySelector('.code-search-match');
+    equal(marker.textContent, 'this');
+    equal(host.querySelector('code').textContent, source);
+    viewport.destroy();
+    host.remove();
+});
+
+test('application syntax and line-number layers are inert and unselectable', async () => {
+    const response = await fetch('../../index.html');
+    const source = await response.text();
+    const app = new DOMParser().parseFromString(source, 'text/html');
+    const highlight = app.getElementById('codeHighlight');
+    const lineNumbers = app.getElementById('codeLineNumbers');
+
+    equal(highlight.hasAttribute('inert'), true);
+    equal(highlight.getAttribute('aria-hidden'), 'true');
+    equal(lineNumbers.hasAttribute('inert'), true);
+    equal(lineNumbers.getAttribute('aria-hidden'), 'true');
 });
 
 test('virtualized code highlighting stays aligned after wrapped lines', () => {
@@ -449,6 +491,126 @@ test('virtualized code highlighting stays aligned after wrapped lines', () => {
 
 test('code highlight line indexes include empty and trailing lines', () => {
     equal(getLineStarts('first\n\nthird\n').join(','), '0,6,7,13');
+});
+
+test('Code view find panel navigates, replaces, collapses, and closes', () => {
+    const host = document.createElement('div');
+    host.innerHTML = `
+        <div class="panel" hidden>
+            <button class="expand" aria-expanded="false"></button>
+            <input class="find">
+            <button class="regex" aria-pressed="false"></button>
+            <span class="status"></span>
+            <button class="previous"></button>
+            <button class="next"></button>
+            <button class="close"></button>
+            <div class="replace-row" hidden>
+                <input class="replace">
+                <button class="replace-one"></button>
+                <button class="replace-all"></button>
+            </div>
+        </div>
+        <textarea>cat dog cat</textarea>`;
+    document.body.append(host);
+    const textarea = host.querySelector('textarea');
+    const panel = host.querySelector('.panel');
+    const searchInput = host.querySelector('.find');
+    const replaceInput = host.querySelector('.replace');
+    const replaceRow = host.querySelector('.replace-row');
+    const changes = [];
+    const controller = createCodeFindController({
+        textarea,
+        panel,
+        searchInput,
+        replaceInput,
+        regexToggle: host.querySelector('.regex'),
+        replaceToggle: host.querySelector('.expand'),
+        replaceRow,
+        previousButton: host.querySelector('.previous'),
+        nextButton: host.querySelector('.next'),
+        replaceButton: host.querySelector('.replace-one'),
+        replaceAllButton: host.querySelector('.replace-all'),
+        closeButton: host.querySelector('.close'),
+        status: host.querySelector('.status'),
+        onBeforeReplace: () => changes.push('before'),
+        onReplace: (label, count) => changes.push([label, count])
+    });
+    controller.bind();
+
+    const findEvent = new KeyboardEvent('keydown', {
+        key: 'f',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true
+    });
+    equal(controller.handleShortcut(findEvent), true);
+    equal(findEvent.defaultPrevented, true);
+    equal(panel.hidden, false);
+    equal(replaceRow.hidden, true);
+
+    searchInput.value = 'cat';
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    equal(textarea.selectionStart, 0);
+    equal(host.querySelector('.status').textContent, '1 of 2');
+    searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    equal(textarea.selectionStart, 8);
+
+    controller.open({ replace: true });
+    equal(replaceRow.hidden, false);
+    replaceInput.value = 'fox';
+    host.querySelector('.replace-one').click();
+    equal(textarea.value, 'cat dog fox');
+    host.querySelector('.replace-all').click();
+    equal(textarea.value, 'fox dog fox');
+    equal(JSON.stringify(changes), JSON.stringify([
+        'before',
+        ['Replace code match', 1],
+        'before',
+        ['Replace all code matches', 1]
+    ]));
+
+    host.querySelector('.expand').click();
+    equal(replaceRow.hidden, true);
+    searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    equal(panel.hidden, true);
+    equal(document.activeElement, textarea);
+    host.remove();
+});
+
+test('Code view regex toggle reports invalid expressions', () => {
+    const host = document.createElement('div');
+    host.innerHTML = `
+        <div class="panel" hidden>
+            <input class="find">
+            <button class="regex" aria-pressed="false"></button>
+            <span class="status"></span>
+            <button class="previous"></button>
+            <button class="next"></button>
+        </div>
+        <textarea>sample</textarea>`;
+    document.body.append(host);
+    const panel = host.querySelector('.panel');
+    const searchInput = host.querySelector('.find');
+    const regexToggle = host.querySelector('.regex');
+    const controller = createCodeFindController({
+        textarea: host.querySelector('textarea'),
+        panel,
+        searchInput,
+        regexToggle,
+        previousButton: host.querySelector('.previous'),
+        nextButton: host.querySelector('.next'),
+        status: host.querySelector('.status')
+    });
+    controller.bind();
+    controller.open();
+    regexToggle.click();
+    searchInput.value = '[';
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+    equal(searchInput.getAttribute('aria-invalid'), 'true');
+    equal(host.querySelector('.status').textContent, 'Invalid regex');
+    equal(host.querySelector('.next').disabled, true);
+    host.remove();
 });
 
 test('starting with a blank file dismisses onboarding for the current session', () => {
