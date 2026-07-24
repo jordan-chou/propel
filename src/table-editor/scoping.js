@@ -40,15 +40,18 @@ export function applyTableScopes(table, options = {}) {
         table,
         buildSpanningGrid(table),
         options.idRoot || table.ownerDocument,
-        options.matchHeaderIdsToTable === true
+        options.matchHeaderIdsToTable === true,
+        options.addTableId !== false
     );
 }
 
-function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable) {
-    addGenericID(idRoot, table, 't');
+function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable, addTableId) {
+    if (addTableId) {
+        addGenericID(idRoot, table, 't');
+    }
     const entries = grid.entries;
     const headerEntries = entries.filter(({ cell }) => cell.tagName.toLowerCase() === 'th');
-    if (matchHeaderIdsToTable) {
+    if (matchHeaderIdsToTable && table.id) {
         synchronizeHeaderIds(table, idRoot, headerEntries.map(({ cell }) => cell));
     } else {
         headerEntries.forEach(({ cell }, index) => ensureHeaderId(table, cell, index + 1));

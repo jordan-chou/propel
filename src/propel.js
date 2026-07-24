@@ -198,8 +198,9 @@ const tableEditorElements = {
         'tableEditorBoldBtn', 'tableEditorLeftBtn', 'tableEditorCenterBtn',
         'tableEditorRightBtn', 'tableEditorDeleteRowBtn', 'tableEditorDeleteColumnBtn', 'tableEditorStatus',
         'tableEditorCanvas', 'tableEditorNumber', 'tableEditorCaption',
-        'tableEditorUnit', 'tableEditorNumberSuggestion', 'tableEditorCaptionSuggestion',
-        'tableEditorUnitSuggestion', 'tableEditorComplexScoping', 'tableEditorFinancial', 'tableEditorFrench',
+        'tableEditorUnit', 'tableEditorId', 'tableEditorNumberSuggestion', 'tableEditorCaptionSuggestion',
+        'tableEditorUnitSuggestion', 'tableEditorIdSuggestion',
+        'tableEditorComplexScoping', 'tableEditorFinancial', 'tableEditorFrench',
         'optionTooltip'
     ].map((id) => [id, document.getElementById(id)]))
 };

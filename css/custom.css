@@ -1565,6 +1565,49 @@ textarea {
     background: #eef6fc;
 }
 
+.table-id-field::before {
+    content: "#";
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: #79c0ff;
+    font: 700 14px/1 var(--font-mono);
+    pointer-events: none;
+}
+
+.table-caption-field .table-id-control {
+    padding-left: 30px;
+    border-color: #40526d;
+    color: #e6edf3;
+    background: #172033;
+    box-shadow: inset 3px 0 0 #58a6ff;
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
+    letter-spacing: .01em;
+}
+
+.table-caption-field .table-id-control:focus {
+    border-color: #58a6ff;
+    box-shadow: inset 3px 0 0 #79c0ff, 0 0 0 2px rgba(37, 114, 180, .22);
+}
+
+.table-caption-field .table-id-control[data-caption-suggestion] {
+    padding-left: 30px;
+    padding-right: 48px;
+    border-color: #79a9ca;
+    border-style: dashed;
+    color: #52606d;
+    font-style: italic;
+    background: #eef6fc;
+    box-shadow: inset 3px 0 0 #79a9ca;
+}
+
+.table-id-field:has(.table-id-control[data-caption-suggestion])::before {
+    color: #527b98;
+}
+
 .table-caption-suggestion {
     position: absolute;
     top: 50%;

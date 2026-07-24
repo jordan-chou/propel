@@ -744,6 +744,7 @@ test('table scoping mode locks editing controls and provides an explicit exit', 
     equal(fixture.elements.tableEditorScopingModeBanner.parentElement.classList.contains('table-editor-toolbar'), true);
     equal(fixture.elements.tableEditorHeaderBtn.disabled, true);
     equal(fixture.elements.tableEditorNumber.disabled, true);
+    equal(fixture.elements.tableEditorId.disabled, true);
     equal(fixture.elements.tableEditorApplyBtn.disabled, true);
     equal(fixture.elements.tableEditorScopingModeBtn.disabled, false);
     equal(fixture.elements.tableEditorScopingModeBtn.getAttribute('aria-label'), 'Exit scoping mode');
@@ -754,6 +755,7 @@ test('table scoping mode locks editing controls and provides an explicit exit', 
     equal(fixture.elements.tableEditorScopingModeBanner.hidden, true);
     equal(fixture.elements.tableEditorHeaderBtn.disabled, false);
     equal(fixture.elements.tableEditorNumber.disabled, false);
+    equal(fixture.elements.tableEditorId.disabled, false);
     equal(fixture.elements.tableEditorApplyBtn.disabled, false);
 
     fixture.elements.tableEditorScopingModeBtn.click();
@@ -777,6 +779,91 @@ test('applying complex scoping matches header IDs to the committed table ID', ()
         't1-h1 t1-h2 t1-h3 t1-h4 t1-h5'
     );
     equal(fixture.inputHTML.querySelector('td').getAttribute('headers'), 't1-h2 t1-h4');
+    fixture.remove();
+});
+
+test('table ID suggestion follows the table number and updates scoped header IDs when accepted', () => {
+    const fixture = createTableEditorScopingFixture(
+        '<p>Table 2b.1</p><table id="t1"><thead><tr><th id="old-label">Label</th><th id="old-value">Value</th></tr></thead><tbody><tr><th id="old-row">One</th><td>1</td></tr></tbody></table>'
+    );
+
+    equal(fixture.elements.tableEditorNumber.value, 'Table 2b.1');
+    equal(fixture.elements.tableEditorNumber.hasAttribute('data-caption-suggestion'), true);
+    equal(fixture.elements.tableEditorId.value, 't1');
+    equal(fixture.elements.tableEditorId.hasAttribute('data-caption-suggestion'), false);
+    fixture.elements.tableEditorNumberSuggestion.click();
+
+    equal(fixture.elements.tableEditorId.value, 't2b-1');
+    equal(fixture.elements.tableEditorId.hasAttribute('data-caption-suggestion'), true);
+    equal(fixture.elements.tableEditorCanvas.querySelector('table').id, 't1');
+    fixture.elements.tableEditorIdSuggestion.click();
+    equal(fixture.elements.tableEditorCanvas.querySelector('table').id, 't2b-1');
+    fixture.elements.tableEditorApplyBtn.click();
+
+    const table = fixture.inputHTML.querySelector('table');
+    equal(table.id, 't2b-1');
+    equal(
+        Array.from(table.querySelectorAll('th'), (header) => header.id).join(' '),
+        't2b-1-h1 t2b-1-h2 t2b-1-h3'
+    );
+    fixture.remove();
+});
+
+test('initial table cleanup leaves the Table ID empty until its suggestion is accepted', () => {
+    const fixture = createTableEditorScopingFixture(
+        '<p>Table 1</p><table><tbody><tr><td>Label</td><td>Value</td></tr><tr><td>One</td><td>1</td></tr></tbody></table>',
+        true
+    );
+
+    equal(fixture.elements.tableEditorNumber.value, 'Table 1');
+    equal(fixture.elements.tableEditorNumber.hasAttribute('data-caption-suggestion'), true);
+    equal(fixture.elements.tableEditorId.value, '');
+    equal(fixture.elements.tableEditorCanvas.querySelector('table').hasAttribute('id'), false);
+
+    fixture.elements.tableEditorNumberSuggestion.click();
+    equal(fixture.elements.tableEditorId.value, 't1');
+    equal(fixture.elements.tableEditorId.hasAttribute('data-caption-suggestion'), true);
+    equal(fixture.elements.tableEditorCanvas.querySelector('table').hasAttribute('id'), false);
+
+    fixture.elements.tableEditorIdSuggestion.click();
+    equal(fixture.elements.tableEditorCanvas.querySelector('table').id, 't1');
+    fixture.remove();
+});
+
+test('Apply assigns the next available generic ID when Table ID remains blank', () => {
+    const fixture = createTableEditorScopingFixture(
+        '<table id="t1"><tbody><tr><td>Existing</td><td>1</td></tr></tbody></table><table><tbody><tr><td>Next</td><td>2</td></tr></tbody></table>'
+    );
+
+    fixture.elements.tableEditorNextBtn.click();
+    equal(fixture.elements.tableEditorId.value, '');
+    fixture.elements.tableEditorApplyBtn.click();
+
+    equal(fixture.inputHTML.querySelectorAll('table')[1].id, 't2');
+    fixture.remove();
+});
+
+test('Apply and next assigns generic IDs in document order when Table IDs remain blank', () => {
+    const fixture = createTableEditorScopingFixture(
+        '<table><tbody><tr><td>First</td><td>1</td></tr></tbody></table><table><tbody><tr><td>Second</td><td>2</td></tr></tbody></table>'
+    );
+
+    fixture.elements.tableEditorApplyNextBtn.click();
+    equal(fixture.inputHTML.querySelectorAll('table')[0].id, 't1');
+    fixture.elements.tableEditorApplyBtn.click();
+
+    equal(fixture.inputHTML.querySelectorAll('table')[1].id, 't2');
+    fixture.remove();
+});
+
+test('table ID field applies a custom ID', () => {
+    const fixture = createTableEditorScopingFixture();
+
+    fixture.elements.tableEditorId.value = 'operating-expenses';
+    fixture.elements.tableEditorId.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    fixture.elements.tableEditorApplyBtn.click();
+
+    equal(fixture.inputHTML.querySelector('table').id, 'operating-expenses');
     fixture.remove();
 });
 
@@ -810,7 +897,10 @@ test('table scoping drag paints the same live rectangle as cell selection', () =
     fixture.remove();
 });
 
-function createTableEditorScopingFixture() {
+function createTableEditorScopingFixture(
+    tableMarkup = '<table id="t1"><thead><tr><th id="parent">Label</th><th id="column-a">A</th><th id="column-b">B</th></tr></thead><tbody><tr><th id="row-a">One</th><td>1</td><td>2</td></tr><tr><th id="row-b">Two</th><td>3</td><td>4</td></tr></tbody></table>',
+    previewCleanup = false
+) {
     const host = document.createElement('div');
     host.innerHTML = `
         <section id="tableEditorDialog" hidden>
@@ -826,6 +916,7 @@ function createTableEditorScopingFixture() {
                 <input id="tableEditorNumber"><button id="tableEditorNumberSuggestion"></button>
                 <input id="tableEditorCaption"><button id="tableEditorCaptionSuggestion"></button>
                 <input id="tableEditorUnit"><button id="tableEditorUnitSuggestion"></button>
+                <input id="tableEditorId"><button id="tableEditorIdSuggestion"></button>
                 <input id="tableEditorComplexScoping" type="checkbox" checked>
                 <input id="tableEditorFinancial" type="checkbox">
                 <input id="tableEditorFrench" type="checkbox">
@@ -866,14 +957,15 @@ function createTableEditorScopingFixture() {
         'tableEditorBoldBtn', 'tableEditorLeftBtn', 'tableEditorCenterBtn', 'tableEditorRightBtn',
         'tableEditorDeleteRowBtn', 'tableEditorDeleteColumnBtn', 'tableEditorStatus', 'tableEditorCanvas',
         'tableEditorNumber', 'tableEditorCaption', 'tableEditorUnit', 'tableEditorNumberSuggestion',
-        'tableEditorCaptionSuggestion', 'tableEditorUnitSuggestion', 'tableEditorComplexScoping',
+        'tableEditorCaptionSuggestion', 'tableEditorUnitSuggestion', 'tableEditorId', 'tableEditorIdSuggestion',
+        'tableEditorComplexScoping',
         'tableEditorFinancial', 'tableEditorFrench'
     ];
     const elements = Object.fromEntries(ids.map((id) => [id, host.querySelector(`#${id}`)]));
     elements.tableEditorSnapGuides = [];
     elements.optionHelpButtons = [];
     const inputHTML = document.createElement('div');
-    inputHTML.innerHTML = '<table id="t1"><thead><tr><th id="parent">Label</th><th id="column-a">A</th><th id="column-b">B</th></tr></thead><tbody><tr><th id="row-a">One</th><td>1</td><td>2</td></tr><tr><th id="row-b">Two</th><td>3</td><td>4</td></tr></tbody></table>';
+    inputHTML.innerHTML = tableMarkup;
     const controller = createTableEditorController({
         elements,
         inputHTML,
@@ -897,7 +989,7 @@ function createTableEditorScopingFixture() {
         isEnglish: () => true
     });
     controller.createListeners();
-    controller.open(0, { previewCleanup: false });
+    controller.open(0, { previewCleanup });
     return { controller, elements, inputHTML, remove: () => { controller.close(); host.remove(); } };
 }
 

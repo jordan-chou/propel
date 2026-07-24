@@ -1,9 +1,15 @@
 const TABLE_UNIT_PATTERN = /^(?:units?|unit[eé]s?)\s*[:\-]|^(?:per\s+cent|percent(?:age)?|pour\s+cent|pourcentage)\b|^(?:[$€£]\s*)?(?:in\s+|en\s+)?(?:thousands?|millions?|billions?|milliers?|milliards?)(?:\s+of|\s+de)?\b|^\([^)]*(?:[$€£%]|dollars?|euros?|per\s+cent|percent(?:age)?|pour\s+cent|pourcentage|millions?|billions?|milliers?|milliards?)[^)]*\)$/i;
-const TABLE_NUMBER_PATTERN = /^(?:table|tableau)\s+(?:no\.?\s*)?(?:\d+|[ivxlcdm]+)(?:[.\-:]|\b)/i;
+const TABLE_NUMBER_PATTERN = /^(?:table|tableau)\s+(?:no\.?\s*)?(?:\d+[a-z]?(?:[.\-]\d+[a-z]?)*|[ivxlcdm]+)(?:[.:]|\b)/i;
 
 /** Returns whether text looks like a unit label placed near a table. */
 export function isTableUnitLabel(text) {
     return TABLE_UNIT_PATTERN.test(String(text || '').trim());
+}
+
+/** Builds a table ID from the first dotted Arabic table number in a label. */
+export function suggestTableId(tableNumber) {
+    const match = String(tableNumber || '').match(/\d+[a-z]?(?:\.\d+[a-z]?)*(?![\w.])/i);
+    return match ? `t${match[0].toLowerCase().replaceAll('.', '-')}` : '';
 }
 
 /**
