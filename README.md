@@ -85,7 +85,7 @@ The table cleanup workflow was built around the Finance Canada Web and Publishin
 Within the table editor, an editor can:
 
 - Review every table without losing its place in the Live document.
-- Use detected table numbers, titles, and units as caption suggestions.
+- Use detected table numbers, titles, and units as caption suggestions, and derive editable table IDs from table numbers.
 - Apply financial alignment or French number formatting.
 - Select and format cells, identify header and highlighted rows, merge cells, and indent hierarchical labels.
 - Add footers or move selected source and note rows into a full-width `tfoot`.

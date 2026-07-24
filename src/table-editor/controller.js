@@ -2,7 +2,7 @@ import { buildCellGrid, getCellPosition, getCellsInRange } from './model.js';
 import { toggleCellsBold, toggleRowsActive } from './formatting.js';
 import { moveRowsToTableFooter } from './footer.js';
 import { deleteSelectedTableColumns } from './columns.js';
-import { classifyTableCaptionLabels } from './caption-suggestions.js';
+import { classifyTableCaptionLabels, suggestTableId } from './caption-suggestions.js';
 import {
     applyTableScopes,
     hasHeaderRelationship,
@@ -69,9 +69,10 @@ export function createTableEditorController(config) {
         tableEditorTfootBtn, tableEditorIndentBtn, tableEditorOutdentBtn,
         tableEditorBoldBtn, tableEditorLeftBtn, tableEditorCenterBtn,
         tableEditorRightBtn, tableEditorDeleteRowBtn, tableEditorDeleteColumnBtn, tableEditorStatus,
-        tableEditorCanvas, tableEditorNumber, tableEditorCaption, tableEditorUnit,
+        tableEditorCanvas, tableEditorNumber, tableEditorCaption, tableEditorUnit, tableEditorId,
         tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
-        tableEditorUnitSuggestion, tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
+        tableEditorUnitSuggestion, tableEditorIdSuggestion,
+        tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
         optionHelpButtons, optionTooltip, toastRegion, liveTableEditPopover, liveTableComponentPopover
     } = elements;
 
@@ -220,7 +221,7 @@ export function createTableEditorController(config) {
             tableEditorRedoBtn.addEventListener('click', redoTableEditorChange);
         }
     
-        [tableEditorNumber, tableEditorCaption, tableEditorUnit].forEach((field) => {
+        [tableEditorNumber, tableEditorCaption, tableEditorUnit, tableEditorId].forEach((field) => {
             if (field) {
                 field.addEventListener('beforeinput', () => dismissPendingTableCaptionSuggestion(field));
                 field.addEventListener('focus', () => {
@@ -235,25 +236,24 @@ export function createTableEditorController(config) {
     
                     event.preventDefault();
                     const type = field.getAttribute('data-caption-suggestion');
-                    const suggestionHost = field === tableEditorNumber
-                        ? tableEditorNumberSuggestion
-                        : field === tableEditorCaption
-                            ? tableEditorCaptionSuggestion
-                            : tableEditorUnitSuggestion;
+                    const suggestionHost = getTableMetadataSuggestionHost(field);
                     acceptTableCaptionSuggestion(type, field, suggestionHost);
                     focusNextTableCaptionField(field);
                 });
                 field.addEventListener('input', () => {
-                    updateTableEditorCaption();
-                    const suggestionHost = field === tableEditorNumber
-                        ? tableEditorNumberSuggestion
-                        : field === tableEditorCaption
-                            ? tableEditorCaptionSuggestion
-                            : tableEditorUnitSuggestion;
+                    if (field === tableEditorId) {
+                        updateTableEditorId();
+                    } else {
+                        updateTableEditorCaption();
+                    }
+                    if (field === tableEditorNumber) {
+                        refreshTableIdSuggestion();
+                    }
+                    const suggestionHost = getTableMetadataSuggestionHost(field);
                     if (suggestionHost) {
                         suggestionHost.hidden = Boolean(field.value.trim());
                     }
-                    scheduleTableEditorHistoryCommit('Edit table caption');
+                    scheduleTableEditorHistoryCommit(field === tableEditorId ? 'Edit table ID' : 'Edit table caption');
                 });
             }
         });
@@ -294,13 +294,21 @@ export function createTableEditorController(config) {
     
     /** Moves focus to next table caption field. */
     function focusNextTableCaptionField(field) {
-        const fields = [tableEditorNumber, tableEditorCaption, tableEditorUnit].filter(Boolean);
+        const fields = [tableEditorNumber, tableEditorCaption, tableEditorUnit, tableEditorId].filter(Boolean);
         const fieldIndex = fields.indexOf(field);
         const nextField = fields[fieldIndex + 1] || tableEditorFinancial;
     
         if (nextField) {
             nextField.focus();
         }
+    }
+
+    /** Returns the accept button paired with a table metadata field. */
+    function getTableMetadataSuggestionHost(field) {
+        if (field === tableEditorNumber) return tableEditorNumberSuggestion;
+        if (field === tableEditorCaption) return tableEditorCaptionSuggestion;
+        if (field === tableEditorUnit) return tableEditorUnitSuggestion;
+        return field === tableEditorId ? tableEditorIdSuggestion : null;
     }
     
     /** Refreshes table editor toast position. */
@@ -535,7 +543,7 @@ export function createTableEditorController(config) {
         syncTableEditorFrenchOption();
         renderTableEditor(index);
     
-        const firstSuggestedField = [tableEditorNumber, tableEditorCaption, tableEditorUnit]
+        const firstSuggestedField = [tableEditorNumber, tableEditorCaption, tableEditorUnit, tableEditorId]
             .find((field) => field && field.hasAttribute('data-caption-suggestion'));
         const initialField = firstSuggestedField || tableEditorCaption;
     
@@ -1206,13 +1214,14 @@ export function createTableEditorController(config) {
         const table = getTableEditorTable();
         const caption = table ? table.querySelector(':scope > caption') : null;
     
-        if (!tableEditorNumber || !tableEditorCaption || !tableEditorUnit) {
+        if (!tableEditorNumber || !tableEditorCaption || !tableEditorUnit || !tableEditorId) {
             return;
         }
     
         tableEditorNumber.value = '';
         tableEditorCaption.value = '';
         tableEditorUnit.value = '';
+        tableEditorId.value = table.id || '';
     
         if (!caption) {
             return;
@@ -1242,6 +1251,7 @@ export function createTableEditorController(config) {
         renderTableCaptionSuggestion('number', tableEditorNumberSuggestion, tableEditorNumber);
         renderTableCaptionSuggestion('title', tableEditorCaptionSuggestion, tableEditorCaption);
         renderTableCaptionSuggestion('unit', tableEditorUnitSuggestion, tableEditorUnit);
+        refreshTableIdSuggestion();
     }
     
     /** Renders table caption suggestion. */
@@ -1271,11 +1281,7 @@ export function createTableEditorController(config) {
     
         field.value = '';
         field.removeAttribute('data-caption-suggestion');
-        const suggestionHost = field === tableEditorNumber
-            ? tableEditorNumberSuggestion
-            : field === tableEditorCaption
-                ? tableEditorCaptionSuggestion
-                : tableEditorUnitSuggestion;
+        const suggestionHost = getTableMetadataSuggestionHost(field);
         if (suggestionHost) {
             suggestionHost.hidden = true;
         }
@@ -1297,12 +1303,47 @@ export function createTableEditorController(config) {
                 section.remove();
             }
             recleanTableEditorTable();
-        } else {
+        } else if (suggestion.sourceType === 'document') {
             tableEditorAcceptedExternalCaptionNodes.add(suggestion.node);
         }
         host.hidden = true;
-        updateTableEditorCaption();
+        if (field === tableEditorId) {
+            updateTableEditorId();
+        } else {
+            updateTableEditorCaption();
+        }
+        if (field === tableEditorNumber) {
+            refreshTableIdSuggestion();
+        }
         commitTableEditorHistory(`Add suggested table ${type}`);
+    }
+
+    /** Refreshes the pending table-ID suggestion from the displayed table number. */
+    function refreshTableIdSuggestion() {
+        const table = getTableEditorTable();
+        if (!table || !tableEditorId || !tableEditorIdSuggestion || !tableEditorNumber) return;
+
+        const hasAcceptedNumber = Boolean(tableEditorNumber.value.trim())
+            && !tableEditorNumber.hasAttribute('data-caption-suggestion');
+        const suggestedId = hasAcceptedNumber ? suggestTableId(tableEditorNumber.value) : '';
+        const currentId = table.id || '';
+        const hasPendingSuggestion = tableEditorId.hasAttribute('data-caption-suggestion');
+        const canReplaceCurrentId = !currentId || /^t\d+$/i.test(currentId);
+
+        if (!suggestedId || suggestedId === currentId || (!hasPendingSuggestion && !canReplaceCurrentId)) {
+            tableEditorIdSuggestion.hidden = true;
+            tableEditorId.removeAttribute('data-caption-suggestion');
+            tableEditorId.value = currentId;
+            delete tableEditorCaptionSuggestions.id;
+            return;
+        }
+
+        tableEditorCaptionSuggestions.id = {
+            sourceType: 'derived',
+            text: suggestedId
+        };
+        tableEditorId.value = '';
+        renderTableCaptionSuggestion('id', tableEditorIdSuggestion, tableEditorId);
     }
     
     /** Finds nearby document content that can populate table caption fields. */
@@ -1418,6 +1459,19 @@ export function createTableEditorController(config) {
             const small = document.createElement('small');
             small.textContent = unitValue;
             caption.appendChild(small);
+        }
+    }
+
+    /** Applies the accepted or custom table ID to the working table. */
+    function updateTableEditorId() {
+        const table = getTableEditorTable();
+        if (!table || !tableEditorId || tableEditorId.hasAttribute('data-caption-suggestion')) return;
+
+        const value = tableEditorId.value.trim();
+        if (value) {
+            table.id = value;
+        } else {
+            table.removeAttribute('id');
         }
     }
     
@@ -1605,8 +1659,9 @@ export function createTableEditorController(config) {
             tableEditorIndentBtn, tableEditorOutdentBtn, tableEditorBoldBtn,
             tableEditorLeftBtn, tableEditorCenterBtn, tableEditorRightBtn,
             tableEditorDeleteRowBtn, tableEditorDeleteColumnBtn,
-            tableEditorNumber, tableEditorCaption, tableEditorUnit,
-            tableEditorNumberSuggestion, tableEditorCaptionSuggestion, tableEditorUnitSuggestion,
+            tableEditorNumber, tableEditorCaption, tableEditorUnit, tableEditorId,
+            tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
+            tableEditorUnitSuggestion, tableEditorIdSuggestion,
             tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
             ...Array.from(optionHelpButtons || []),
             ...Array.from(tableEditorPages?.querySelectorAll('button') || [])
@@ -1831,6 +1886,7 @@ export function createTableEditorController(config) {
         applyTableScopes(table, {
             complex: tableEditorComplexScoping ? tableEditorComplexScoping.checked : true,
             idRoot: inputHTML,
+            addTableId: false,
             renameTag,
             ...options
         });
@@ -2094,7 +2150,11 @@ export function createTableEditorController(config) {
         }
     
         updateTableEditorCaption();
-        applyCurrentTableScopes(getTableEditorTable(), { matchHeaderIdsToTable: true });
+        updateTableEditorId();
+        applyCurrentTableScopes(getTableEditorTable(), {
+            addTableId: true,
+            matchHeaderIdsToTable: true
+        });
     
         const cleanClone = editedContainer.cloneNode(true);
         clearScopeVisualization(cleanClone);

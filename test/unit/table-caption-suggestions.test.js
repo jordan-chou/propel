@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 
 import {
     classifyTableCaptionLabels,
-    isTableUnitLabel
+    isTableUnitLabel,
+    suggestTableId
 } from '../../src/table-editor/caption-suggestions.js';
 
 test('recognizes currency-scaled table unit labels', () => {
@@ -45,10 +46,35 @@ test('uses table number, title, unit order for unfamiliar unit wording', () => {
     });
 });
 
+test('recognizes an alphanumeric dotted table number', () => {
+    assert.deepEqual(classifyTableCaptionLabels([
+        'Table 2b.1',
+        'Operating expenses'
+    ]), {
+        number: 0,
+        title: 1
+    });
+});
+
 test('does not infer positional metadata without a table number', () => {
     assert.deepEqual(classifyTableCaptionLabels([
         'Introductory paragraph',
         'Annual revenue',
         'CAD, seasonally adjusted'
     ]), {});
+});
+
+test('builds table IDs from simple and dotted table numbers', () => {
+    [
+        ['Table 1', 't1'],
+        ['Table 1.2', 't1-2'],
+        ['Table 2b.1', 't2b-1'],
+        ['Table 23.2.1', 't23-2-1'],
+        ['1.4', 't1-4']
+    ].forEach(([label, expected]) => assert.equal(suggestTableId(label), expected, label));
+});
+
+test('does not suggest a table ID without an Arabic table number', () => {
+    assert.equal(suggestTableId('Table IV'), '');
+    assert.equal(suggestTableId('Annual revenue'), '');
 });
