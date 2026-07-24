@@ -363,16 +363,19 @@ test('code highlighting renders only the visible source window', () => {
     const host = document.createElement('div');
     host.style.cssText = 'position: relative; width: 420px; height: 110px;';
     host.innerHTML = `
+        <div class="line-numbers" style="position:absolute;inset:0 auto 0 0;width:40px;overflow:hidden"></div>
         <pre style="position:absolute;inset:0;margin:0;overflow:hidden"><code></code></pre>
-        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:0;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
+        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:0 0 0 40px;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
     document.body.append(host);
     const overlay = host.querySelector('pre');
     const textarea = host.querySelector('textarea');
+    const lineNumbers = host.querySelector('.line-numbers');
     const source = Array.from({ length: 200 }, (_, index) => `<p>Line ${index}</p>`).join('\n');
     textarea.value = source;
     const viewport = createCodeHighlightViewport({
         overlay,
         textarea,
+        lineNumbers,
         highlight: value => value.replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
         overscanLines: 2
     });
@@ -388,6 +391,9 @@ test('code highlighting renders only the visible source window', () => {
     equal(code.textContent, source.slice(start, end));
     equal(code.textContent.includes('Line 0</p>'), false);
     equal(code.textContent.length < source.length / 4, true);
+    equal(Number(lineNumbers.dataset.firstLine) > 1, true);
+    equal(Number(lineNumbers.dataset.lastLine) < 200, true);
+    equal(lineNumbers.firstElementChild.textContent, lineNumbers.dataset.firstLine);
     viewport.destroy();
     host.remove();
 });
@@ -396,17 +402,21 @@ test('virtualized code highlighting stays aligned after wrapped lines', () => {
     const host = document.createElement('div');
     host.style.cssText = 'position: relative; width: 260px; height: 88px;';
     host.innerHTML = `
+        <style>.line-numbers span { position: absolute; }</style>
+        <div class="line-numbers" style="position:absolute;inset:0 auto 0 0;width:40px;overflow:hidden"></div>
         <pre style="position:absolute;inset:0;margin:0;padding:0;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"><code style="position:absolute;display:block;white-space:inherit;overflow-wrap:inherit;font:inherit"></code></pre>
-        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:8px;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
+        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:8px 8px 8px 48px;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
     document.body.append(host);
     const overlay = host.querySelector('pre');
     const textarea = host.querySelector('textarea');
+    const lineNumbers = host.querySelector('.line-numbers');
     const longLine = 'A'.repeat(120);
     const source = Array.from({ length: 80 }, (_, index) => index % 5 === 0 ? longLine : `Line ${index}`).join('\n');
     textarea.value = source;
     const viewport = createCodeHighlightViewport({
         overlay,
         textarea,
+        lineNumbers,
         highlight: value => value,
         overscanLines: 1
     });
@@ -417,7 +427,7 @@ test('virtualized code highlighting stays aligned after wrapped lines', () => {
     const code = overlay.querySelector('code');
     const start = Number(code.dataset.highlightStart);
     const reference = document.createElement('div');
-    reference.style.cssText = `position:fixed;visibility:hidden;left:-10000px;top:0;box-sizing:border-box;width:${textarea.clientWidth}px;height:auto;margin:0;padding:8px;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace`;
+    reference.style.cssText = `position:fixed;visibility:hidden;left:-10000px;top:0;box-sizing:border-box;width:${textarea.clientWidth}px;height:auto;margin:0;padding:8px 8px 8px 48px;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace`;
     const referenceText = document.createTextNode(`${source}\u200b`);
     reference.append(referenceText);
     document.body.append(reference);
@@ -426,8 +436,11 @@ test('virtualized code highlighting stays aligned after wrapped lines', () => {
     range.setEnd(referenceText, start + 1);
     const expectedTop = range.getBoundingClientRect().top - reference.getBoundingClientRect().top - textarea.scrollTop;
     const actualTop = code.getBoundingClientRect().top - overlay.getBoundingClientRect().top;
+    const firstNumberTop = lineNumbers.firstElementChild.getBoundingClientRect().top
+        - lineNumbers.getBoundingClientRect().top;
 
     equal(Math.abs(actualTop - expectedTop) < 1, true);
+    equal(Math.abs(firstNumberTop - expectedTop) < 1, true);
     equal(code.textContent.length < source.length / 3, true);
     reference.remove();
     viewport.destroy();

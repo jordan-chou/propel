@@ -20,8 +20,8 @@ const MIRRORED_PROPERTIES = [
     'wordBreak'
 ];
 
-/** Creates a syntax-highlight overlay that renders only the visible source lines. */
-export function createCodeHighlightViewport({ overlay, textarea, highlight, overscanLines = 6 }) {
+/** Creates syntax-highlight and line-number layers for the visible source lines. */
+export function createCodeHighlightViewport({ overlay, textarea, lineNumbers = null, highlight, overscanLines = 6 }) {
     if (!overlay || !textarea || typeof highlight !== 'function') {
         return createEmptyViewport();
     }
@@ -104,6 +104,7 @@ export function createCodeHighlightViewport({ overlay, textarea, highlight, over
     function render() {
         if (!source || textarea.clientHeight === 0) {
             code.textContent = '';
+            lineNumbers?.replaceChildren();
             return;
         }
 
@@ -124,6 +125,24 @@ export function createCodeHighlightViewport({ overlay, textarea, highlight, over
         code.style.width = `${Math.max(0, textarea.clientWidth - paddingLeft - paddingRight)}px`;
         code.dataset.highlightStart = String(start);
         code.dataset.highlightEnd = String(end);
+        renderLineNumbers(firstLine, lastLine);
+    }
+
+    function renderLineNumbers(firstLine, lastLine) {
+        if (!lineNumbers) {
+            return;
+        }
+
+        const fragment = textarea.ownerDocument.createDocumentFragment();
+        for (let lineIndex = firstLine; lineIndex <= lastLine; lineIndex += 1) {
+            const number = textarea.ownerDocument.createElement('span');
+            number.textContent = String(lineIndex + 1);
+            number.style.top = `${getLineTop(lineIndex) - textarea.scrollTop}px`;
+            fragment.append(number);
+        }
+        lineNumbers.replaceChildren(fragment);
+        lineNumbers.dataset.firstLine = String(firstLine + 1);
+        lineNumbers.dataset.lastLine = String(lastLine + 1);
     }
 
     function findLineAtY(targetY) {
