@@ -1,5 +1,53 @@
 # Changelog
 
+## July 15–24, 2026
+
+This period includes 41 commits focused on Code-view tools, safer local editing and recovery, portable releases, table accessibility, and feedback.
+
+### Code editing and workspace
+
+- Added Code-view line navigation and find-and-replace, with keyboard controls, result navigation, replacement actions, and browser coverage.
+- Virtualized Code-view syntax highlighting so only the visible region is rendered, improving performance on large documents.
+- Added reciprocal caret indicators between Live and Code views to make the corresponding editing position easier to follow.
+- Added a blank-document onboarding option.
+- Fixed heading-level changes so the selected block receives the correct replacement tag.
+
+### Local editing and document recovery
+
+- Added browser-based document recovery backed by IndexedDB, including restore, ignore, and discard choices after an unexpected tab or browser closure.
+- Normalized browser-generated markup from Live edits while preserving valid typing contexts and caret behavior.
+- Removed empty paragraphs created during Live editing and empty anchors during cleanup without interrupting continued editing.
+
+### Table cleanup and accessibility
+
+- Added editable table ID suggestions derived from detected table numbers.
+- Updated generated scoped-header IDs to incorporate the table ID and keep complex-table relationships easier to identify.
+- Improved the locked table-scoping workflow and its control states while assigning header relationships.
+- Added table-column deletion with compatible updates to selections and scoped headers.
+- Preserved Live-view scroll position while opening and closing table cleanup, retained cleaned-table formatting when reopening, constrained wide previews, and refined financial-table footer markup.
+
+### Components
+
+- Changed the primary component workflow to insert previewed components at the current Live or Code caret, with editable placeholder content.
+- Fixed the starter chart component template and updated the component-library documentation and tests for insertion behavior.
+
+### Portable offline release
+
+- Added a verified portable build that bundles the modular application into files that can run locally without an application server.
+- Embedded data and icons needed at runtime, removed remote stylesheet dependencies from the portable output, and documented how to build and distribute release ZIPs.
+- Kept generated `dist/portable/` artifacts out of version control so releases are regenerated from source.
+
+### Feedback and support
+
+- Added a structured Feedback dialog for reporting issues or suggesting improvements through GitHub or email.
+- Prefilled reports with a privacy-safe browser and Propel environment summary, streamlined the form and GitHub templates, and corrected issue-form validation.
+- Updated help guidance, feedback controls, and support contact information.
+
+### Documentation and testing
+
+- Expanded the README to describe the Finance Canada publishing workflow, portable downloads, document recovery, component insertion, and feedback.
+- Updated the DOCX regression fixture and added unit and browser coverage for the new Code, recovery, feedback, Live-editing, and table behaviors.
+
 ## July 7–14, 2026
 
 This period includes 108 commits focused on editing workflows, complex tables, reusable components, review tooling, performance, and application architecture.
