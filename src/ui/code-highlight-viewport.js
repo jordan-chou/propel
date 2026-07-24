@@ -35,8 +35,10 @@ export function createCodeHighlightViewport({ overlay, textarea, lineNumbers = n
     let frame = null;
     let lastWidth = -1;
     let lastHeight = -1;
+    let searchRange = null;
 
     mirror.setAttribute('aria-hidden', 'true');
+    mirror.setAttribute('inert', '');
     mirror.style.position = 'fixed';
     mirror.style.visibility = 'hidden';
     mirror.style.pointerEvents = 'none';
@@ -83,6 +85,13 @@ export function createCodeHighlightViewport({ overlay, textarea, lineNumbers = n
         });
     }
 
+    function setSearchRange(range) {
+        searchRange = range && Number.isFinite(range.start) && Number.isFinite(range.end)
+            ? { start: range.start, end: range.end }
+            : null;
+        render();
+    }
+
     function refreshLayout(force = false) {
         const width = textarea.clientWidth;
         const height = textarea.clientHeight;
@@ -119,7 +128,7 @@ export function createCodeHighlightViewport({ overlay, textarea, lineNumbers = n
         const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
         const paddingRight = Number.parseFloat(style.paddingRight) || 0;
 
-        code.innerHTML = highlight(source.slice(start, end));
+        code.innerHTML = highlightVisibleSource(start, end);
         code.style.top = `${getLineTop(firstLine) - textarea.scrollTop}px`;
         code.style.left = `${paddingLeft - textarea.scrollLeft}px`;
         code.style.width = `${Math.max(0, textarea.clientWidth - paddingLeft - paddingRight)}px`;
@@ -143,6 +152,21 @@ export function createCodeHighlightViewport({ overlay, textarea, lineNumbers = n
         lineNumbers.replaceChildren(fragment);
         lineNumbers.dataset.firstLine = String(firstLine + 1);
         lineNumbers.dataset.lastLine = String(lastLine + 1);
+    }
+
+    function highlightVisibleSource(start, end) {
+        if (!searchRange || searchRange.end < start || searchRange.start > end) {
+            return highlight(source.slice(start, end));
+        }
+
+        const matchStart = Math.max(start, Math.min(searchRange.start, end));
+        const matchEnd = Math.max(matchStart, Math.min(searchRange.end, end));
+        const before = highlight(source.slice(start, matchStart));
+        const match = matchStart === matchEnd
+            ? '&#8203;'
+            : highlight(source.slice(matchStart, matchEnd));
+        const after = highlight(source.slice(matchEnd, end));
+        return `${before}<mark class="code-search-match">${match}</mark>${after}`;
     }
 
     function findLineAtY(targetY) {
@@ -186,7 +210,7 @@ export function createCodeHighlightViewport({ overlay, textarea, lineNumbers = n
     }
 
     refreshLayout(true);
-    return { update, schedule, render, destroy };
+    return { update, schedule, render, setSearchRange, destroy };
 }
 
 export function getLineStarts(source) {
@@ -206,5 +230,5 @@ function getLineHeight(element) {
 
 function createEmptyViewport() {
     const noOp = () => {};
-    return { update: noOp, schedule: noOp, render: noOp, destroy: noOp };
+    return { update: noOp, schedule: noOp, render: noOp, setSearchRange: noOp, destroy: noOp };
 }

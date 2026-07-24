@@ -300,9 +300,28 @@
                         <div id="liveEditor" class="editor-view active split-live-pane" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Upload a Word document, drop one here, or paste HTML in Code view."></div>
                         <div class="pane-splitter" id="paneSplitter" role="separator" aria-orientation="vertical" aria-label="Resize Live and Code panes"></div>
                         <div class="code-editor editor-view active split-code-pane" id="codeEditor">
-                            <div id="codeLineNumbers" aria-hidden="true"></div>
-                            <pre id="codeHighlight" aria-hidden="true"><code></code></pre>
-                            <textarea name="outputTextArea" id="outputText" title="Paste the HTML markup" placeholder="Upload a Word document or paste HTML code here" spellcheck="false" aria-keyshortcuts="Control+G Meta+G"></textarea>
+                            <div class="code-find-panel" id="codeFindPanel" role="search" aria-label="Find in Code view" hidden>
+                                <div class="code-find-row">
+                                    <button type="button" class="code-find-icon-btn code-find-expand-btn" id="codeFindReplaceToggle" aria-label="Show replace" aria-expanded="false" aria-controls="codeReplaceRow">›</button>
+                                    <label class="wb-inv" for="codeFindInput">Find</label>
+                                    <input type="text" id="codeFindInput" class="code-find-input" placeholder="Find" autocomplete="off" spellcheck="false">
+                                    <button type="button" class="code-find-icon-btn code-find-regex-btn" id="codeFindRegexToggle" aria-label="Use regular expression" aria-pressed="false" title="Use regular expression">.*</button>
+                                    <span class="code-find-status" id="codeFindStatus" aria-live="polite"></span>
+                                    <button type="button" class="code-find-icon-btn" id="codeFindPreviousBtn" aria-label="Previous match" title="Previous match (Shift+Enter)">↑</button>
+                                    <button type="button" class="code-find-icon-btn" id="codeFindNextBtn" aria-label="Next match" title="Next match (Enter)">↓</button>
+                                    <button type="button" class="code-find-icon-btn code-find-close-btn" id="codeFindCloseBtn" aria-label="Close find" title="Close (Escape)">×</button>
+                                </div>
+                                <div class="code-find-row code-replace-row" id="codeReplaceRow" hidden>
+                                    <span class="code-find-row-spacer" aria-hidden="true"></span>
+                                    <label class="wb-inv" for="codeReplaceInput">Replace</label>
+                                    <input type="text" id="codeReplaceInput" class="code-find-input" placeholder="Replace" autocomplete="off" spellcheck="false">
+                                    <button type="button" class="code-find-action-btn" id="codeReplaceBtn">Replace</button>
+                                    <button type="button" class="code-find-action-btn" id="codeReplaceAllBtn">Replace all</button>
+                                </div>
+                            </div>
+                            <div id="codeLineNumbers" aria-hidden="true" inert></div>
+                            <pre id="codeHighlight" aria-hidden="true" inert><code></code></pre>
+                            <textarea name="outputTextArea" id="outputText" title="Paste the HTML markup" placeholder="Upload a Word document or paste HTML code here" spellcheck="false" aria-keyshortcuts="Control+F Meta+F Control+Shift+F Meta+Shift+F Control+G Meta+G"></textarea>
                             <span id="codeReciprocalCaret" class="code-reciprocal-caret" aria-hidden="true"></span>
                         </div>
                     </div>
@@ -420,6 +439,8 @@
             <section>
                 <h3>Code view</h3>
                 <dl class="shortcut-list">
+                    <div><dt><span class="shortcut-command">Find</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>F</kbd></dd></div>
+                    <div><dt><span class="shortcut-command">Find and replace</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>Shift</kbd><kbd>F</kbd></dd></div>
                     <div><dt><span class="shortcut-command">Go to line</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>G</kbd></dd></div>
                     <div><dt><span class="shortcut-command">Select parent element</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>[</kbd></dd></div>
                     <div><dt><span class="shortcut-command">Select child element</span></dt><dd><kbd data-shortcut-key="primary">Ctrl</kbd><kbd>]</kbd></dd></div>

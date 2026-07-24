@@ -52,6 +52,7 @@ import { applyBlockFormat } from './ui/block-format.js';
 import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
 import { goToCodeLine, isGoToLineShortcut } from './ui/code-navigation.js';
+import { createCodeFindController } from './ui/code-find.js';
 import { createFeedbackComposer } from './support/feedback.js';
 import { buildElementSourceMap, getElementPath, getElementByPath } from './app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from './app/reciprocal-caret.js';
@@ -168,6 +169,18 @@ const paneSnapGuides = document.querySelectorAll('.pane-snap-guide');
 const codeEditor = document.getElementById('codeEditor');
 const codeHighlight = document.getElementById('codeHighlight');
 const codeLineNumbers = document.getElementById('codeLineNumbers');
+const codeFindPanel = document.getElementById('codeFindPanel');
+const codeFindInput = document.getElementById('codeFindInput');
+const codeReplaceInput = document.getElementById('codeReplaceInput');
+const codeFindRegexToggle = document.getElementById('codeFindRegexToggle');
+const codeFindReplaceToggle = document.getElementById('codeFindReplaceToggle');
+const codeReplaceRow = document.getElementById('codeReplaceRow');
+const codeFindPreviousBtn = document.getElementById('codeFindPreviousBtn');
+const codeFindNextBtn = document.getElementById('codeFindNextBtn');
+const codeReplaceBtn = document.getElementById('codeReplaceBtn');
+const codeReplaceAllBtn = document.getElementById('codeReplaceAllBtn');
+const codeFindCloseBtn = document.getElementById('codeFindCloseBtn');
+const codeFindStatus = document.getElementById('codeFindStatus');
 const codeHighlightViewport = createCodeHighlightViewport({
     overlay: codeHighlight,
     textarea: outputText,
@@ -362,6 +375,32 @@ const drawers = createDrawerControllers({
         tableEditor.updateToastPosition();
     }
 });
+const codeFind = createCodeFindController({
+    textarea: outputText,
+    panel: codeFindPanel,
+    searchInput: codeFindInput,
+    replaceInput: codeReplaceInput,
+    regexToggle: codeFindRegexToggle,
+    replaceToggle: codeFindReplaceToggle,
+    replaceRow: codeReplaceRow,
+    previousButton: codeFindPreviousBtn,
+    nextButton: codeFindNextBtn,
+    replaceButton: codeReplaceBtn,
+    replaceAllButton: codeReplaceAllBtn,
+    closeButton: codeFindCloseBtn,
+    status: codeFindStatus,
+    onReveal: scrollCodeToIndex,
+    onMatch: (match) => codeHighlightViewport.setSearchRange(match),
+    onBeforeReplace: () => {
+        deferredTypingRefresh.flush();
+        commitDocumentHistory('typing');
+    },
+    onReplace: (actionLabel) => {
+        syncCodeEditorAfterProgrammaticEdit();
+        updateElementSyncLineMap();
+        commitDocumentHistory('command', actionLabel);
+    }
+});
 
 /* Main */
 const feedbackEnvironment = {
@@ -381,6 +420,7 @@ createFeedbackComposer({
 }, feedbackEnvironment);
 createListeners();
 createModernDashboardListeners();
+codeFind.bind();
 drawers.bind();
 onboarding.bind();
 documentRecoveryPrompt.bind();
@@ -954,6 +994,7 @@ function createListeners() {
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
         codeHighlightViewport.update(outputText.value);
+        codeFind.refresh();
         scheduleTypingRefresh('code');
         hideReciprocalCaret(liveReciprocalCaret);
     });
@@ -1719,6 +1760,11 @@ function getLiveEditorShortcut(event) {
 
 /** Handles code editor keydown. */
 function handleCodeEditorKeydown(event) {
+    if (codeFind.handleShortcut(event)) {
+        activeEditorView = 'code';
+        return;
+    }
+
     if (handleDocumentHistoryShortcut(event)) {
         return;
     }
@@ -2956,6 +3002,7 @@ function updateCodeView() {
     updateFileDropZoneState(hasInput());
     updateElementSyncLineMap();
     updateCodeHighlight();
+    codeFind.refresh();
 }
 
 /** Refreshes live view. */
