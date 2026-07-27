@@ -4,9 +4,9 @@ Propel is a browser-based Word-to-HTML conversion and editing tool. It converts 
 
 The cleanup process was designed for the Finance Canada Web and Publishing Team and reflects its work preparing accessible, bilingual content for Canada.ca. Propel can also support other publishing teams with similar Word-to-web workflows.
 
-The application runs locally in the browser without an application server or
-build step for normal use. A production build is only needed to create the
-portable release for offline use.
+The application runs entirely in the browser. It can be used from GitHub Pages,
+downloaded as a portable offline release, or served locally from the source
+repository. A production build is only needed to create the portable release.
 
 ## What Propel does
 
@@ -23,32 +23,30 @@ portable release for offline use.
 - Supports document and table-editor undo/redo.
 - Offers structured problem reports and improvement requests through GitHub, with email options for detailed feedback or a short note.
 
-## Running locally
+## Using Propel
 
-The modular source application must be served over HTTP because browsers apply
-origin checks to JavaScript modules loaded from `file://` URLs. From the
-repository root, Python's built-in server is a simple option:
+For the simplest option, visit [Propel on GitHub Pages](https://jordan-chou.github.io/propel/).
+No installation is required; upload a Word document or start with a blank
+document directly in the browser.
 
-```sh
-python3 -m http.server 8000
-```
+> **Privacy:** Propel does not send or collect your documents or editing data.
+> Files are processed locally, and any recovery copies or preferences are
+> stored only in your browser.
 
-Then open `http://localhost:8000/` and upload a Word document. No `npm install` is required for the current application or unit tests.
+### Portable offline release
 
-## Portable offline release
-
-Propel can also be packaged for offline use on secured networks. The portable
-release uses classic local scripts, embeds data that would otherwise require a
-runtime request, inlines its SVG icon sprite, and removes remote stylesheet
-resources. Every GitHub release will include a ZIP containing
+For offline use or secured networks, download the portable ZIP from the
+[latest GitHub release](https://github.com/jordan-chou/propel/releases/latest).
+The portable release uses classic local scripts, embeds data that would
+otherwise require a runtime request, inlines its SVG icon sprite, and removes
+remote stylesheet resources. Every GitHub release will include a ZIP containing
 this bundled portable version.
 
-To use the portable release, download its ZIP from the corresponding GitHub
-release, extract the entire archive, and double-click `index.html` in the
-extracted folder. Keep the extracted files together; no installation or local
-server is required.
+Extract the entire archive, then double-click `index.html` in the extracted
+folder. Keep the extracted files together; no installation or local server is
+required.
 
-### Creating a release bundle
+#### Creating a release bundle
 
 Install the development dependency and generate the release:
 
@@ -67,6 +65,20 @@ policy. The portable build avoids application-level CORS requests, but it cannot
 override such a browser policy. Preferences stored by a `file://` page can also
 vary by browser and by the file's location, so component libraries should be
 exported when they need to move with the release.
+
+### Localhost server
+
+Alternatively, run Propel from the source repository using a local HTTP server.
+The modular source application must be served over HTTP because browsers apply
+origin checks to JavaScript modules loaded from `file://` URLs. From the
+repository root, Python's built-in server is a simple option:
+
+```sh
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000/` and upload a Word document. No `npm install`
+is required for the current application or unit tests.
 
 ## Component libraries
 
