@@ -75,6 +75,30 @@ test('recovery controller removes a stale recovery record for an empty document'
     assert.deepEqual(deleted, ['draft-empty']);
 });
 
+test('disabled recovery does not schedule writes and can clear all saved copies', async () => {
+    let saved = 0;
+    let cleared = 0;
+    const controller = createDocumentRecoveryController({
+        store: {
+            save: async () => { saved += 1; },
+            delete: async () => {},
+            clear: async () => { cleared += 1; },
+            get: async () => null,
+            getLatest: async () => null
+        },
+        draftId: 'draft-disabled',
+        getSnapshot: makeSnapshot
+    });
+
+    controller.setEnabled(false);
+    controller.schedule();
+    await controller.flush();
+    assert.equal(saved, 0);
+    assert.equal(controller.isEnabled(), false);
+    assert.equal(await controller.clearAll(), true);
+    assert.equal(cleared, 1);
+});
+
 test('recovery controller prefers the current tab draft before the latest abandoned draft', async () => {
     const current = {
         ...makeSnapshot(),

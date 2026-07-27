@@ -1,3 +1,5 @@
+import { replaceWithSanitizedHTML, sanitizeDocumentTree } from './security.js';
+
 /**
  * Owns Propel's canonical document and provides a single mutation boundary.
  * Views may render the document, but must not become an alternative source of truth.
@@ -27,7 +29,8 @@ export class DocumentStore {
     }
 
     replaceHTML(html, metadata = {}) {
-        this.#root.innerHTML = html;
+        replaceWithSanitizedHTML(this.#root, html);
+        sanitizeDocumentTree(this.#root, { includeRoot: true });
         this.#publish({ type: 'replace', ...metadata });
         return this.#root;
     }
@@ -37,6 +40,7 @@ export class DocumentStore {
             throw new TypeError('Document mutation must be a function.');
         }
         const result = mutation(this.#root);
+        sanitizeDocumentTree(this.#root, { includeRoot: true });
         this.#publish({ type: 'mutation', label, ...metadata });
         return result;
     }

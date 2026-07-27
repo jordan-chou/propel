@@ -4,13 +4,16 @@ Propel is a browser-based Word-to-HTML conversion and editing tool. It converts 
 
 The cleanup process was designed for the Finance Canada Web and Publishing Team and reflects its work preparing accessible, bilingual content for Canada.ca. Propel can also support other publishing teams with similar Word-to-web workflows.
 
-The application runs locally in the browser and currently has no production build step or application server.
+The application runs locally in the browser without an application server or
+build step for normal use. A production build is only needed to create the
+portable release for offline use.
 
 ## What Propel does
 
 - Imports Word documents and converts them to HTML, or starts with a blank document for direct editing.
 - Detects English or French metadata from DOCX files when available.
 - Provides synchronized Live and Code editing views with reciprocal caret guidance.
+- Adds line navigation and find-and-replace tools to Code view.
 - Adds stable IDs to headings, tables, and figures.
 - Generates publishing markup for footnotes.
 - Corrects language-specific non-breaking spaces.
@@ -101,18 +104,34 @@ Propel periodically saves the current canonical HTML to an IndexedDB database na
 to Propel offers to restore, ignore, or discard the most recent compatible local
 copy. Live or Code input is synchronized before a page-hide save is requested.
 Recovery copies remain in the current browser and origin, are not transmitted by
-Propel, and are removed when discarded or when the document is empty.
+Propel, and are removed when discarded or when the document is empty. Propel
+retains only the latest recovery copy. Recovery can be disabled, or the saved
+copy deleted immediately, from the Information panel.
 
 Propel also stores the following JSON-encoded values in `localStorage`. They remain on the current browser and origin between sessions; they are not transmitted by Propel.
 
 | Key | Purpose |
 | --- | --- |
 | `propel.componentLibrary` | The active imported or locally edited component library, including created and deleted components. Invalid stored data falls back to the starter library. |
+| `propel.documentRecoveryEnabled` | Whether Propel may retain one local document-recovery copy in IndexedDB. Disabling it deletes the saved copy. |
 | `propel.livePaneWidthRatio` | The selected width ratio between the synchronized Live and Code editor panes. |
 | `propel.tableEditorSize` | The table editor’s saved width or height for its current responsive layout. |
 
 Clearing the site’s browser data removes these values and document recovery copies.
 Propel currently does not use cookies.
+
+## Security and network access
+
+Word conversion, editing, review, and recovery run locally in the browser.
+Propel has no document API, analytics, telemetry, or automatic upload. Its
+browser security policy blocks connection APIs, remote runtime resources,
+embedded documents, form submission, inline script, and referrer disclosure.
+Document HTML is sanitized before it can be rendered or saved for recovery.
+
+Following a document link or choosing a Feedback destination is an explicit
+external action. Publishing URLs remain in copied HTML but cannot load as
+remote resources inside Propel. See [Security and privacy](docs/security.md) for
+the threat model, storage controls, portable-build guarantees, and limitations.
 
 The onboarding card uses `sessionStorage` under `propel.onboardingDismissed`.
 Starting with a blank file hides the card for the current browser tab session,

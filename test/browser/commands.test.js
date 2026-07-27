@@ -36,6 +36,12 @@ import {
     normalizeLiveEditClone
 } from '../../src/document/live-edit-normalization.js';
 import {
+    isUnsafeDocumentUrl,
+    replaceWithSanitizedHTML,
+    sanitizeDocumentTree
+} from '../../src/document/security.js';
+import { DocumentStore } from '../../src/document/document-store.js';
+import {
     createDocumentRecoveryStore,
     DOCUMENT_RECOVERY_SCHEMA_VERSION
 } from '../../src/document/recovery-store.js';
@@ -228,6 +234,67 @@ test('standard cleanup removes all empty anchors while preserving element conten
     equal(host.querySelector('a[name="legacy-destination"]') === null, true);
     equal(host.querySelector('a[href="/chart"] img') !== null, true);
     equal(host.querySelector('a[href="/icon"] .icon') !== null, true);
+});
+
+test('document sanitization removes executable markup without discarding publishing content', () => {
+    const isolatedDocument = document.implementation.createHTMLDocument('Sanitizer test');
+    const host = isolatedDocument.createElement('div');
+    const report = replaceWithSanitizedHTML(host, [
+        '<h2 onclick="alert(1)">Heading</h2>',
+        '<script>document.body.textContent = "unsafe"</script>',
+        '<iframe src="https://example.invalid/embed"></iframe>',
+        '<img src="https://example.invalid/chart.png" onerror="alert(2)" alt="Chart">',
+        '<a href="java&#x0a;script:alert(3)">Unsafe link</a>',
+        '<a href="https://example.com" target="_blank">External link</a>',
+        '<form action="https://example.invalid/collect"><input name="detail"></form>'
+    ].join(''));
+
+    equal(host.querySelector('script, iframe'), null);
+    equal(host.querySelector('h2').hasAttribute('onclick'), false);
+    equal(host.querySelector('img').getAttribute('src'), 'https://example.invalid/chart.png');
+    equal(host.querySelector('img').hasAttribute('onerror'), false);
+    equal(host.querySelector('a').hasAttribute('href'), false);
+    equal(host.querySelector('a[target="_blank"]').getAttribute('rel'), 'noopener noreferrer');
+    equal(host.querySelector('form').hasAttribute('action'), false);
+    equal(report.removedElements, 2);
+    equal(report.removedAttributes, 4);
+    equal(report.hardenedLinks, 1);
+});
+
+test('document sanitization covers nested SVG, root attributes, and obfuscated URL schemes', () => {
+    const host = document.createElement('div');
+    host.setAttribute('onfocus', 'alert(1)');
+    host.setAttribute('style', 'background: url(javascript:alert(2))');
+    host.innerHTML = '<svg><script>alert(3)</script><a href="vbscript:alert(4)">Unsafe</a></svg>';
+
+    const report = sanitizeDocumentTree(host, { includeRoot: true });
+
+    equal(host.hasAttribute('onfocus'), false);
+    equal(host.hasAttribute('style'), false);
+    equal(host.querySelector('script'), null);
+    equal(host.querySelector('a').hasAttribute('href'), false);
+    equal(report.removedElements, 1);
+    equal(report.removedAttributes, 3);
+    equal(isUnsafeDocumentUrl(' java\nscript:alert(1) '), true);
+    equal(isUnsafeDocumentUrl('file:///Users/example/private.png'), true);
+    equal(isUnsafeDocumentUrl('https://example.com'), false);
+});
+
+test('DocumentStore sanitizes replacements and command mutations before publishing', () => {
+    const host = document.createElement('div');
+    const changes = [];
+    const store = new DocumentStore(host);
+    store.subscribe(change => changes.push(change.type));
+
+    store.replaceHTML('<p onmouseover="alert(1)">Safe text</p><object data="https://example.invalid"></object>');
+    equal(host.innerHTML, '<p>Safe text</p>');
+
+    store.mutate('Unsafe mutation', root => {
+        root.firstElementChild.setAttribute('onclick', 'alert(2)');
+        root.insertAdjacentHTML('beforeend', '<script>alert(3)</script>');
+    });
+    equal(host.innerHTML, '<p>Safe text</p>');
+    equal(changes.join(','), 'replace,mutation');
 });
 
 test('Live edit normalization removes browser-created presentation spans', () => {
@@ -670,6 +737,7 @@ test('document recovery store round trips a versioned IndexedDB record', async (
     const store = createDocumentRecoveryStore(window.indexedDB, {
         databaseName: 'propel-browser-tests-v3'
     });
+    await store.clear();
     const record = {
         schemaVersion: DOCUMENT_RECOVERY_SCHEMA_VERSION,
         draftId: 'browser-recovery-test',
@@ -680,11 +748,13 @@ test('document recovery store round trips a versioned IndexedDB record', async (
         revision: 2
     };
 
+    await store.save({ ...record, draftId: 'older-copy', savedAt: record.savedAt - 1 });
     await store.save(record);
+    equal(await store.get('older-copy'), null);
     const restored = await store.get(record.draftId);
     equal(restored.html, record.html);
     equal((await store.getLatest()).draftId, record.draftId);
-    await store.delete(record.draftId);
+    await store.clear();
     equal(await store.get(record.draftId), null);
 });
 

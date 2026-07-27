@@ -28,8 +28,10 @@ export function createDocumentRecoveryController({
     let dirty = false;
     let timer = null;
     let writeQueue = Promise.resolve();
+    let enabled = true;
 
     function schedule() {
+        if (!enabled) return;
         dirty = true;
         if (timer !== null) clearTimer(timer);
         timer = setTimer(() => {
@@ -42,6 +44,10 @@ export function createDocumentRecoveryController({
         if (timer !== null) {
             clearTimer(timer);
             timer = null;
+        }
+        if (!enabled) {
+            dirty = false;
+            return writeQueue;
         }
         if (!dirty) return writeQueue;
 
@@ -77,6 +83,7 @@ export function createDocumentRecoveryController({
     }
 
     async function findCandidate() {
+        if (!enabled) return null;
         try {
             const current = await store.get(activeDraftId);
             return current || await store.getLatest();
@@ -96,6 +103,32 @@ export function createDocumentRecoveryController({
         }
     }
 
+    async function clearAll() {
+        dirty = false;
+        if (timer !== null) {
+            clearTimer(timer);
+            timer = null;
+        }
+        try {
+            await store.clear();
+            return true;
+        } catch (error) {
+            onError(error);
+            return false;
+        }
+    }
+
+    function setEnabled(nextEnabled) {
+        enabled = Boolean(nextEnabled);
+        if (!enabled) {
+            dirty = false;
+            if (timer !== null) {
+                clearTimer(timer);
+                timer = null;
+            }
+        }
+    }
+
     function setDraftId(nextDraftId) {
         if (!nextDraftId) {
             throw new TypeError('Recovery draft ID is required.');
@@ -108,7 +141,10 @@ export function createDocumentRecoveryController({
         flush,
         findCandidate,
         discard,
+        clearAll,
+        setEnabled,
         setDraftId,
-        getDraftId: () => activeDraftId
+        getDraftId: () => activeDraftId,
+        isEnabled: () => enabled
     };
 }

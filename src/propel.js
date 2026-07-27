@@ -15,6 +15,7 @@ import { collapseAll, setCodeTheme, countTags, qaHelperTagsDefault, setUpPresetB
 import { engStrings, frStrings } from './strings.js';
 import * as Utils from './util.js';
 import { DocumentStore } from './document/document-store.js';
+import { replaceWithSanitizedHTML, sanitizeDocumentTree } from './document/security.js';
 import { runStandardCleanup } from './document/cleanup.js';
 import {
     captureLiveEditBaseline,
@@ -158,6 +159,9 @@ const documentRecoveryMessage = document.getElementById('documentRecoveryMessage
 const documentRecoveryRestoreBtn = document.getElementById('documentRecoveryRestoreBtn');
 const documentRecoveryDismissBtn = document.getElementById('documentRecoveryDismissBtn');
 const documentRecoveryDiscardBtn = document.getElementById('documentRecoveryDiscardBtn');
+const documentRecoveryEnabledCheckbox = document.getElementById('documentRecoveryEnabled');
+const clearDocumentRecoveryBtn = document.getElementById('clearDocumentRecoveryBtn');
+const documentRecoveryPrivacyStatus = document.getElementById('documentRecoveryPrivacyStatus');
 const documentLoader = document.getElementById('loader');
 const liveEditorHost = document.getElementById('liveEditor');
 const liveEditor = createWetLiveEditor(liveEditorHost);
@@ -292,6 +296,8 @@ const onboarding = createOnboardingController({
     preferences: sessionPreferences
 });
 const componentLibraryStorageKey = 'componentLibrary';
+const documentRecoveryEnabledStorageKey = 'documentRecoveryEnabled';
+let documentRecoveryEnabled = uiPreferences.get(documentRecoveryEnabledStorageKey, true) !== false;
 let activeComponentLibrary = loadComponentLibrary();
 let activeComponentId = activeComponentLibrary.components[0]?.id || null;
 let pendingComponentAction = null;
@@ -317,6 +323,10 @@ const documentRecovery = createDocumentRecoveryController({
     getSnapshot: getDocumentRecoverySnapshot,
     onError: handleDocumentRecoveryError
 });
+documentRecovery.setEnabled(documentRecoveryEnabled);
+if (documentRecoveryEnabledCheckbox) {
+    documentRecoveryEnabledCheckbox.checked = documentRecoveryEnabled;
+}
 const documentRecoveryPrompt = createRecoveryPrompt({
     container: documentRecoveryPromptElement,
     message: documentRecoveryMessage,
@@ -327,7 +337,9 @@ const documentRecoveryPrompt = createRecoveryPrompt({
     onDiscard: discardRecoveredDocument,
     onDismiss: () => onboarding.update(false)
 });
-documentStore.subscribe(() => documentRecovery.schedule());
+documentStore.subscribe(() => {
+    if (documentRecoveryEnabled) documentRecovery.schedule();
+});
 
 const tableEditor = createTableEditorController({
     elements: tableEditorElements,
@@ -424,7 +436,11 @@ codeFind.bind();
 drawers.bind();
 onboarding.bind();
 documentRecoveryPrompt.bind();
-void offerRecoveredDocument();
+if (documentRecoveryEnabled) {
+    void offerRecoveredDocument();
+} else {
+    void documentRecovery.clearAll();
+}
 
 // Set up Presets without a runtime request so file:// releases remain portable.
 setUpPresetBtns(presetButtons);
@@ -890,6 +906,30 @@ function createListeners() {
     window.addEventListener('pagehide', () => {
         void flushDocumentRecovery();
     });
+    documentRecoveryEnabledCheckbox?.addEventListener('change', async () => {
+        documentRecoveryEnabled = documentRecoveryEnabledCheckbox.checked;
+        uiPreferences.set(documentRecoveryEnabledStorageKey, documentRecoveryEnabled);
+        documentRecovery.setEnabled(documentRecoveryEnabled);
+        if (documentRecoveryEnabled) {
+            documentRecovery.schedule();
+            setDocumentRecoveryPrivacyStatus('Local recovery is enabled.');
+            addProcessingLog('Enabled local document recovery.', 'info');
+            return;
+        }
+
+        await documentRecovery.clearAll();
+        documentRecoveryPrompt.hide();
+        setDocumentRecoveryPrivacyStatus('Local recovery is disabled and saved copies were deleted.');
+        addProcessingLog('Disabled local document recovery and deleted saved copies.', 'info');
+    });
+    clearDocumentRecoveryBtn?.addEventListener('click', async () => {
+        const cleared = await documentRecovery.clearAll();
+        if (!cleared) return;
+        documentRecoveryPrompt.hide();
+        setDocumentRecoveryPrivacyStatus('Saved recovery copies were deleted.');
+        addProcessingLog('Deleted saved document recovery copies.', 'info');
+        showActivityToast('Saved recovery copies deleted.', 'success', 'Recovery');
+    });
     updateFileDropZoneState(false);
 
     [railUploadBtn, onboardingUploadBtn].forEach((button) => {
@@ -1143,7 +1183,14 @@ function flushDocumentRecovery() {
         syncEditorToInputHTML();
         commitDocumentHistory('typing');
     }
-    return documentRecovery.flush();
+    return documentRecoveryEnabled ? documentRecovery.flush() : Promise.resolve(null);
+}
+
+/** Updates the privacy status beside the local-recovery controls. */
+function setDocumentRecoveryPrivacyStatus(message) {
+    if (documentRecoveryPrivacyStatus) {
+        documentRecoveryPrivacyStatus.textContent = message;
+    }
 }
 
 /** Reports unavailable or failed browser persistence once without interrupting editing. */
@@ -2930,8 +2977,9 @@ function getHTMLForCopy() {
 function syncEditorToInputHTML() {
     cancelPendingTypingRefresh();
     Array.from(inputHTML.attributes).forEach(attribute => inputHTML.removeAttribute(attribute.name));
-    inputHTML.innerHTML = outputText.value;
+    replaceWithSanitizedHTML(inputHTML, outputText.value);
     adoptSingleOuterDiv();
+    sanitizeDocumentTree(inputHTML, { includeRoot: true });
     inputHTML.querySelectorAll('.content-area').forEach(element => {
         element.classList.remove('content-area');
         if (element.classList.length === 0) {
@@ -2984,7 +3032,8 @@ function syncLiveToInputHTML() {
     replaceElementTag(clone, 'b', 'strong');
     replaceElementTag(clone, 'i', 'em');
     removeEmptyStyleAttributes(clone);
-    inputHTML.innerHTML = clone.innerHTML;
+    replaceWithSanitizedHTML(inputHTML, clone.innerHTML);
+    sanitizeDocumentTree(inputHTML, { includeRoot: true });
     inputHTML.classList.add("content-area");
 }
 

@@ -2,6 +2,12 @@
 
 `DocumentStore` is the canonical document boundary. Editor views render from it and commands mutate it through the application controller. Commands are registered by stable identifiers and return structured results containing HTML, a summary, changes, warnings, and affected paths.
 
+Canonical replacements and mutations are sanitized by
+`src/document/security.js` before `DocumentStore` publishes the new revision.
+Code and Live synchronization use the same sanitizer before directly updating
+the canonical root. The application Content Security Policy remains an
+independent browser-enforced boundary around rendered views.
+
 ## Dependency direction
 
 ```text

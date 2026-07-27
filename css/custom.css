@@ -1083,6 +1083,20 @@ textarea {
     margin: 0;
 }
 
+.local-recovery-controls {
+    display: grid;
+    justify-items: start;
+    gap: 8px;
+}
+
+.local-recovery-controls label {
+    font-weight: 400;
+}
+
+.local-recovery-controls [role="status"]:empty {
+    display: none;
+}
+
 .feedback-intro {
     display: grid;
     gap: 4px;

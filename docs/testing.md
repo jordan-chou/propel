@@ -4,7 +4,9 @@ Run `npm test` for dependency-free unit tests and `npm run check` for syntax plu
 
 Run `npm run verify:portable` to rebuild `dist/portable/` and verify that the
 offline entry point contains no ES-module script, runtime `fetch`, remote
-Prettify loader, remote stylesheet resource, or external SVG sprite reference.
+stylesheet resource, or external SVG sprite reference. Run
+`npm run check:security` to verify the served entry point's CSP, referrer
+policy, sanitizer boundary, and lack of application network primitives.
 For release verification, open `dist/portable/index.html` directly from the
 filesystem in each supported managed browser and complete the checklist below.
 
@@ -22,5 +24,7 @@ Before merging a structural refactor, manually verify with `test/test-document-d
 8. Reload after editing, restore the offered browser recovery copy, and confirm
    Live/Code content, document language, and undo history start in the recovered
    state. Repeat once with **Discard recovery copy**.
+9. In **Information**, disable local recovery and confirm the saved copy is
+   deleted and no recovery prompt appears after another edit and reload.
 
 Browser tests are intentionally separate because Propel uses native DOM, selection, shadow DOM, file APIs, and `contenteditable` behavior that Node does not emulate accurately.

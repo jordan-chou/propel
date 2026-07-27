@@ -11,8 +11,7 @@ const classicScripts = [
     'budget.js',
     'mammoth.browser.js',
     'beautify-html.js',
-    'prettify.js',
-    'run_prettify.js'
+    'prettify.js'
 ];
 
 await rm(outputRoot, { recursive: true, force: true });
@@ -24,9 +23,7 @@ await cp(join(root, 'logo.png'), join(outputRoot, 'logo.png'));
 for (const filename of classicScripts) {
     const sourcePath = join(root, 'src', filename);
     const outputPath = join(outputSource, filename);
-    let contents = await readFile(sourcePath, 'utf8');
-    if (filename === 'run_prettify.js') contents = localizePrettifyLoader(contents);
-    await writeFile(outputPath, contents);
+    await writeFile(outputPath, await readFile(sourcePath, 'utf8'));
 }
 
 await build({
@@ -77,22 +74,6 @@ function makeInlineSvgSprite(svg) {
     return svg
         .replace('<svg xmlns="http://www.w3.org/2000/svg">', '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:none">')
         .trim();
-}
-
-function localizePrettifyLoader(script) {
-    return script
-        .replaceAll(
-            'https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/lang-',
-            'src/lang-'
-        )
-        .replaceAll(
-            'https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/skins/',
-            'css/skins/'
-        )
-        .replaceAll(
-            'https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/prettify.css',
-            'css/prettify.css'
-        );
 }
 
 function stripRemoteCssResources(css) {

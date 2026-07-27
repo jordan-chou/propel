@@ -16,7 +16,6 @@ const requiredFiles = [
     'src/mammoth.browser.js',
     'src/beautify-html.js',
     'src/prettify.js',
-    'src/run_prettify.js',
     'src/propel.bundle.js'
 ];
 
@@ -26,7 +25,6 @@ for (const relativePath of requiredFiles) {
 
 const html = await readFile(join(portableRoot, 'index.html'), 'utf8');
 const bundle = await readFile(join(portableRoot, 'src', 'propel.bundle.js'), 'utf8');
-const loader = await readFile(join(portableRoot, 'src', 'run_prettify.js'), 'utf8');
 const theme = await readFile(join(portableRoot, 'css', 'theme.min.css'), 'utf8');
 
 assertAbsent(html, 'type="module"', 'portable HTML still loads an ES module');
@@ -37,7 +35,9 @@ assertPresent(html, '<symbol id="rotate-left"', 'portable HTML does not contain 
 assertAbsent(bundle, 'assets/fontawesome/solid.svg#', 'portable bundle still loads an external SVG sprite');
 assertAbsent(bundle, 'presetButtons.json', 'portable bundle still requests preset JSON');
 assertAbsent(bundle, 'fetch(', 'portable bundle still performs a runtime fetch');
-assertAbsent(loader, 'https://cdn.jsdelivr.net', 'portable Prettify loader still references its CDN');
+assertAbsent(html, 'run_prettify.js', 'portable HTML still loads the remote-capable Prettify loader');
+assertPresent(html, "connect-src 'none'", 'portable HTML does not block connection APIs');
+assertPresent(html, 'content="no-referrer"', 'portable HTML does not disable referrer disclosure');
 assertAbsent(theme, 'url(https://', 'portable theme still references a remote URL');
 assertAbsent(theme, 'url(http://', 'portable theme still references a remote URL');
 

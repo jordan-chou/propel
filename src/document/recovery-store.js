@@ -61,7 +61,10 @@ export function createDocumentRecoveryStore(indexedDB, options = {}) {
             if (!isValidDocumentRecoveryRecord(record)) {
                 throw new TypeError('Invalid document recovery record.');
             }
-            await runTransaction('readwrite', objectStore => objectStore.put(record));
+            await runTransaction('readwrite', objectStore => {
+                objectStore.clear();
+                return objectStore.put(record);
+            });
             return record;
         },
 
@@ -92,6 +95,10 @@ export function createDocumentRecoveryStore(indexedDB, options = {}) {
         async delete(draftId) {
             if (!draftId) return;
             await runTransaction('readwrite', objectStore => objectStore.delete(draftId));
+        },
+
+        async clear() {
+            await runTransaction('readwrite', objectStore => objectStore.clear());
         }
     };
 }
