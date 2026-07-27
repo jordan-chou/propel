@@ -8,7 +8,7 @@
 /* Import JS */
 import { modifyHeadings, modifyFigures, modifyTables, createOnThisPage } from './commands/anchors-aweigh.js';
 import { createBodyFtnTags, replaceFootnoteSection } from './commands/footnote-generator.js';
-import { fixNbspHTML } from './commands/nbsp.js';
+import { transformNbspHTML } from './commands/nbsp.js';
 import { cleanupTable, defaultTableCleanupOptions, renameTag } from './commands/table-cleanup.js';
 import { collapseAll, setCodeTheme, countTags, qaHelperTagsDefault, setUpPresetBtns } from './commands/qa-helper.js';
 
@@ -2802,10 +2802,15 @@ function generateFootnotesCommand() {
 function validateNbspCommand() {
     try {
         syncActiveEditorToInputHTML();
-        documentStore.replaceHTML(fixNbspHTML(inputHTML.innerHTML, !isEngLang), { source: 'document.fixSpacing' });
+        const result = transformNbspHTML(inputHTML.innerHTML, !isEngLang);
+        documentStore.replaceHTML(result.html, {
+            source: 'document.fixSpacing',
+            changes: result.changes
+        });
         
         updateOutputText();
-        addProcessingLog('Validate &nbsp; successful.', 'success');
+        const correctionLabel = result.changes.length === 1 ? 'correction' : 'corrections';
+        addProcessingLog(`Validate &nbsp; successful: ${result.changes.length} ${correctionLabel}.`, 'success');
     } catch (e) {
         addProcessingLog('Error for Validate &nbsp;. Check console for details.', 'danger');
         console.error(e);

@@ -1,6 +1,6 @@
 import { createBodyFtnTags, replaceFootnoteSection } from '../../src/commands/footnote-generator.js';
 import { cleanupTable, defaultTableCleanupOptions } from '../../src/commands/table-cleanup.js';
-import { fixNbspHTML } from '../../src/commands/nbsp.js';
+import { fixNbspHTML, transformNbspHTML } from '../../src/commands/nbsp.js';
 import { getCellsInRange } from '../../src/table-editor/model.js';
 import { toggleCellBold, toggleCellsBold, toggleRowsActive } from '../../src/table-editor/formatting.js';
 import {
@@ -1442,6 +1442,47 @@ test('adding a second footer note wraps direct content into paragraphs', () => {
 
 test('NBSP correction leaves image alt spaces intact', () => {
     equal(fixNbspHTML('<img alt="Table 2">Table 2', false), '<img alt="Table 2">Table&nbsp;2');
+});
+
+test('NBSP correction changes visible text without changing attributes', () => {
+    const source = '<a href="/Table 2" aria-label="Open Table 2" title="Table 2">Table 2</a>';
+    equal(
+        fixNbspHTML(source, false),
+        '<a href="/Table 2" aria-label="Open Table 2" title="Table 2">Table&nbsp;2</a>'
+    );
+});
+
+test('NBSP correction works across inline markup boundaries', () => {
+    equal(
+        fixNbspHTML('<p>Table <strong>2</strong> and 10 <em>%</em></p>', false),
+        '<p>Table&nbsp;<strong>2</strong> and 10&nbsp;<em>%</em></p>'
+    );
+});
+
+test('NBSP correction preserves preformatted content and consecutive existing spaces', () => {
+    equal(
+        fixNbspHTML('<pre>Table 2</pre><p>&nbsp;&nbsp;Table 2</p><code>Figure 3</code><span data-propel-preserve-spacing>Annex 4</span>', false),
+        '<pre>Table 2</pre><p>&nbsp;&nbsp;Table&nbsp;2</p><code>Figure 3</code><span data-propel-preserve-spacing="">Annex 4</span>'
+    );
+});
+
+test('NBSP correction is idempotent and reports stable rule IDs', () => {
+    const first = transformNbspHTML('<p>Table <strong>2</strong></p>', false);
+    const second = transformNbspHTML(first.html, false);
+
+    equal(first.html, '<p>Table&nbsp;<strong>2</strong></p>');
+    equal(first.changes.length, 1);
+    equal(first.changes[0].ruleId, 'english-numbered-label');
+    equal(first.changes[0].after, 'Table&nbsp;2');
+    equal(second.html, first.html);
+    equal(second.changes.length, 0);
+});
+
+test('NBSP correction respects French punctuation policy', () => {
+    equal(
+        fixNbspHTML('<p>Tableau 2 : Attention ! Vraiment ?</p>', true),
+        '<p>Tableau&nbsp;2&nbsp;: Attention ! Vraiment ?</p>'
+    );
 });
 
 test('table model selects a rectangular range', () => {
