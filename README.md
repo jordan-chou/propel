@@ -25,7 +25,7 @@ repository. A production build is only needed to create the portable release.
 
 ## Using Propel
 
-For the simplest option, visit [Propel on GitHub Pages](https://jordan-chou.github.io/propel/).
+For the simplest option, visit [https://jordan-chou.github.io/propel/](https://jordan-chou.github.io/propel/).
 No installation is required; upload a Word document or start with a blank
 document directly in the browser.
 
