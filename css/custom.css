@@ -3108,6 +3108,10 @@ textarea {
     color: #86efac;
 }
 
+.syntax-entity {
+    color: #fde68a;
+}
+
 .syntax-comment {
     color: #94a3b8;
 }
