@@ -608,6 +608,7 @@ test('Code view regex toggle reports invalid expressions', () => {
     searchInput.dispatchEvent(new Event('input', { bubbles: true }));
 
     equal(searchInput.getAttribute('aria-invalid'), 'true');
+    equal(searchInput.hasAttribute('title'), false);
     equal(host.querySelector('.status').textContent, 'Invalid regex');
     equal(host.querySelector('.next').disabled, true);
     host.remove();
@@ -944,6 +945,25 @@ test('table scoping mode locks editing controls and provides an explicit exit', 
     fixture.remove();
 });
 
+test('table toolbar actions use the shared custom tooltip', () => {
+    const fixture = createTableEditorScopingFixture();
+    const scopingButton = fixture.elements.tableEditorScopingModeBtn;
+    const tooltip = fixture.elements.optionTooltip;
+
+    scopingButton.focus();
+    equal(tooltip.hidden, false);
+    equal(tooltip.textContent, 'Enter scoping mode');
+
+    scopingButton.click();
+    equal(scopingButton.hasAttribute('title'), false);
+    equal(scopingButton.dataset.tooltip, 'Exit scoping mode');
+    equal(tooltip.textContent, 'Exit scoping mode');
+
+    scopingButton.blur();
+    equal(tooltip.hidden, true);
+    fixture.remove();
+});
+
 test('applying complex scoping matches header IDs to the committed table ID', () => {
     const fixture = createTableEditorScopingFixture();
 
@@ -1104,7 +1124,7 @@ function createTableEditorScopingFixture(
                     </div>
                     <button id="tableEditorUndoBtn">Undo</button><button id="tableEditorRedoBtn">Redo</button>
                     <button id="tableEditorDeselectBtn">Deselect</button>
-                    <button id="tableEditorScopingModeBtn" aria-label="Enter scoping mode" aria-pressed="false">Scope</button>
+                    <button id="tableEditorScopingModeBtn" data-tooltip="Enter scoping mode" aria-label="Enter scoping mode" aria-pressed="false">Scope</button>
                     <button id="tableEditorHeaderBtn">Header</button><button id="tableEditorMergeRowBtn">Merge row</button>
                     <button id="tableEditorMergeCellsBtn">Merge cells</button><button id="tableEditorActiveBtn">Highlight</button>
                     <button id="tableEditorAddFooterBtn">Add footer</button><button id="tableEditorTfootBtn">Move footer</button>
@@ -1119,7 +1139,8 @@ function createTableEditorScopingFixture(
             <button id="tableEditorCancelBtn">Cancel</button>
             <button id="tableEditorApplyNextBtn">Apply next</button>
             <button id="tableEditorApplyBtn">Apply</button>
-        </section>`;
+        </section>
+        <div id="optionTooltip" role="tooltip" hidden></div>`;
     document.body.append(host);
     const ids = [
         'tableEditorDialog', 'tableEditorFullscreenBtn', 'tableEditorCloseBtn', 'tableEditorCancelBtn',
@@ -1134,11 +1155,11 @@ function createTableEditorScopingFixture(
         'tableEditorNumber', 'tableEditorCaption', 'tableEditorUnit', 'tableEditorNumberSuggestion',
         'tableEditorCaptionSuggestion', 'tableEditorUnitSuggestion', 'tableEditorId', 'tableEditorIdSuggestion',
         'tableEditorComplexScoping',
-        'tableEditorFinancial', 'tableEditorFrench'
+        'tableEditorFinancial', 'tableEditorFrench', 'optionTooltip'
     ];
     const elements = Object.fromEntries(ids.map((id) => [id, host.querySelector(`#${id}`)]));
     elements.tableEditorSnapGuides = [];
-    elements.optionHelpButtons = [];
+    elements.tableTooltipButtons = host.querySelectorAll('[data-tooltip]');
     const inputHTML = document.createElement('div');
     inputHTML.innerHTML = tableMarkup;
     const controller = createTableEditorController({
