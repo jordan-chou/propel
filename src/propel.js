@@ -202,7 +202,7 @@ const tableEditorElements = {
     liveTableEditPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null,
     liveTableComponentPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableComponentPopover') : null,
     tableEditorSnapGuides: document.querySelectorAll('.table-editor-snap-guide'),
-    optionHelpButtons: document.querySelectorAll('.option-help[data-tooltip]'),
+    tableTooltipButtons: document.querySelectorAll('.table-editor-dialog [data-tooltip]'),
     toastRegion,
     ...Object.fromEntries([
         'tableEditorDialog', 'tableEditorResizeHandle', 'tableEditorFullscreenBtn',

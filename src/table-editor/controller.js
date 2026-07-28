@@ -73,7 +73,7 @@ export function createTableEditorController(config) {
         tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
         tableEditorUnitSuggestion, tableEditorIdSuggestion,
         tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
-        optionHelpButtons, optionTooltip, toastRegion, liveTableEditPopover, liveTableComponentPopover
+        tableTooltipButtons, optionTooltip, toastRegion, liveTableEditPopover, liveTableComponentPopover
     } = elements;
 
     let tableEditorIndex = 0;
@@ -270,7 +270,7 @@ export function createTableEditorController(config) {
             }
         });
     
-        optionHelpButtons.forEach((button) => {
+        tableTooltipButtons.forEach((button) => {
             button.addEventListener('mouseenter', () => showOptionTooltip(button));
             button.addEventListener('focus', () => showOptionTooltip(button));
             button.addEventListener('mouseleave', () => {
@@ -1625,7 +1625,10 @@ export function createTableEditorController(config) {
         if (tableEditorScopingModeBtn) {
             tableEditorScopingModeBtn.setAttribute('aria-pressed', String(tableEditorScopingMode));
             tableEditorScopingModeBtn.setAttribute('aria-label', tableEditorScopingMode ? 'Exit scoping mode' : 'Enter scoping mode');
-            tableEditorScopingModeBtn.title = tableEditorScopingMode ? 'Exit scoping mode' : 'Enter scoping mode';
+            tableEditorScopingModeBtn.dataset.tooltip = tableEditorScopingMode ? 'Exit scoping mode' : 'Enter scoping mode';
+            if (document.activeElement === tableEditorScopingModeBtn) {
+                showOptionTooltip(tableEditorScopingModeBtn);
+            }
         }
         if (tableEditorDialog) {
             tableEditorDialog.classList.toggle('table-editor-scoping-locked', tableEditorScopingMode);
@@ -1663,7 +1666,7 @@ export function createTableEditorController(config) {
             tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
             tableEditorUnitSuggestion, tableEditorIdSuggestion,
             tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
-            ...Array.from(optionHelpButtons || []),
+            ...Array.from(tableTooltipButtons || []).filter((button) => button.matches('.option-help')),
             ...Array.from(tableEditorPages?.querySelectorAll('button') || [])
         ].filter(Boolean);
 

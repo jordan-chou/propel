@@ -1759,8 +1759,8 @@ textarea {
 .option-tooltip {
     position: fixed;
     z-index: 100;
-    width: 220px;
-    max-width: calc(100vw - 16px);
+    width: max-content;
+    max-width: min(220px, calc(100vw - 16px));
     padding: 8px 10px;
     border-radius: 6px;
     background: #172033;
