@@ -52,6 +52,7 @@ import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
+import { highlightHTML } from './ui/html-syntax-highlight.js';
 import { goToCodeLine, isGoToLineShortcut } from './ui/code-navigation.js';
 import { createCodeFindController } from './ui/code-find.js';
 import { createFeedbackComposer } from './support/feedback.js';
@@ -202,7 +203,7 @@ const tableEditorElements = {
     liveTableEditPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null,
     liveTableComponentPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableComponentPopover') : null,
     tableEditorSnapGuides: document.querySelectorAll('.table-editor-snap-guide'),
-    optionHelpButtons: document.querySelectorAll('.option-help[data-tooltip]'),
+    tableTooltipButtons: document.querySelectorAll('.table-editor-dialog [data-tooltip]'),
     toastRegion,
     ...Object.fromEntries([
         'tableEditorDialog', 'tableEditorResizeHandle', 'tableEditorFullscreenBtn',
@@ -3393,23 +3394,6 @@ function syncCodeHighlightScroll() {
     }
 
     codeHighlightViewport.schedule();
-}
-
-/** Escapes HTML source and applies syntax-highlighting spans. */
-function highlightHTML(html) {
-    const escaped = escapeHTML(html);
-
-    return escaped.replace(/(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?)([A-Za-z][\w:-]*)([\s\S]*?)(\/?&gt;)/g, (match, comment, bracket, tagName, attributes, closeBracket) => {
-        if (comment) {
-            return `<span class="syntax-comment">${comment}</span>`;
-        }
-
-        const highlightedAttributes = attributes.replace(/([^\s=\/&]+)(=)(&quot;.*?&quot;|&#039;.*?&#039;|[^\s&]+)?/g, (attributeMatch, name, equals, value = '') => {
-            return `<span class="syntax-attr">${name}</span>${equals}<span class="syntax-value">${value}</span>`;
-        });
-
-        return `<span class="syntax-bracket">${bracket}</span><span class="syntax-name">${tagName}</span><span class="syntax-tag">${highlightedAttributes}${closeBracket}</span>`;
-    });
 }
 
 /**

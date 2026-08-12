@@ -93,6 +93,8 @@ The starter library includes boxes, chart and figure layouts, a two-chart layout
 
 Custom libraries and locally created components are stored in browser `localStorage` under `propel.componentLibrary`, so they persist between sessions for the same browser and origin. Clearing site data removes this saved library. See [docs/component-libraries.md](docs/component-libraries.md) for the file format and insertion behavior.
 
+**NOTE:** Creating new components is highly untested and may not work properly.
+
 ## Table cleanup workflow
 
 The table cleanup workflow was built around the Finance Canada Web and Publishing Team's requirements for turning Word tables—particularly financial tables—into accessible Canada.ca/WET markup. Cleanup remains an editor-controlled process: Propel prepares and previews the table, but changes are committed to the document only when the editor chooses **Apply** or **Apply and next**.

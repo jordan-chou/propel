@@ -160,11 +160,6 @@ export function createCodeFindController({
         matches = result.matches;
         regexError = result.error;
         searchInput.setAttribute('aria-invalid', String(Boolean(regexError)));
-        if (regexError) {
-            searchInput.title = regexError;
-        } else {
-            searchInput.removeAttribute('title');
-        }
 
         if (!matches.length) {
             activeIndex = -1;
