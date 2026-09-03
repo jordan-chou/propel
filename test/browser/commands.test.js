@@ -1429,14 +1429,16 @@ test('reciprocal caret maps the same text position between source and Live view'
     equal(point.offset, 2);
 });
 
-test('table cleanup does not make colspan rows active automatically', () => {
+test('table cleanup scopes a spanning section row without changing row appearance', () => {
     const host = document.createElement('div');
-    host.innerHTML = '<table><tbody><tr><td>Label</td><td>Value</td></tr><tr><td colspan="2">Group</td></tr></tbody></table>';
+    host.innerHTML = '<table><tbody><tr><td>Label</td><td>Value</td></tr><tr><td colspan="2">Group</td></tr><tr><td>Item</td><td>1</td></tr></tbody></table>';
     cleanupTable(host.querySelector('table'));
     const groupRow = host.querySelector('tbody tr');
+    const memberRow = host.querySelectorAll('tbody tr')[1];
 
     equal(groupRow.classList.contains('active'), false);
-    equal(groupRow.querySelector('th').getAttribute('scope'), 'colgroup');
+    equal(groupRow.querySelector('th').getAttribute('scope'), 'rowgroup');
+    equal(memberRow.querySelector('[class*="mrgn-lft"]'), null);
 });
 
 test('deleting a selected table column removes that visual column from every row', () => {
@@ -1671,16 +1673,21 @@ test('complex scoping associates active parent, row, and column headers', () => 
     equal(value.getAttribute('headers'), `${headers[1].id} ${headers[2].id} ${headers[3].id}`);
 });
 
-test('complex scoping uses an indented row as a child of a merged row', () => {
+test('complex scoping groups subsequent rows under a spanning section until the next section', () => {
     const host = document.createElement('div');
-    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th colspan="2">Assets</th></tr><tr><th><div class="mrgn-lft-md">Cash</div></th><td>10</td></tr><tr><th>Unrelated</th><td>20</td></tr></tbody></table>';
+    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th colspan="2">Assets</th></tr><tr><th>Cash</th><td>10</td></tr><tr><th>Investments</th><td>20</td></tr><tr><th colspan="2">Liabilities</th></tr><tr><th>Debt</th><td>30</td></tr></tbody></table>';
     const table = host.querySelector('table');
     applyTableScopes(table, { complex: true, renameTag });
     const bodyHeaders = table.querySelectorAll('tbody th');
     const values = table.querySelectorAll('tbody td');
 
     equal(values[0].getAttribute('headers').includes(bodyHeaders[0].id), true);
-    equal(values[1].getAttribute('headers').includes(bodyHeaders[0].id), false);
+    equal(values[1].getAttribute('headers').includes(bodyHeaders[0].id), true);
+    equal(values[2].getAttribute('headers').includes(bodyHeaders[0].id), false);
+    equal(values[2].getAttribute('headers').includes(bodyHeaders[3].id), true);
+    equal(bodyHeaders[0].getAttribute('scope'), 'rowgroup');
+    equal(bodyHeaders[3].getAttribute('scope'), 'rowgroup');
+    equal(table.querySelector('[class*="mrgn-lft"]'), null);
     equal(table.id, 't1');
 });
 
