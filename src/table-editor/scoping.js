@@ -23,12 +23,11 @@ export function applyTableScopes(table, options = {}) {
             return;
         }
 
-        const firstCell = row.querySelector(':scope > th, :scope > td');
+        const cells = Array.from(row.querySelectorAll(':scope > th, :scope > td'));
+        const firstCell = cells[0];
         if (!firstCell) return;
         const rowHeader = renameTag(firstCell, 'th');
-        rowHeader.setAttribute('scope', rowHeader.hasAttribute('colspan') || row.classList.contains('active')
-            ? 'colgroup'
-            : rowHeader.hasAttribute('rowspan') ? 'rowgroup' : 'row');
+        rowHeader.setAttribute('scope', getRowHeaderScope(row, rowHeader, cells));
     });
 
     if (!complex) {
@@ -57,7 +56,7 @@ function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable, a
         headerEntries.forEach(({ cell }, index) => ensureHeaderId(table, cell, index + 1));
     }
 
-    let activeParent = null;
+    let groupParent = null;
     let hierarchy = [];
 
     grid.rows.forEach((row, rowIndex) => {
@@ -66,10 +65,11 @@ function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable, a
         const rowEntries = entries.filter((entry) => entry.row === rowIndex && entry.originRow === rowIndex);
         const rowHeader = rowEntries.find(({ cell }) => cell.tagName.toLowerCase() === 'th') || null;
         const isActive = row.classList.contains('active');
+        const isSection = isSpanningSectionEntry(rowEntries, rowHeader);
         const indentLevel = rowHeader ? getIndentLevel(rowHeader.cell) : 0;
 
-        if (isActive && rowHeader) {
-            activeParent = rowHeader.cell;
+        if ((isActive || isSection) && rowHeader) {
+            groupParent = rowHeader.cell;
             hierarchy = [rowHeader.cell];
         }
 
@@ -78,9 +78,9 @@ function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable, a
         rowEntries.forEach((entry) => {
             const associations = [];
             columnHeadersFor(entry, headerEntries).forEach((header) => addAssociation(associations, header));
-            if (activeParent !== entry.cell) addAssociation(associations, activeParent);
+            if (groupParent !== entry.cell) addAssociation(associations, groupParent);
             ancestors.forEach((header) => {
-                if (header !== entry.cell && header !== activeParent) addAssociation(associations, header);
+                if (header !== entry.cell && header !== groupParent) addAssociation(associations, header);
             });
             if (rowHeader && rowHeader.cell !== entry.cell) addAssociation(associations, rowHeader.cell);
 
@@ -92,6 +92,21 @@ function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable, a
             hierarchy.length = indentLevel + 1;
         }
     });
+}
+
+function getRowHeaderScope(row, rowHeader, cells) {
+    if (isSpanningSectionRow(rowHeader, cells)) return 'rowgroup';
+    if (row.classList.contains('active') || rowHeader.hasAttribute('colspan')) return 'colgroup';
+    if (rowHeader.hasAttribute('rowspan')) return 'rowgroup';
+    return 'row';
+}
+
+function isSpanningSectionRow(rowHeader, cells) {
+    return Number(rowHeader.getAttribute('colspan')) > 1 && cells.length === 1;
+}
+
+function isSpanningSectionEntry(rowEntries, rowHeader) {
+    return Boolean(rowHeader && rowHeader.columnSpan > 1 && rowEntries.length === 1);
 }
 
 /** Renames header-cell IDs from the current table ID and updates local ID references. */

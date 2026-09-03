@@ -293,7 +293,7 @@ function formatTbody(tbody, options) {
 
         if (rowHeader.hasAttribute('colspan')) {
             if (options.addScope) {
-                rowHeader.setAttribute('scope', 'colgroup');
+                rowHeader.setAttribute('scope', isSpanningSectionRow(row, rowHeader) ? 'rowgroup' : 'colgroup');
             }
         } else if (rowHeader.hasAttribute('rowspan') && options.addScope) {
             rowHeader.setAttribute('scope', 'rowgroup');
@@ -311,6 +311,11 @@ function formatTbody(tbody, options) {
             });
         }
     });
+}
+
+function isSpanningSectionRow(row, rowHeader) {
+    return Number(rowHeader.getAttribute('colspan')) > 1
+        && row.querySelectorAll(':scope > th, :scope > td').length === 1;
 }
 
 function trimTableCells(table) {
