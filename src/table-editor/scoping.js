@@ -18,7 +18,8 @@ export function applyTableScopes(table, options = {}) {
             row.classList.add('bg-dark', 'text-white');
             row.classList.remove('active');
             Array.from(row.querySelectorAll(':scope > th, :scope > td')).forEach((cell) => {
-                renameTag(cell, 'th').setAttribute('scope', 'col');
+                const columnHeader = renameTag(cell, 'th');
+                columnHeader.setAttribute('scope', getColumnHeaderScope(columnHeader));
             });
             return;
         }
@@ -92,6 +93,10 @@ function applyExplicitAssociations(table, grid, idRoot, matchHeaderIdsToTable, a
             hierarchy.length = indentLevel + 1;
         }
     });
+}
+
+function getColumnHeaderScope(headerCell) {
+    return Number(headerCell.getAttribute('colspan')) > 1 ? 'colgroup' : 'col';
 }
 
 function getRowHeaderScope(row, rowHeader, cells) {

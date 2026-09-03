@@ -935,6 +935,18 @@ test('table cleanup creates WET structure', () => {
     equal(result.querySelectorAll('thead').length, 1);
 });
 
+test('table cleanup scopes thead colspans as column groups and rowspan-only headers as columns', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><td colspan="2">Amounts</td><td rowspan="2">Notes</td></tr><tr><td>Current</td><td>Previous</td></tr></thead><tbody><tr><td>10</td><td>8</td><td>One</td></tr></tbody></table>';
+    cleanupTable(host.querySelector('table'));
+    const headers = host.querySelectorAll('thead th');
+
+    equal(headers[0].getAttribute('scope'), 'colgroup');
+    equal(headers[1].getAttribute('scope'), 'col');
+    equal(headers[2].getAttribute('scope'), 'col');
+    equal(headers[3].getAttribute('scope'), 'col');
+});
+
 test('table cleanup creates financial footers without paragraph wrappers', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr></tbody></table>';
@@ -1714,6 +1726,17 @@ test('simple scoping omits explicit headers associations', () => {
 
     equal(table.querySelector('td').hasAttribute('headers'), false);
     equal(table.querySelector('tbody th').getAttribute('scope'), 'row');
+});
+
+test('table scoping recalculates thead colspans without treating rowspan as a row group', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th colspan="2" scope="col">Amounts</th><th rowspan="2" scope="rowgroup">Notes</th></tr><tr><th>Current</th><th>Previous</th></tr></thead><tbody><tr><th>Revenue</th><td>10</td><td>One</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: false, renameTag });
+    const headers = table.querySelectorAll('thead th');
+
+    equal(headers[0].getAttribute('scope'), 'colgroup');
+    equal(headers[1].getAttribute('scope'), 'col');
 });
 
 test('complex scoping uses the next Add IDs table identifier', () => {
