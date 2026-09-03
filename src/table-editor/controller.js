@@ -2018,7 +2018,7 @@ export function createTableEditorController(config) {
             row.classList.remove('active');
             Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
                 const nextCell = renameTag(cell, 'th');
-                nextCell.setAttribute('scope', 'col');
+                nextCell.setAttribute('scope', Number(nextCell.getAttribute('colspan')) > 1 ? 'colgroup' : 'col');
                 if (tableEditorFinancial && tableEditorFinancial.checked && index > 0) {
                     nextCell.classList.add('text-right');
                 } else if (index > 0) {

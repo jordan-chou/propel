@@ -261,7 +261,7 @@ function formatThead(thead, options) {
             const headerCell = renameTag(cell, 'th');
 
             if (options.addScope) {
-                headerCell.setAttribute('scope', 'col');
+                headerCell.setAttribute('scope', getColumnHeaderScope(headerCell));
             }
 
             if (index > 0 && options.financialTable) {
@@ -271,6 +271,10 @@ function formatThead(thead, options) {
             }
         });
     });
+}
+
+function getColumnHeaderScope(headerCell) {
+    return Number(headerCell.getAttribute('colspan')) > 1 ? 'colgroup' : 'col';
 }
 
 function formatTbody(tbody, options) {
