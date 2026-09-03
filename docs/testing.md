@@ -14,7 +14,8 @@ Serve the repository with any static HTTP server and open `test/browser.html` to
 
 Before merging a structural refactor, manually verify with `test/test-document-doc-to-html.docx`:
 
-1. Import completes and language detection does not block conversion.
+1. Import completes, language detection does not block conversion, and the tab
+   title uses the first non-empty `h1` or falls back to the imported filename.
 2. Live and code edits synchronize in both directions.
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
@@ -22,8 +23,8 @@ Before merging a structural refactor, manually verify with `test/test-document-d
 6. Review counts, issue navigation, outline filters, and flags update after edits.
 7. English/French switching changes relevant generated publishing text.
 8. Reload after editing, restore the offered browser recovery copy, and confirm
-   Live/Code content, document language, and undo history start in the recovered
-   state. Repeat once with **Discard recovery copy**.
+   Live/Code content, document language, contextual tab title, and undo history
+   start in the recovered state. Repeat once with **Discard recovery copy**.
 9. In **Information**, disable local recovery and confirm the saved copy is
    deleted and no recovery prompt appears after another edit and reload.
 

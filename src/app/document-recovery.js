@@ -60,6 +60,7 @@ export function createDocumentRecoveryController({
             html: snapshot.html,
             rootAttributes: snapshot.rootAttributes,
             language: snapshot.language,
+            sourceFileName: snapshot.sourceFileName,
             revision: snapshot.revision
         };
 

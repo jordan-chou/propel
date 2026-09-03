@@ -43,9 +43,10 @@ the HTML is copied into its intended publishing environment.
 ## Local storage
 
 Document recovery is enabled by default and retains only the latest sanitized
-HTML snapshot in IndexedDB. The Information panel can disable recovery or
-delete the saved copy at any time. Disabling recovery deletes existing recovery
-data and prevents new writes until it is enabled again.
+HTML snapshot, document settings, and source filename (when imported) in
+IndexedDB. The Information panel can disable recovery or delete the saved copy
+at any time. Disabling recovery deletes existing recovery data and prevents new
+writes until it is enabled again.
 
 Recovery data and component-library preferences are not encrypted. Browser
 profiles and operating-system accounts remain responsible for protecting local

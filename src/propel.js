@@ -23,6 +23,7 @@ import {
 } from './document/live-edit-normalization.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { createDeferredWork } from './app/deferred-work.js';
+import { getContextualDocumentTitle } from './app/document-title.js';
 import {
     createDocumentRecoveryController,
     createRecoveryDraftId
@@ -232,6 +233,7 @@ const tableEditorElements = {
 // Local HTML for input
 const inputHTML = document.createElement('div');
 const documentStore = new DocumentStore(inputHTML);
+let activeDocumentFileName = '';
 let pendingTypingView = null;
 const deferredTypingRefresh = createDeferredWork(() => {
     const sourceView = pendingTypingView;
@@ -342,6 +344,7 @@ const documentRecoveryPrompt = createRecoveryPrompt({
     onDismiss: () => onboarding.update(false)
 });
 documentStore.subscribe(() => {
+    updateBrowserTitle();
     if (documentRecoveryEnabled) documentRecovery.schedule();
 });
 
@@ -1134,6 +1137,7 @@ function getDocumentRecoverySnapshot() {
         html: snapshot.html,
         revision: snapshot.revision,
         language: isEngLang ? 'en' : 'fr',
+        sourceFileName: activeDocumentFileName,
         rootAttributes: Array.from(inputHTML.attributes, attribute => ({
             name: attribute.name,
             value: attribute.value
@@ -1158,6 +1162,7 @@ async function restoreRecoveredDocument(record) {
     Array.from(inputHTML.attributes).forEach(attribute => inputHTML.removeAttribute(attribute.name));
     record.rootAttributes.forEach(attribute => inputHTML.setAttribute(attribute.name, attribute.value));
     inputHTML.classList.add('content-area');
+    activeDocumentFileName = record.sourceFileName || '';
     documentStore.replaceHTML(record.html, { source: 'recovery' });
     setCommandLanguage(record.language);
     resetDocumentHistory(record.html, 'Recovered document');
@@ -2640,7 +2645,7 @@ async function convertUsingMammoth(file) {
         clearOutputText();
         applyDetectedDocumentLanguage(await detectDocxLanguageFromMetadata(arrayBuffer, file.name, mammothLibrary));
         const { html, messages } = await convertWithMammoth(mammothLibrary, arrayBuffer);
-        handleConvertedHTML(html);
+        handleConvertedHTML(html, file.name);
         if (messages.length > 0) {
             addProcessingLog(`Mammoth returned ${messages.length} message(s). Check console for details.`, 'warning');
             console.warn(messages);
@@ -2718,8 +2723,10 @@ function applyDetectedDocumentLanguage(languageResult) {
 /**
  * Perform after the document has been converted to HTML
  * @param {String} html HTML represented as a String
+ * @param {String} fileName Imported file name used when the document has no h1
  */
-function handleConvertedHTML(html) {
+function handleConvertedHTML(html, fileName = '') {
+    activeDocumentFileName = fileName;
     documentStore.replaceHTML(html, { source: 'conversion' });
 
     const {
@@ -2735,6 +2742,14 @@ function handleConvertedHTML(html) {
 
     addProcessingLog(`Converted document in ${conversionTime} seconds.`, 'success');
     addProcessingLog(`Initial cleanup: cleared ${imgCount} image src value(s), removed ${bookmarkCount} Word bookmark anchor(s), cleaned ${hrefCount} Word bookmark href(s), removed ${emptyAnchorCount} empty anchor(s).`, 'info');
+}
+
+/** Keeps the browser tab identifiable from the working document. */
+function updateBrowserTitle() {
+    document.title = getContextualDocumentTitle({
+        headings: Array.from(inputHTML.querySelectorAll('h1'), heading => heading.textContent),
+        fileName: activeDocumentFileName
+    });
 }
 
 /* Commands */

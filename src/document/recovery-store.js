@@ -116,6 +116,7 @@ export function isValidDocumentRecoveryRecord(record) {
         Number.isInteger(record.revision) &&
         record.revision >= 0 &&
         (record.language === 'en' || record.language === 'fr') &&
+        (record.sourceFileName === undefined || typeof record.sourceFileName === 'string') &&
         Array.isArray(record.rootAttributes) &&
         record.rootAttributes.every(attribute =>
             attribute &&
