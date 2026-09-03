@@ -1,10 +1,35 @@
+const INDENT_CLASSES = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
+
+function getIndentedHeaderContent(cell) {
+    if (!cell || cell.tagName.toLowerCase() !== 'th') {
+        return null;
+    }
+
+    return Array.from(cell.children).find((child) => (
+        INDENT_CLASSES.some((className) => child.classList.contains(className))
+    )) || null;
+}
+
+function removeNormalWeightClass(element) {
+    if (!element) {
+        return;
+    }
+
+    element.classList.remove('fnt-nrml');
+    if (element.classList.length === 0) {
+        element.removeAttribute('class');
+    }
+}
+
 export function isCellBold(cell) {
     if (!cell) {
         return false;
     }
 
     if (cell.tagName.toLowerCase() === 'th') {
-        return !cell.classList.contains('fnt-nrml');
+        const indent = getIndentedHeaderContent(cell);
+        return !cell.classList.contains('fnt-nrml')
+            && !indent?.classList.contains('fnt-nrml');
     }
 
     return Boolean(cell.children.length === 1
@@ -18,7 +43,12 @@ export function setCellBold(cell, shouldBeBold) {
     }
 
     if (cell.tagName.toLowerCase() === 'th') {
-        cell.classList.toggle('fnt-nrml', !shouldBeBold);
+        const indent = getIndentedHeaderContent(cell);
+        removeNormalWeightClass(cell);
+        removeNormalWeightClass(indent);
+        if (!shouldBeBold) {
+            (indent || cell).classList.add('fnt-nrml');
+        }
         return;
     }
 

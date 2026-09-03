@@ -2233,7 +2233,9 @@ textarea {
     padding: 8px;
     line-height: 1.4375;
     vertical-align: top;
-    overflow-wrap: anywhere;
+    /* Preserve complete words and numeric values; the canvas scrolls for wide tables. */
+    overflow-wrap: normal;
+    word-break: normal;
     cursor: text;
 }
 
@@ -2292,7 +2294,9 @@ textarea {
     text-align: right;
 }
 
-.table-editor-canvas .fnt-nrml {
+/* In the preview, explicit normal weight wins over redundant source emphasis. */
+.table-editor-canvas .fnt-nrml,
+.table-editor-canvas .fnt-nrml :is(b, strong) {
     font-weight: 400;
 }
 
