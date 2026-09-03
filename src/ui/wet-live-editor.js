@@ -92,15 +92,16 @@ export function createWetLiveEditor(host) {
                 box-shadow: 0 0 0 6px rgba(37,87,214,0.08);
             }
 
-            .wet-live-editor .review-flagged-component {
-                position: relative;
-            }
-
-            .wet-live-editor .review-flag-button {
+            .review-flag-layer {
                 position: absolute;
                 z-index: 12;
-                top: -7px;
-                left: -7px;
+                inset: 0;
+                overflow: hidden;
+                pointer-events: none;
+            }
+
+            .review-flag-layer .review-flag-button {
+                position: absolute;
                 display: grid;
                 width: 14px;
                 height: 14px;
@@ -120,13 +121,13 @@ export function createWetLiveEditor(host) {
                 user-select: none;
             }
 
-            .wet-live-editor.review-flags-visible .review-flag-button {
+            .review-flag-layer.review-flags-visible .review-flag-button {
                 opacity: 0.6;
                 pointer-events: auto;
             }
 
-            .wet-live-editor.review-flags-visible .review-flag-button:hover,
-            .wet-live-editor .review-flag-button:focus {
+            .review-flag-layer.review-flags-visible .review-flag-button:hover,
+            .review-flag-layer .review-flag-button:focus {
                 opacity: 1;
                 transform: scale(1);
                 outline: 2px solid rgba(37, 87, 214, 0.45);
@@ -152,7 +153,7 @@ export function createWetLiveEditor(host) {
                 background: #b91c1c;
             }
 
-            .wet-live-editor .review-flag-button-error {
+            .review-flag-layer .review-flag-button-error {
                 border-color: #991b1b;
                 background: #fef2f2;
                 color: #b91c1c;
@@ -212,6 +213,7 @@ export function createWetLiveEditor(host) {
             }
         </style>
         <div id="wetLiveEditor" class="wet-live-editor" contenteditable="true" role="textbox" aria-multiline="true" tabindex="0"></div>
+        <div id="reviewFlagLayer" class="review-flag-layer"></div>
         <span id="liveReciprocalCaret" class="reciprocal-caret" aria-hidden="true"></span>
         <button type="button" id="tableEditPopover" class="table-edit-popover" aria-label="Edit table">
             <span class="table-edit-popover-icon" aria-hidden="true"></span>
