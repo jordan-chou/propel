@@ -221,6 +221,10 @@ export function createWetLiveEditor(host) {
             <span aria-hidden="true">◇</span>
             <span>Convert</span>
         </button>
+        <button type="button" id="tableCopyPopover" class="table-edit-popover table-copy-popover" aria-label="Copy table HTML">
+            <span aria-hidden="true">&lt;/&gt;</span>
+            <span>Copy HTML</span>
+        </button>
     `;
 
     const editor = shadow.getElementById('wetLiveEditor');

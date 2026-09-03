@@ -43,6 +43,8 @@ export function createTableEditorController(config) {
         isCleanedTable,
         defaultTableCleanupOptions,
         renameTag,
+        copyToClipboard,
+        formatHTML,
         getEditorSelection,
         getClosestElement,
         preserveParagraphsOnEnter,
@@ -58,7 +60,7 @@ export function createTableEditorController(config) {
     } = config;
     const {
         tableEditorDialog, tableEditorResizeHandle, tableEditorSnapGuides,
-        tableEditorFullscreenBtn, tableEditorCloseBtn, tableEditorCancelBtn, tableEditorComponentBtn,
+        tableEditorFullscreenBtn, tableEditorCloseBtn, tableEditorCancelBtn, tableEditorComponentBtn, tableEditorCopyBtn,
         tableEditorApplyBtn, tableEditorApplyNextBtn, tableEditorFirstBtn,
         tableEditorPrevBtn, tableEditorNextBtn, tableEditorLastBtn, tableEditorPages,
         tableEditorUndoBtn, tableEditorRedoBtn,
@@ -73,7 +75,8 @@ export function createTableEditorController(config) {
         tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
         tableEditorUnitSuggestion, tableEditorIdSuggestion,
         tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
-        tableTooltipButtons, optionTooltip, toastRegion, liveTableEditPopover, liveTableComponentPopover
+        tableTooltipButtons, optionTooltip, toastRegion, liveTableEditPopover, liveTableComponentPopover,
+        liveTableCopyPopover
     } = elements;
 
     let tableEditorIndex = 0;
@@ -148,8 +151,14 @@ export function createTableEditorController(config) {
         if (tableEditorComponentBtn) {
             tableEditorComponentBtn.addEventListener('click', openActiveTableComponentLibrary);
         }
+        if (tableEditorCopyBtn) {
+            tableEditorCopyBtn.addEventListener('click', copyActiveTableHTML);
+        }
         if (liveTableComponentPopover) {
             liveTableComponentPopover.addEventListener('click', openHoveredLiveTableComponentLibrary);
+        }
+        if (liveTableCopyPopover) {
+            liveTableCopyPopover.addEventListener('click', copyHoveredLiveTableHTML);
         }
         if (tableEditorFirstBtn) {
             tableEditorFirstBtn.addEventListener('click', () => renderTableEditor(0));
@@ -1030,6 +1039,13 @@ export function createTableEditorController(config) {
             liveTableComponentPopover.style.top = `${top + liveTableEditPopover.offsetHeight + 6}px`;
             liveTableComponentPopover.style.left = `${Math.max(8, tableRect.right - hostRect.left - liveTableComponentPopover.offsetWidth - 8)}px`;
         }
+        if (liveTableCopyPopover) {
+            const precedingHeight = liveTableEditPopover.offsetHeight
+                + (liveTableComponentPopover?.offsetHeight || 0) + 12;
+            liveTableCopyPopover.classList.add('visible');
+            liveTableCopyPopover.style.top = `${top + precedingHeight}px`;
+            liveTableCopyPopover.style.left = `${Math.max(8, tableRect.right - hostRect.left - liveTableCopyPopover.offsetWidth - 8)}px`;
+        }
     }
     
     /** Hides live table edit popover. */
@@ -1042,6 +1058,7 @@ export function createTableEditorController(config) {
     
         liveTableEditPopover.classList.remove('visible');
         liveTableComponentPopover?.classList.remove('visible');
+        liveTableCopyPopover?.classList.remove('visible');
     }
     
     /** Opens hovered live table editor. */
@@ -1076,6 +1093,20 @@ export function createTableEditorController(config) {
         liveTableEditTarget = null;
         liveTableEditPopover?.classList.remove('visible');
         liveTableComponentPopover?.classList.remove('visible');
+        liveTableCopyPopover?.classList.remove('visible');
+    }
+
+    /** Copies the hovered Live table from canonical state with its responsive wrapper. */
+    async function copyHoveredLiveTableHTML(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!liveTableEditTarget) return;
+
+        const tableIndex = getLiveTableIndex(liveTableEditTarget);
+        syncLiveToInputHTML();
+        const item = getTableEditorItems()[tableIndex];
+        await copyTableHTML(item?.container);
+        hideLiveTableEditPopover();
     }
     
     /** Renders table editor. */
@@ -1207,6 +1238,64 @@ export function createTableEditorController(config) {
         }
     
         return tableEditorCanvas.querySelector('div.table-responsive') || getTableEditorTable();
+    }
+
+    /** Returns a clean clone of the active editor table for applying or copying. */
+    function cloneCleanTableEditorContainer() {
+        const editedContainer = getTableEditorContainer();
+        if (!editedContainer) return null;
+
+        const cleanClone = editedContainer.cloneNode(true);
+        clearScopeVisualization(cleanClone);
+        cleanClone.querySelectorAll(MANUAL_SCOPE_ATTRIBUTES.map((attribute) => `[${attribute}]`).join(',')).forEach((cell) => {
+            MANUAL_SCOPE_ATTRIBUTES.forEach((attribute) => cell.removeAttribute(attribute));
+        });
+        cleanClone.querySelectorAll('.selected').forEach((element) => {
+            element.classList.remove('selected');
+            if (element.classList.length === 0) element.removeAttribute('class');
+        });
+        return cleanClone;
+    }
+
+    /** Returns a table with the responsive wrapper required by publishing markup. */
+    function getResponsiveTableContainer(container) {
+        if (!container) return null;
+
+        const table = container.matches('table') ? container : container.querySelector('table');
+        if (!table) return null;
+
+        const responsiveContainer = container.matches('div.table-responsive')
+            ? container
+            : table.closest('div.table-responsive');
+        if (responsiveContainer) return responsiveContainer;
+
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('table-responsive');
+        wrapper.appendChild(table.cloneNode(true));
+        return wrapper;
+    }
+
+    /** Copies table markup and reports the result through the existing activity UI. */
+    async function copyTableHTML(container) {
+        const responsiveContainer = getResponsiveTableContainer(container);
+        if (!responsiveContainer || typeof copyToClipboard !== 'function') return;
+        const html = typeof formatHTML === 'function'
+            ? formatHTML(responsiveContainer)
+            : responsiveContainer.outerHTML;
+
+        try {
+            await copyToClipboard(html);
+            addProcessingLog('Copied table HTML to clipboard.', 'success');
+        } catch (error) {
+            addProcessingLog('Could not copy table HTML to clipboard.', 'error');
+        }
+    }
+
+    /** Copies the table editor preview without committing its pending changes. */
+    async function copyActiveTableHTML() {
+        updateTableEditorCaption();
+        updateTableEditorId();
+        await copyTableHTML(cloneCleanTableEditorContainer());
     }
     
     /** Loads table editor caption fields. */
@@ -2159,17 +2248,7 @@ export function createTableEditorController(config) {
             matchHeaderIdsToTable: true
         });
     
-        const cleanClone = editedContainer.cloneNode(true);
-        clearScopeVisualization(cleanClone);
-        cleanClone.querySelectorAll(MANUAL_SCOPE_ATTRIBUTES.map((attribute) => `[${attribute}]`).join(',')).forEach((cell) => {
-            MANUAL_SCOPE_ATTRIBUTES.forEach((attribute) => cell.removeAttribute(attribute));
-        });
-        cleanClone.querySelectorAll('.selected').forEach((element) => {
-            element.classList.remove('selected');
-            if (element.classList.length === 0) {
-                element.removeAttribute('class');
-            }
-        });
+        const cleanClone = cloneCleanTableEditorContainer();
     
         item.container.replaceWith(cleanClone);
         tableEditorAcceptedExternalCaptionNodes.forEach((node) => {

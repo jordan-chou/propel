@@ -690,9 +690,15 @@ textarea {
     overflow: auto;
 }
 
-.table-editor-dialog .table-editor-component-action.btn {
-    width: 100%;
+.table-editor-context-actions {
+    display: grid;
+    gap: 6px;
     margin: 0 0 12px;
+}
+
+.table-editor-dialog :is(.table-editor-component-action, .table-editor-copy-action).btn {
+    width: 100%;
+    margin: 0;
     min-height: 38px;
     cursor: pointer;
 }
@@ -2364,12 +2370,12 @@ textarea {
     }
 
     .table-editor-nav,
-    .table-editor-component-action,
+    .table-editor-context-actions,
     .table-editor-options {
         grid-column: 1 / -1;
     }
 
-    .table-editor-component-action,
+    .table-editor-context-actions,
     .table-editor-panel > .form-row,
     .table-editor-options,
     .table-editor-nav {
