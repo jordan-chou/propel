@@ -1450,6 +1450,21 @@ test('live table overlay controls keep focus and remain valid hover targets', ()
     outsideButton.remove();
 });
 
+test('Live review controls are kept outside editable document content', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const editor = createWetLiveEditor(host);
+    const reviewFlagLayer = editor.getRootNode().getElementById('reviewFlagLayer');
+    editor.innerHTML = '<h2>Flagged heading</h2>';
+    reviewFlagLayer.innerHTML = '<span class="review-flag-button" role="button">⚑</span>';
+
+    equal(Boolean(reviewFlagLayer), true);
+    equal(editor.contains(reviewFlagLayer), false);
+    equal(editor.querySelector('.review-flag-button'), null);
+    equal(editor.querySelector('h2').textContent, 'Flagged heading');
+    host.remove();
+});
+
 test('reciprocal caret maps the same text position between source and Live view', () => {
     const root = document.createElement('div');
     const html = '<div><p>One <strong>two</strong> three</p></div>';

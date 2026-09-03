@@ -166,6 +166,8 @@ const documentRecoveryPrivacyStatus = document.getElementById('documentRecoveryP
 const documentLoader = document.getElementById('loader');
 const liveEditorHost = document.getElementById('liveEditor');
 const liveEditor = createWetLiveEditor(liveEditorHost);
+const liveReviewFlagLayer = liveEditor?.getRootNode().getElementById('reviewFlagLayer');
+const liveReviewFlagTargets = new WeakMap();
 let liveEditBaseline = captureLiveEditBaseline(liveEditor);
 const editorDropZone = document.getElementById('editorDropZone');
 const editorPanel = document.querySelector('.editor-panel');
@@ -589,6 +591,7 @@ function createModernDashboardListeners() {
             scheduleTypingRefresh('live');
             rememberLiveSelection();
             updateBlockFormatSelect();
+            positionLiveReviewFlags();
             hideReciprocalCaret(codeReciprocalCaret);
         });
 
@@ -608,6 +611,7 @@ function createModernDashboardListeners() {
         liveEditor.addEventListener('mousemove', tableEditor.handleLiveTableHover);
         liveEditor.addEventListener('scroll', () => {
             tableEditor.positionLiveTablePopover();
+            positionLiveReviewFlags();
             if (activeEditorView === 'code') updateLiveReciprocalCaret();
         });
         liveEditor.addEventListener('mouseleave', (event) => {
@@ -686,6 +690,7 @@ function createModernDashboardListeners() {
         window.addEventListener('resize', () => {
             updatePaneSplitterOrientation();
             applyCurrentPaneSplitterLocation();
+            positionLiveReviewFlags();
         });
     }
 
@@ -828,6 +833,7 @@ function setLivePaneWidthFromRatio(ratio) {
     livePaneWidthRatio = nextRatio;
     const size = getPaneResizeMetrics().availableSize * nextRatio;
     editorDropZone.style.setProperty('--live-pane-width', `${size}px`);
+    positionLiveReviewFlags();
 }
 
 /** Applies saved pane splitter location. */
@@ -3659,9 +3665,9 @@ function runReviewIssueAction(action, paths) {
 
 /** Renders review markers beside flagged components in the Live editor. */
 function updateLiveReviewFlags() {
-    if (!liveEditor) return;
+    if (!liveEditor || !liveReviewFlagLayer) return;
 
-    liveEditor.querySelectorAll('.review-flag-button').forEach(element => element.remove());
+    liveReviewFlagLayer.replaceChildren();
     liveEditor.querySelectorAll('.review-flagged-component').forEach((element) => {
         element.classList.remove('review-flagged-component', 'review-flag-error');
         element.removeAttribute('data-review-issues');
@@ -3719,17 +3725,39 @@ function updateLiveReviewFlags() {
             event.stopPropagation();
             openReviewIssue(issues[0].issueKey);
         });
-        liveTarget.appendChild(flag);
+        liveReviewFlagTargets.set(flag, liveTarget);
+        liveReviewFlagLayer.appendChild(flag);
     });
+    positionLiveReviewFlags();
     updateLiveReviewFlagVisibility();
+}
+
+/** Positions review controls over their Live targets without placing controls in editable content. */
+function positionLiveReviewFlags() {
+    if (!liveEditorHost || !liveEditor || !liveReviewFlagLayer) return;
+
+    const hostRect = liveEditorHost.getBoundingClientRect();
+    liveReviewFlagLayer.querySelectorAll('.review-flag-button').forEach((flag) => {
+        const liveTarget = liveReviewFlagTargets.get(flag);
+        if (!liveTarget || !liveEditor.contains(liveTarget)) {
+            flag.hidden = true;
+            return;
+        }
+
+        const targetRect = liveTarget.getBoundingClientRect();
+        flag.hidden = false;
+        flag.style.left = `${targetRect.left - hostRect.left - 7}px`;
+        flag.style.top = `${targetRect.top - hostRect.top - 7}px`;
+    });
 }
 
 /** Refreshes live review flag visibility. */
 function updateLiveReviewFlagVisibility() {
-    if (!liveEditor) return;
+    if (!liveReviewFlagLayer) return;
     const reviewIsActive = Boolean(document.getElementById('issuesPane')?.classList.contains('active'));
     const shouldShow = drawers.activity.isOpen() && reviewIsActive && (!reviewFlagsToggle || reviewFlagsToggle.checked);
-    liveEditor.classList.toggle('review-flags-visible', shouldShow);
+    liveReviewFlagLayer.classList.toggle('review-flags-visible', shouldShow);
+    if (shouldShow) positionLiveReviewFlags();
 }
 
 /** Returns review issue key. */
