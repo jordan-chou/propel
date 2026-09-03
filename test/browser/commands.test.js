@@ -1162,6 +1162,37 @@ test('table scoping drag paints the same live rectangle as cell selection', () =
     fixture.remove();
 });
 
+test('table cleanup copies the pending table with a responsive wrapper without applying it', async () => {
+    const fixture = createTableEditorScopingFixture('<table><tbody><tr><td>Original</td></tr></tbody></table>');
+    const editorCell = fixture.elements.tableEditorCanvas.querySelector('td');
+    editorCell.textContent = 'Pending edit';
+    editorCell.classList.add('selected');
+
+    fixture.elements.tableEditorCopyBtn.click();
+    await Promise.resolve();
+
+    equal(fixture.copiedHTML.length, 1);
+    equal(fixture.copiedHTML[0], 'formatted:<div class="table-responsive"><table><tbody><tr><td>Pending edit</td></tr></tbody></table></div>');
+    equal(fixture.processingLogs.length, 1);
+    equal(fixture.processingLogs[0], 'Copied table HTML to clipboard.:success');
+    equal(fixture.activityToasts.length, 0);
+    equal(fixture.inputHTML.querySelector('td').textContent, 'Original');
+    fixture.remove();
+});
+
+test('Live table hover action copies the table with its responsive wrapper', async () => {
+    const fixture = createTableEditorScopingFixture('<table id="summary"><tbody><tr><td>Total</td></tr></tbody></table>');
+    const liveTable = fixture.liveEditor.querySelector('table');
+
+    fixture.controller.handleLiveTableHover({ target: liveTable });
+    fixture.elements.liveTableCopyPopover.click();
+    await Promise.resolve();
+
+    equal(fixture.copiedHTML.length, 1);
+    equal(fixture.copiedHTML[0], 'formatted:<div class="table-responsive"><table id="summary"><tbody><tr><td>Total</td></tr></tbody></table></div>');
+    fixture.remove();
+});
+
 function createTableEditorScopingFixture(
     tableMarkup = '<table id="t1"><thead><tr><th id="parent">Label</th><th id="column-a">A</th><th id="column-b">B</th></tr></thead><tbody><tr><th id="row-a">One</th><td>1</td><td>2</td></tr><tr><th id="row-b">Two</th><td>3</td><td>4</td></tr></tbody></table>',
     previewCleanup = false
@@ -1178,6 +1209,7 @@ function createTableEditorScopingFixture(
                 <button id="tableEditorLastBtn">Last</button>
                 <div id="tableEditorPages"></div>
                 <button id="tableEditorComponentBtn">Component</button>
+                <button id="tableEditorCopyBtn">Copy HTML</button>
                 <input id="tableEditorNumber"><button id="tableEditorNumberSuggestion"></button>
                 <input id="tableEditorCaption"><button id="tableEditorCaptionSuggestion"></button>
                 <input id="tableEditorUnit"><button id="tableEditorUnitSuggestion"></button>
@@ -1210,11 +1242,14 @@ function createTableEditorScopingFixture(
             <button id="tableEditorApplyNextBtn">Apply next</button>
             <button id="tableEditorApplyBtn">Apply</button>
         </section>
-        <div id="optionTooltip" role="tooltip" hidden></div>`;
+        <div id="optionTooltip" role="tooltip" hidden></div>
+        <button id="liveTableEditPopover">Edit</button>
+        <button id="liveTableComponentPopover">Component</button>
+        <button id="liveTableCopyPopover">Copy HTML</button>`;
     document.body.append(host);
     const ids = [
         'tableEditorDialog', 'tableEditorFullscreenBtn', 'tableEditorCloseBtn', 'tableEditorCancelBtn',
-        'tableEditorApplyBtn', 'tableEditorApplyNextBtn', 'tableEditorComponentBtn', 'tableEditorFirstBtn',
+        'tableEditorApplyBtn', 'tableEditorApplyNextBtn', 'tableEditorComponentBtn', 'tableEditorCopyBtn', 'tableEditorFirstBtn',
         'tableEditorPrevBtn', 'tableEditorNextBtn', 'tableEditorLastBtn', 'tableEditorPages',
         'tableEditorUndoBtn', 'tableEditorRedoBtn', 'tableEditorDeselectBtn', 'tableEditorScopingModeBtn',
         'tableEditorScopingModeBanner', 'tableEditorScopingModeInstructions', 'tableEditorScopingModeExitBtn',
@@ -1225,29 +1260,42 @@ function createTableEditorScopingFixture(
         'tableEditorNumber', 'tableEditorCaption', 'tableEditorUnit', 'tableEditorNumberSuggestion',
         'tableEditorCaptionSuggestion', 'tableEditorUnitSuggestion', 'tableEditorId', 'tableEditorIdSuggestion',
         'tableEditorComplexScoping',
-        'tableEditorFinancial', 'tableEditorFrench', 'optionTooltip'
+        'tableEditorFinancial', 'tableEditorFrench', 'optionTooltip',
+        'liveTableEditPopover', 'liveTableComponentPopover', 'liveTableCopyPopover'
     ];
     const elements = Object.fromEntries(ids.map((id) => [id, host.querySelector(`#${id}`)]));
     elements.tableEditorSnapGuides = [];
     elements.tableTooltipButtons = host.querySelectorAll('[data-tooltip]');
     const inputHTML = document.createElement('div');
     inputHTML.innerHTML = tableMarkup;
+    const liveEditor = document.createElement('div');
+    liveEditor.innerHTML = tableMarkup;
+    const liveEditorHost = document.createElement('div');
+    liveEditorHost.appendChild(liveEditor);
+    const copiedHTML = [];
+    const processingLogs = [];
+    const activityToasts = [];
     const controller = createTableEditorController({
         elements,
         inputHTML,
-        liveEditor: document.createElement('div'),
-        liveEditorHost: document.createElement('div'),
+        liveEditor,
+        liveEditorHost,
         uiPreferences: { get: () => ({}), set: () => {} },
         cleanupTable,
         isCleanedTable,
         defaultTableCleanupOptions,
         renameTag,
+        copyToClipboard: async (html) => copiedHTML.push(html),
+        formatHTML: (element) => `formatted:${element.outerHTML}`,
         getEditorSelection: () => null,
-        getClosestElement: () => null,
+        getClosestElement: (target, root, selector) => {
+            const closest = target?.closest?.(selector);
+            return closest && root.contains(closest) ? closest : null;
+        },
         preserveParagraphsOnEnter: () => {},
         getFocusableElements: (root) => Array.from(root.querySelectorAll('button:not(:disabled), input:not(:disabled)')),
-        addProcessingLog: () => {},
-        showActivityToast: () => {},
+        addProcessingLog: (message, type) => processingLogs.push(`${message}:${type}`),
+        showActivityToast: (message, type) => activityToasts.push(`${message}:${type}`),
         syncLiveToInputHTML: () => {},
         scrollLiveElementIntoView: () => {},
         commitTableChanges: () => {},
@@ -1256,7 +1304,16 @@ function createTableEditorScopingFixture(
     });
     controller.createListeners();
     controller.open(0, { previewCleanup });
-    return { controller, elements, inputHTML, remove: () => { controller.close(); host.remove(); } };
+    return {
+        controller,
+        elements,
+        inputHTML,
+        liveEditor,
+        copiedHTML,
+        processingLogs,
+        activityToasts,
+        remove: () => { controller.close(); host.remove(); }
+    };
 }
 
 test('table option refresh preserves manual bold and source markup', () => {
@@ -1284,17 +1341,22 @@ test('table option refresh preserves manual bold and source markup', () => {
     equal(value.getAttribute('width'), '80');
 });
 
-test('live table hover shows edit and component conversion pills', () => {
+test('live table hover shows edit, component conversion, and copy pills', () => {
     const liveEditorHost = document.createElement('div');
     const liveEditor = document.createElement('div');
     const popover = document.createElement('button');
     const componentPopover = document.createElement('button');
+    const copyPopover = document.createElement('button');
     liveEditor.innerHTML = '<table><tbody><tr><td>Value</td></tr></tbody></table>';
-    liveEditorHost.append(liveEditor, popover, componentPopover);
+    liveEditorHost.append(liveEditor, popover, componentPopover, copyPopover);
     document.body.append(liveEditorHost);
 
     const controller = createTableEditorController({
-        elements: { liveTableEditPopover: popover, liveTableComponentPopover: componentPopover },
+        elements: {
+            liveTableEditPopover: popover,
+            liveTableComponentPopover: componentPopover,
+            liveTableCopyPopover: copyPopover
+        },
         inputHTML: document.createElement('div'),
         liveEditor,
         liveEditorHost,
@@ -1310,6 +1372,7 @@ test('live table hover shows edit and component conversion pills', () => {
     controller.handleLiveTableHover({ target: liveEditor.querySelector('td') });
     equal(popover.classList.contains('visible'), true);
     equal(componentPopover.classList.contains('visible'), true);
+    equal(copyPopover.classList.contains('visible'), true);
     liveEditorHost.remove();
 });
 
@@ -1321,7 +1384,9 @@ test('live table overlay controls keep focus and remain valid hover targets', ()
     const shadow = editor.getRootNode();
     const editButton = shadow.getElementById('tableEditPopover');
     const convertButton = shadow.getElementById('tableComponentPopover');
+    const copyButton = shadow.getElementById('tableCopyPopover');
     const editButtonLabel = editButton.querySelector('span:last-child');
+    const copyButtonLabel = copyButton.querySelector('span:last-child');
 
     host.addEventListener('focus', (event) => {
         focusWetLiveEditorFromHost(event, host, editor);
@@ -1330,7 +1395,8 @@ test('live table overlay controls keep focus and remain valid hover targets', ()
     editButton.classList.add('visible');
     editButton.focus();
     equal(shadow.activeElement, editButton);
-    equal(isWetLiveEditorOverlayTarget(editButtonLabel, [editButton, convertButton]), true);
+    equal(isWetLiveEditorOverlayTarget(editButtonLabel, [editButton, convertButton, copyButton]), true);
+    equal(isWetLiveEditorOverlayTarget(copyButtonLabel, [editButton, convertButton, copyButton]), true);
 
     outsideButton.focus();
     host.focus();

@@ -202,13 +202,14 @@ const documentRedoBtn = document.getElementById('documentRedoBtn');
 const tableEditorElements = {
     liveTableEditPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableEditPopover') : null,
     liveTableComponentPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableComponentPopover') : null,
+    liveTableCopyPopover: liveEditor ? liveEditor.getRootNode().getElementById('tableCopyPopover') : null,
     tableEditorSnapGuides: document.querySelectorAll('.table-editor-snap-guide'),
     tableTooltipButtons: document.querySelectorAll('.table-editor-dialog [data-tooltip]'),
     toastRegion,
     ...Object.fromEntries([
         'tableEditorDialog', 'tableEditorResizeHandle', 'tableEditorFullscreenBtn',
         'tableEditorCloseBtn', 'tableEditorCancelBtn', 'tableEditorApplyBtn',
-        'tableEditorComponentBtn',
+        'tableEditorComponentBtn', 'tableEditorCopyBtn',
         'tableEditorApplyNextBtn', 'tableEditorFirstBtn', 'tableEditorPrevBtn',
         'tableEditorNextBtn', 'tableEditorLastBtn', 'tableEditorPages',
         'tableEditorUndoBtn', 'tableEditorRedoBtn',
@@ -352,6 +353,8 @@ const tableEditor = createTableEditorController({
     isCleanedTable,
     defaultTableCleanupOptions,
     renameTag,
+    copyToClipboard: Utils.copyToClipboard,
+    formatHTML: Utils.formattedHTML,
     getEditorSelection,
     getClosestElement,
     preserveParagraphsOnEnter,
@@ -540,6 +543,19 @@ function createModernDashboardListeners() {
     }
 
     if (liveEditor) {
+        const liveTableOverlays = [
+            tableEditorElements.liveTableEditPopover,
+            tableEditorElements.liveTableComponentPopover,
+            tableEditorElements.liveTableCopyPopover
+        ];
+        const leaveLiveTableContext = (event) => {
+            if (liveEditor.contains(event.relatedTarget)
+                || isWetLiveEditorOverlayTarget(event.relatedTarget, liveTableOverlays)) {
+                return;
+            }
+            tableEditor.hideLiveTablePopover();
+        };
+
         if (liveEditorHost) {
             liveEditorHost.addEventListener('focus', (event) => {
                 focusWetLiveEditorFromHost(event, liveEditorHost, liveEditor);
@@ -595,27 +611,18 @@ function createModernDashboardListeners() {
             if (activeEditorView === 'code') updateLiveReciprocalCaret();
         });
         liveEditor.addEventListener('mouseleave', (event) => {
-            const overlays = [tableEditorElements.liveTableEditPopover, tableEditorElements.liveTableComponentPopover];
-            if (isWetLiveEditorOverlayTarget(event.relatedTarget, overlays)) {
-                return;
-            }
-            tableEditor.hideLiveTablePopover();
+            leaveLiveTableContext(event);
         });
 
         if (tableEditorElements.liveTableEditPopover) {
             tableEditorElements.liveTableEditPopover.addEventListener('click', tableEditor.openHoveredLiveTable);
-            tableEditorElements.liveTableEditPopover.addEventListener('mouseleave', (event) => {
-                if (liveEditor.contains(event.relatedTarget)) {
-                    return;
-                }
-                tableEditor.hideLiveTablePopover();
-            });
+            tableEditorElements.liveTableEditPopover.addEventListener('mouseleave', leaveLiveTableContext);
         }
         if (tableEditorElements.liveTableComponentPopover) {
-            tableEditorElements.liveTableComponentPopover.addEventListener('mouseleave', (event) => {
-                if (liveEditor.contains(event.relatedTarget)) return;
-                tableEditor.hideLiveTablePopover();
-            });
+            tableEditorElements.liveTableComponentPopover.addEventListener('mouseleave', leaveLiveTableContext);
+        }
+        if (tableEditorElements.liveTableCopyPopover) {
+            tableEditorElements.liveTableCopyPopover.addEventListener('mouseleave', leaveLiveTableContext);
         }
         liveEditor.addEventListener('dblclick', (event) => {
             if (tableEditor.isOpen()) {

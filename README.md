@@ -109,6 +109,7 @@ Within the table editor, an editor can:
 - Delete selected rows or columns.
 - Generate and inspect explicit `id` and `headers` relationships for complex, multi-level tables.
 - Enter a locked scoping mode that disables unrelated editing controls while painting parent-to-child header relationships.
+- Copy formatted HTML for the current table, including its `div.table-responsive` wrapper, without applying pending editor changes.
 - Undo or redo table changes, cancel safely, and reopen a cleaned table without discarding its formatting.
 
 ## Local browser storage
