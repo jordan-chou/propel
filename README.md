@@ -114,7 +114,8 @@ Within the table editor, an editor can:
 
 ## Local browser storage
 
-Propel periodically saves the current canonical HTML to an IndexedDB database named
+Propel periodically saves the current canonical HTML, document settings, and the
+source filename (when imported) to an IndexedDB database named
 `propel-document-recovery`. After an unexpected browser or tab closure, returning
 to Propel offers to restore, ignore, or discard the most recent compatible local
 copy. Live or Code input is synchronized before a page-hide save is requested.

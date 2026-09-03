@@ -14,6 +14,7 @@ function makeSnapshot(overrides = {}) {
         html: '<p>Recovered work</p>',
         rootAttributes: [{ name: 'class', value: 'content-area' }],
         language: 'en',
+        sourceFileName: 'budget.docx',
         revision: 3,
         ...overrides
     };
@@ -52,6 +53,7 @@ test('recovery controller debounces and persists the latest canonical snapshot',
     assert.equal(saved.length, 1);
     assert.equal(saved[0].html, '<p>Latest work</p>');
     assert.equal(saved[0].revision, 4);
+    assert.equal(saved[0].sourceFileName, 'budget.docx');
     assert.equal(saved[0].savedAt, 1234);
     assert.equal(saved[0].schemaVersion, DOCUMENT_RECOVERY_SCHEMA_VERSION);
 });
@@ -138,6 +140,7 @@ test('recovery records reject incompatible or malformed browser data', () => {
     assert.equal(isValidDocumentRecoveryRecord({ ...valid, rootAttributes: [{ name: 'class' }] }), false);
     assert.equal(isValidDocumentRecoveryRecord({ ...valid, rootAttributes: [{ name: 'bad name', value: '' }] }), false);
     assert.equal(isValidDocumentRecoveryRecord({ ...valid, language: 'es' }), false);
+    assert.equal(isValidDocumentRecoveryRecord({ ...valid, sourceFileName: 42 }), false);
 });
 
 test('recovery draft IDs use the browser UUID provider when available', () => {
