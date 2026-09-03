@@ -964,6 +964,38 @@ test('table cleanup keeps paragraph wrappers in non-financial footers', () => {
     equal(host.querySelector('tfoot p').textContent, 'NOTES, SOURCES and FOOTNOTES GO HERE');
 });
 
+test('table cleanup preview normalizes fnt-nrml and avoids arbitrary character wrapping without changing markup', async () => {
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = '../css/custom.css';
+    const loaded = new Promise((resolve, reject) => {
+        stylesheet.addEventListener('load', resolve, { once: true });
+        stylesheet.addEventListener('error', reject, { once: true });
+    });
+    document.head.append(stylesheet);
+    await loaded;
+
+    const canvas = document.createElement('div');
+    try {
+        canvas.className = 'table-editor-canvas';
+        canvas.innerHTML = '<table><tbody><tr><th class="fnt-nrml">Plain <strong>source emphasis</strong></th><td>UninterruptedValue123456789</td></tr></tbody></table>';
+        document.body.append(canvas);
+        const header = canvas.querySelector('th');
+        const strong = canvas.querySelector('strong');
+        const cellStyle = getComputedStyle(canvas.querySelector('td'));
+        const originalHTML = canvas.innerHTML;
+
+        equal(getComputedStyle(header).fontWeight, '400');
+        equal(getComputedStyle(strong).fontWeight, '400');
+        equal(cellStyle.overflowWrap, 'normal');
+        equal(cellStyle.wordBreak, 'normal');
+        equal(canvas.innerHTML, originalHTML);
+    } finally {
+        canvas.remove();
+        stylesheet.remove();
+    }
+});
+
 test('table editor runs initial cleanup only for uncleaned tables', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr></tbody></table>';
@@ -1603,6 +1635,24 @@ test('table editor bold toggles fnt-nrml on header cells without adding strong',
 
     toggleCellBold(header);
     equal(header.classList.contains('fnt-nrml'), false);
+    equal(header.querySelector('strong'), null);
+});
+
+test('table editor bold toggles fnt-nrml on indented row-header content', () => {
+    const header = document.createElement('th');
+    header.className = 'fnt-nrml';
+    header.innerHTML = '<div class="text-left fnt-nrml mrgn-lft-md">Indented heading</div>';
+    const indent = header.firstElementChild;
+
+    toggleCellBold(header);
+    equal(header.classList.contains('fnt-nrml'), false);
+    equal(header.hasAttribute('class'), false);
+    equal(indent.classList.contains('fnt-nrml'), false);
+    equal(header.querySelector('strong'), null);
+
+    toggleCellBold(header);
+    equal(header.classList.contains('fnt-nrml'), false);
+    equal(indent.classList.contains('fnt-nrml'), true);
     equal(header.querySelector('strong'), null);
 });
 
