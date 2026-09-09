@@ -217,6 +217,37 @@ test('typing inside semantic and component containers keeps their context', () =
     live.remove();
 });
 
+test('standard cleanup preserves ordinary links and existing publishing cleanup', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<p>“Text” <a id="_bookmark"><em>bookmark</em></a><a href="#_Toc123">Contents</a>' +
+        '<a href="https://example.com/?url=other&amp;q=a%2Bb#part" title="Details">Link</a>' +
+        '<a href="../page.html">Relative</a><a href="#section">Section</a>' +
+        '<a href="mailto:editor@example.com">Email</a><img src="image.png" alt="Chart"></p>';
+
+    const changes = runStandardCleanup(host);
+
+    equal(host.innerHTML, '<p>"Text" <em>bookmark</em><a href="">Contents</a>' +
+        '<a href="https://example.com/?url=other&amp;q=a%2Bb#part" title="Details">Link</a>' +
+        '<a href="../page.html">Relative</a><a href="#section">Section</a>' +
+        '<a href="mailto:editor@example.com">Email</a><img src="" alt="Chart"></p>');
+    equal(changes.imageSources, 1);
+    equal(changes.bookmarks, 1);
+    equal(changes.bookmarkLinks, 1);
+});
+
+test('standard cleanup restores Safe Links hrefs without changing link markup', () => {
+    const host = document.createElement('div');
+    const destination = 'https://www.canada.ca/fr/page%20name.html?q=a%2Bb&lang=fr#section';
+    const wrapper = `https://nam01.safelinks.protection.outlook.com/?url=${encodeURIComponent(destination)}&amp;data=tracking`;
+    host.innerHTML = `<p><a href="${wrapper}" title="Details" target="_blank" rel="noopener"><strong>Read / Lire</strong></a></p>`;
+
+    const changes = runStandardCleanup(host);
+
+    equal(changes.safeLinks, 1);
+    equal(host.innerHTML, '<p><a href="https://www.canada.ca/fr/page%20name.html?q=a%2Bb&amp;lang=fr#section" title="Details" target="_blank" rel="noopener"><strong>Read / Lire</strong></a></p>');
+    equal(runStandardCleanup(host).safeLinks, 0);
+});
+
 test('standard cleanup removes all empty anchors while preserving element content', () => {
     const host = document.createElement('div');
     host.innerHTML = [

@@ -2733,7 +2733,8 @@ function handleConvertedHTML(html, fileName = '') {
         imageSources: imgCount,
         bookmarks: bookmarkCount,
         bookmarkLinks: hrefCount,
-        emptyAnchors: emptyAnchorCount
+        emptyAnchors: emptyAnchorCount,
+        safeLinks: safeLinkCount
     } = runStandardCleanup(inputHTML);
 
     const conversionTime = getEndTime();
@@ -2741,7 +2742,7 @@ function handleConvertedHTML(html, fileName = '') {
     Utils.scrollSmoothTo(outputSection);
 
     addProcessingLog(`Converted document in ${conversionTime} seconds.`, 'success');
-    addProcessingLog(`Initial cleanup: cleared ${imgCount} image src value(s), removed ${bookmarkCount} Word bookmark anchor(s), cleaned ${hrefCount} Word bookmark href(s), removed ${emptyAnchorCount} empty anchor(s).`, 'info');
+    addProcessingLog(`Initial cleanup: cleared ${imgCount} image src value(s), removed ${bookmarkCount} Word bookmark anchor(s), cleaned ${hrefCount} Word bookmark href(s), removed ${emptyAnchorCount} empty anchor(s), restored ${safeLinkCount} Safe Links destination(s).`, 'info');
 }
 
 /** Keeps the browser tab identifiable from the working document. */
@@ -2771,11 +2772,12 @@ function standardCleanupCommand() {
             imageSources: imgCount,
             bookmarks: bookmarkCount,
             bookmarkLinks: hrefCount,
-            emptyAnchors: emptyAnchorCount
+            emptyAnchors: emptyAnchorCount,
+            safeLinks: safeLinkCount
         } = runStandardCleanup(inputHTML);
 
         updateOutputText();
-        addProcessingLog(`Standard cleanup successful: cleared ${imgCount} image src value(s), removed ${bookmarkCount} Word bookmark anchor(s), cleaned ${hrefCount} Word bookmark href(s), removed ${emptyAnchorCount} empty anchor(s), and normalized smart quotes.`, 'success');
+        addProcessingLog(`Standard cleanup successful: cleared ${imgCount} image src value(s), removed ${bookmarkCount} Word bookmark anchor(s), cleaned ${hrefCount} Word bookmark href(s), removed ${emptyAnchorCount} empty anchor(s), restored ${safeLinkCount} Safe Links destination(s), and normalized smart quotes.`, 'success');
     } catch (e) {
         addProcessingLog('Error for Standard cleanup. Input is empty or invalid.', 'danger');
         console.error(e);
