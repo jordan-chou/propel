@@ -77,7 +77,17 @@ export function cleanupTable(inputTable, options = {}) {
         formatFrenchNumbers(table);
     }
 
+    removeEmptyClassAttributes(table);
     return tableContainer;
+}
+
+/** Removes empty class attributes from a root and its descendants. */
+export function removeEmptyClassAttributes(root) {
+    [root, ...root.querySelectorAll('[class]')].forEach((element) => {
+        if (element.hasAttribute('class') && element.classList.length === 0) {
+            element.removeAttribute('class');
+        }
+    });
 }
 
 /**

@@ -3,6 +3,7 @@ import { toggleCellsBold, toggleRowsActive } from './formatting.js';
 import { moveRowsToTableFooter } from './footer.js';
 import { deleteSelectedTableColumns } from './columns.js';
 import { classifyTableCaptionLabels, suggestTableId } from './caption-suggestions.js';
+import { removeEmptyClassAttributes } from '../commands/table-cleanup.js';
 import {
     applyTableScopes,
     hasHeaderRelationship,
@@ -1252,8 +1253,8 @@ export function createTableEditorController(config) {
         });
         cleanClone.querySelectorAll('.selected').forEach((element) => {
             element.classList.remove('selected');
-            if (element.classList.length === 0) element.removeAttribute('class');
         });
+        removeEmptyClassAttributes(cleanClone);
         return cleanClone;
     }
 
