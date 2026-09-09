@@ -32,6 +32,42 @@ export function normalizeSmartQuotes(root) {
     root.innerHTML = root.innerHTML.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
 }
 
+/** Unwrap Outlook Safe Links without resolving or fetching their destinations. */
+export function unwrapSafeLink(href) {
+    let result = href;
+    while (true) {
+        try {
+            const wrapper = new URL(result);
+            if (!['https:', 'http:'].includes(wrapper.protocol) ||
+                !(wrapper.hostname === 'safelinks.protection.outlook.com' ||
+                    wrapper.hostname.endsWith('.safelinks.protection.outlook.com'))) break;
+
+            // URLSearchParams decodes one wrapper layer. Decoding again would
+            // corrupt percent escapes belonging to the destination itself.
+            const destination = wrapper.searchParams.get('url');
+            const parsed = new URL(destination);
+            if (!['https:', 'http:'].includes(parsed.protocol) || destination === result) break;
+            result = destination;
+        } catch {
+            break;
+        }
+    }
+    return result;
+}
+
+export function cleanSafeLinks(root) {
+    let count = 0;
+    root.querySelectorAll('a[href]').forEach((link) => {
+        const href = link.getAttribute('href');
+        const destination = unwrapSafeLink(href);
+        if (destination !== href) {
+            link.setAttribute('href', destination);
+            count += 1;
+        }
+    });
+    return count;
+}
+
 export function runStandardCleanup(root) {
     const changes = {
         imageSources: cleanImageSources(root),
@@ -40,5 +76,6 @@ export function runStandardCleanup(root) {
         emptyAnchors: removeEmptyAnchors(root)
     };
     normalizeSmartQuotes(root);
+    changes.safeLinks = cleanSafeLinks(root);
     return Object.freeze(changes);
 }

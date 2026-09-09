@@ -27,5 +27,11 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    start in the recovered state. Repeat once with **Discard recovery copy**.
 9. In **Information**, disable local recovery and confirm the saved copy is
    deleted and no recovery prompt appears after another edit and reload.
+10. Import a document containing an Outlook Safe Links URL. Confirm in Live
+    and Code views that the `href` becomes the destination from its `url`
+    query parameter, retaining destination query parameters and fragments.
+    Link text should stay unchanged. The shared Standard cleanup transformation
+    is also covered by the browser tests; its button is currently commented
+    out in `index.html`.
 
 Browser tests are intentionally separate because Propel uses native DOM, selection, shadow DOM, file APIs, and `contenteditable` behavior that Node does not emulate accurately.

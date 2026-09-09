@@ -12,6 +12,7 @@ repository. A production build is only needed to create the portable release.
 
 - Imports Word documents and converts them to HTML, or starts with a blank document for direct editing.
 - Detects English or French metadata from DOCX files when available.
+- Restores original web destinations from Outlook Safe Links during import and Standard cleanup, preserving link text and destination query parameters and fragments.
 - Provides synchronized Live and Code editing views with reciprocal caret guidance.
 - Adds line navigation and find-and-replace tools to Code view.
 - Adds stable IDs to headings, tables, and figures.
