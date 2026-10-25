@@ -42,6 +42,6 @@ export function highlightHTML(html) {
             return `<span class="syntax-attr">${name}</span>${equals}<span class="syntax-value">${value}</span>`;
         });
 
-        return `<span class="syntax-bracket">${bracket}</span><span class="syntax-name">${tagName}</span><span class="syntax-tag">${highlightEntities(highlightedAttributes)}${closeBracket}</span>`;
+        return `<span class="syntax-bracket">${bracket}</span><span class="syntax-name">${tagName}</span><span class="syntax-tag">${highlightedAttributes}${closeBracket}</span>`;
     });
 }

@@ -16,13 +16,14 @@ test('highlights named and numeric HTML character entities in text', () => {
     );
 });
 
-test('highlights an entity within an attribute value while preserving value coloring', () => {
+test('keeps entities inside quoted attribute values in the value color', () => {
     const highlighted = highlightHTML('<a title="Terms &amp; conditions">Link</a>');
 
     assert.match(
         highlighted,
-        /<span class="syntax-value">&quot;Terms <span class="syntax-entity">&amp;amp;<\/span> conditions&quot;<\/span>/
+        /<span class="syntax-value">&quot;Terms &amp;amp; conditions&quot;<\/span>/
     );
+    assert.doesNotMatch(highlighted, /syntax-value[^]*syntax-entity/);
 });
 
 test('does not recolor entity-like text inside comments or incomplete references', () => {
