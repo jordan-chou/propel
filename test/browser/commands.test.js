@@ -1711,6 +1711,105 @@ test('table model selects a rectangular range', () => {
     equal(getCellsInRange(host.querySelector('table'), cells[0], cells[3]).length, 4);
 });
 
+test('table editor Bold button restores header weight and wraps data cells through undo, redo, and Apply', () => {
+    const fixture = createTableEditorScopingFixture(
+        '<table id="t1"><tbody><tr><th scope="row" class="fnt-nrml text-left">Heading</th><td>Value</td></tr></tbody></table>'
+    );
+    const { elements } = fixture;
+    const assertBoldRow = (root) => {
+        const header = root.querySelector('tbody th');
+        equal(header.classList.contains('fnt-nrml'), false);
+        equal(header.classList.contains('text-left'), true);
+        equal(header.innerHTML, 'Heading');
+        equal(root.querySelector('tbody td').innerHTML, '<strong>Value</strong>');
+    };
+
+    try {
+        elements.tableEditorCanvas.querySelectorAll('th, td').forEach((cell) => cell.classList.add('selected'));
+        elements.tableEditorBoldBtn.click();
+        assertBoldRow(elements.tableEditorCanvas);
+
+        elements.tableEditorUndoBtn.click();
+        equal(elements.tableEditorCanvas.querySelector('th').classList.contains('fnt-nrml'), true);
+        equal(elements.tableEditorCanvas.querySelector('td').innerHTML, 'Value');
+
+        elements.tableEditorRedoBtn.click();
+        assertBoldRow(elements.tableEditorCanvas);
+
+        elements.tableEditorApplyBtn.click();
+        assertBoldRow(fixture.inputHTML);
+    } finally {
+        fixture.remove();
+    }
+});
+
+for (const normalWeight of [false, true]) {
+    test(`table editor indentation preserves ${normalWeight ? 'normal' : 'bold'} header weight at every level`, () => {
+        const fixture = createTableEditorScopingFixture(
+            `<table id="t1"><tbody><tr><th class="text-left${normalWeight ? ' fnt-nrml' : ''}">Heading <em>detail</em></th><td><strong>Value</strong></td></tr></tbody></table>`
+        );
+        const { elements } = fixture;
+        const header = elements.tableEditorCanvas.querySelector('th');
+        const data = elements.tableEditorCanvas.querySelector('td');
+        const content = header.innerHTML;
+        const assertWeight = () => {
+            equal(header.classList.contains('fnt-nrml') || Boolean(header.querySelector('.fnt-nrml')), normalWeight);
+            equal(header.querySelector('strong'), null);
+            equal(data.innerHTML, '<strong>Value</strong>');
+        };
+
+        try {
+            header.classList.add('selected');
+            data.classList.add('selected');
+            for (const level of ['md', 'lg', 'xl', 'xl']) {
+                elements.tableEditorIndentBtn.click();
+                equal(header.firstElementChild.classList.contains(`mrgn-lft-${level}`), true);
+                equal(header.firstElementChild.innerHTML, content);
+                assertWeight();
+            }
+            for (const level of ['lg', 'md']) {
+                elements.tableEditorOutdentBtn.click();
+                equal(header.firstElementChild.classList.contains(`mrgn-lft-${level}`), true);
+                assertWeight();
+            }
+            elements.tableEditorOutdentBtn.click();
+            equal(header.innerHTML, content);
+            assertWeight();
+        } finally {
+            fixture.remove();
+        }
+    });
+}
+
+test('table editor outdent preserves normal weight set on an indent wrapper through undo, redo, and Apply', () => {
+    const fixture = createTableEditorScopingFixture(
+        '<table id="t1"><tbody><tr><th class="text-left"><div class="text-left fnt-nrml mrgn-lft-md">Heading <em>detail</em></div></th><td>Value</td></tr></tbody></table>'
+    );
+    const { elements } = fixture;
+    const assertNormalHeader = (root) => {
+        const header = root.querySelector('tbody th');
+        equal(header.classList.contains('fnt-nrml'), true);
+        equal(header.classList.contains('text-left'), true);
+        equal(header.innerHTML, 'Heading <em>detail</em>');
+    };
+
+    try {
+        elements.tableEditorCanvas.querySelector('th').classList.add('selected');
+        elements.tableEditorOutdentBtn.click();
+        assertNormalHeader(elements.tableEditorCanvas);
+
+        elements.tableEditorUndoBtn.click();
+        equal(elements.tableEditorCanvas.querySelector('th > div').classList.contains('fnt-nrml'), true);
+        elements.tableEditorRedoBtn.click();
+        assertNormalHeader(elements.tableEditorCanvas);
+
+        elements.tableEditorApplyBtn.click();
+        assertNormalHeader(fixture.inputHTML);
+    } finally {
+        fixture.remove();
+    }
+});
+
 test('table editor bold toggles fnt-nrml on header cells without adding strong', () => {
     const header = document.createElement('th');
     header.textContent = 'Heading';

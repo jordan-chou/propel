@@ -2152,7 +2152,7 @@ export function createTableEditorController(config) {
     
             if (!wrapper) {
                 wrapper = document.createElement('div');
-                wrapper.classList.add('text-left', 'fnt-nrml');
+                wrapper.classList.add('text-left');
                 while (cell.firstChild) {
                     wrapper.appendChild(cell.firstChild);
                 }
@@ -2160,7 +2160,7 @@ export function createTableEditorController(config) {
             }
     
             wrapper.classList.remove(...levels);
-            wrapper.classList.add(levels[nextIndex], 'text-left', 'fnt-nrml');
+            wrapper.classList.add(levels[nextIndex], 'text-left');
         });
     }
     
@@ -2174,6 +2174,11 @@ export function createTableEditorController(config) {
     /** Removes an indentation wrapper while preserving its contents. */
     function unwrapTableEditorIndentWrapper(wrapper) {
         const parent = wrapper.parentNode;
+
+        // Keep explicit normal weight when removing its indentation container.
+        if (wrapper.classList.contains('fnt-nrml')) {
+            parent.classList.add('fnt-nrml');
+        }
     
         while (wrapper.firstChild) {
             parent.insertBefore(wrapper.firstChild, wrapper);
