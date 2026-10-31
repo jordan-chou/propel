@@ -43,6 +43,11 @@ export function applyTableScopes(table, options = {}) {
 
     if (!complex) {
         table.querySelectorAll('[headers]').forEach((cell) => cell.removeAttribute('headers'));
+        table.querySelectorAll('th[id]').forEach((header) => header.removeAttribute('id'));
+        // Overrides refer to the removed IDs and cannot survive a return to simple scoping.
+        table.querySelectorAll('th, td').forEach((cell) => {
+            MANUAL_SCOPE_ATTRIBUTES.forEach((attribute) => cell.removeAttribute(attribute));
+        });
         return;
     }
 

@@ -1217,7 +1217,7 @@ test('scoping converts cells without changing their bold state or partial emphas
     applyTableScopes(table, { complex: false });
     const headers = table.querySelectorAll('thead th');
     equal(headers[0].innerHTML, 'Label');
-    equal(headers[0].id, 'label');
+    equal(headers[0].hasAttribute('id'), false);
     equal(headers[0].className, 'text-left');
     equal(headers[1].classList.contains('fnt-nrml'), true);
     equal(table.querySelector('tbody th').classList.contains('fnt-nrml'), true);
@@ -1510,6 +1510,39 @@ test('applying complex scoping matches header IDs to the committed table ID', ()
     );
     equal(fixture.inputHTML.querySelector('td').getAttribute('headers'), 't1-h2 t1-h4');
     fixture.remove();
+});
+
+test('turning off complex scoping removes header IDs through undo, redo, and Apply', () => {
+    const fixture = createTableEditorScopingFixture();
+    const { elements, inputHTML } = fixture;
+    const preview = () => elements.tableEditorCanvas.querySelector('table');
+    const complexMarkup = preview().outerHTML;
+    const originalMarkup = inputHTML.innerHTML;
+
+    try {
+        elements.tableEditorComplexScoping.click();
+        equal(preview().querySelector('th[id], [headers]'), null);
+        equal(preview().querySelector('thead th').getAttribute('scope'), 'col');
+        equal(preview().querySelector('tbody th').getAttribute('scope'), 'row');
+        equal(preview().id, 't1');
+        equal(inputHTML.innerHTML, originalMarkup);
+        const simpleMarkup = preview().outerHTML;
+
+        elements.tableEditorUndoBtn.click();
+        equal(elements.tableEditorComplexScoping.checked, true);
+        equal(preview().outerHTML, complexMarkup);
+        elements.tableEditorRedoBtn.click();
+        equal(elements.tableEditorComplexScoping.checked, false);
+        equal(preview().outerHTML, simpleMarkup);
+
+        elements.tableEditorApplyBtn.click();
+        equal(inputHTML.querySelector('th[id], [headers]'), null);
+        equal(inputHTML.querySelector('thead th').getAttribute('scope'), 'col');
+        equal(inputHTML.querySelector('tbody th').getAttribute('scope'), 'row');
+        equal(inputHTML.querySelector('table').id, 't1');
+    } finally {
+        fixture.remove();
+    }
 });
 
 test('table ID suggestion follows the table number and updates scoped header IDs when accepted', () => {
@@ -2331,6 +2364,26 @@ test('simple scoping omits explicit headers associations', () => {
 
     equal(table.querySelector('td').hasAttribute('headers'), false);
     equal(table.querySelector('tbody th').getAttribute('scope'), 'row');
+});
+
+test('simple scoping clears header IDs and overrides before complex scoping is enabled again', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table id="expenses"><thead><tr><th id="label">Label</th><th id="value">Value</th></tr></thead><tbody><tr><th id="cash">Cash</th><td id="amount" headers="value cash">10</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    preserveExistingHeaderRelationships(table);
+    applyTableScopes(table, { complex: true });
+    equal(table.querySelector('td').getAttribute('headers'), 'value cash');
+
+    applyTableScopes(table, { complex: false });
+
+    equal(table.querySelector('th[id], [headers], [data-propel-scope-add], [data-propel-scope-remove]'), null);
+    equal(table.id, 'expenses');
+    equal(table.querySelector('td').id, 'amount');
+    equal(table.querySelector('thead th').getAttribute('scope'), 'col');
+    equal(table.querySelector('tbody th').getAttribute('scope'), 'row');
+
+    applyTableScopes(table, { complex: true });
+    equal(table.querySelector('td').getAttribute('headers'), 'expenses-h2 expenses-h3');
 });
 
 test('table scoping recalculates thead colspans without treating rowspan as a row group', () => {
