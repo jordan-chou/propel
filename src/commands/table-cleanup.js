@@ -4,6 +4,7 @@ export const defaultTableCleanupOptions = {
     format: true,
     trim: true,
     financialTable: true,
+    darkHeaders: true,
     removeBoldFromRowHeaders: true,
     addScope: true,
     addTfoot: false,
@@ -266,7 +267,8 @@ function ensureThead(table, tbody) {
 
 function formatThead(thead, options) {
     Array.from(thead.querySelectorAll('tr')).forEach((row) => {
-        row.classList.add('bg-dark', 'text-white');
+        row.classList.toggle('bg-dark', options.darkHeaders !== false);
+        row.classList.toggle('text-white', options.darkHeaders !== false);
         row.classList.remove('active');
 
         Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {

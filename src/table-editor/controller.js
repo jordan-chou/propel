@@ -75,7 +75,7 @@ export function createTableEditorController(config) {
         tableEditorCanvas, tableEditorNumber, tableEditorCaption, tableEditorUnit, tableEditorId,
         tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
         tableEditorUnitSuggestion, tableEditorIdSuggestion,
-        tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
+        tableEditorComplexScoping, tableEditorFinancial, tableEditorDarkHeaders, tableEditorFrench,
         tableTooltipButtons, optionTooltip, toastRegion, liveTableEditPopover, liveTableComponentPopover,
         liveTableCopyPopover
     } = elements;
@@ -268,12 +268,13 @@ export function createTableEditorController(config) {
             }
         });
     
-        [tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench].forEach((field) => {
+        [tableEditorComplexScoping, tableEditorFinancial, tableEditorDarkHeaders, tableEditorFrench].forEach((field) => {
             if (field) {
                 field.addEventListener('change', () => {
                     const action = field === tableEditorComplexScoping
                         ? 'table.option.complexScoping'
-                        : field === tableEditorFinancial ? 'table.option.financial' : 'table.option.french';
+                        : field === tableEditorFinancial ? 'table.option.financial'
+                        : field === tableEditorDarkHeaders ? 'table.option.darkHeaders' : 'table.option.french';
                     applyTableOptionChange(field, action);
                     if (field === tableEditorComplexScoping && !field.checked) setTableEditorScopingMode(false);
                 });
@@ -737,6 +738,7 @@ export function createTableEditorController(config) {
         return {
             html: clone.innerHTML,
             complexScoping: Boolean(tableEditorComplexScoping && tableEditorComplexScoping.checked),
+            darkHeaders: tableEditorDarkHeaders ? tableEditorDarkHeaders.checked : true,
             financial: Boolean(tableEditorFinancial && tableEditorFinancial.checked),
             french: Boolean(tableEditorFrench && tableEditorFrench.checked),
             acceptedExternalCaptionNodes: Array.from(tableEditorAcceptedExternalCaptionNodes)
@@ -754,6 +756,7 @@ export function createTableEditorController(config) {
     
         return first.html === second.html
             && first.complexScoping === second.complexScoping
+            && first.darkHeaders === second.darkHeaders
             && first.financial === second.financial
             && first.french === second.french
             && firstAccepted.length === secondAccepted.length
@@ -888,6 +891,11 @@ export function createTableEditorController(config) {
                     name: 'Complex scoping',
                     enabled: Boolean(tableEditorComplexScoping && tableEditorComplexScoping.checked)
                 }
+            : action === 'table.option.darkHeaders'
+                ? {
+                    name: 'Dark header background',
+                    enabled: Boolean(tableEditorDarkHeaders && tableEditorDarkHeaders.checked)
+                }
             : action === 'table.option.french'
                 ? {
                     name: 'French number format',
@@ -920,6 +928,9 @@ export function createTableEditorController(config) {
         }
         if (tableEditorFinancial) {
             tableEditorFinancial.checked = snapshot.financial;
+        }
+        if (tableEditorDarkHeaders) {
+            tableEditorDarkHeaders.checked = snapshot.darkHeaders;
         }
         if (tableEditorFrench) {
             tableEditorFrench.checked = snapshot.french;
@@ -1755,7 +1766,7 @@ export function createTableEditorController(config) {
             tableEditorNumber, tableEditorCaption, tableEditorUnit, tableEditorId,
             tableEditorNumberSuggestion, tableEditorCaptionSuggestion,
             tableEditorUnitSuggestion, tableEditorIdSuggestion,
-            tableEditorComplexScoping, tableEditorFinancial, tableEditorFrench,
+            tableEditorComplexScoping, tableEditorFinancial, tableEditorDarkHeaders, tableEditorFrench,
             ...Array.from(tableTooltipButtons || []).filter((button) => button.matches('.option-help')),
             ...Array.from(tableEditorPages?.querySelectorAll('button') || [])
         ].filter(Boolean);
@@ -1943,6 +1954,7 @@ export function createTableEditorController(config) {
     function getTableEditorOptions() {
         return {
             ...defaultTableCleanupOptions,
+            darkHeaders: tableEditorDarkHeaders ? tableEditorDarkHeaders.checked : true,
             financialTable: tableEditorFinancial ? tableEditorFinancial.checked : defaultTableCleanupOptions.financialTable,
             addScope: true,
             addTfoot: false,
@@ -1977,6 +1989,7 @@ export function createTableEditorController(config) {
     /** Applies the selected simple or complex header association strategy. */
     function applyCurrentTableScopes(table, options = {}) {
         applyTableScopes(table, {
+            darkHeaders: tableEditorDarkHeaders ? tableEditorDarkHeaders.checked : true,
             complex: tableEditorComplexScoping ? tableEditorComplexScoping.checked : true,
             idRoot: inputHTML,
             addTableId: false,
@@ -2014,7 +2027,9 @@ export function createTableEditorController(config) {
                 return;
             }
     
-            row.classList.add('bg-dark', 'text-white');
+            const darkHeaders = tableEditorDarkHeaders ? tableEditorDarkHeaders.checked : true;
+            row.classList.toggle('bg-dark', darkHeaders);
+            row.classList.toggle('text-white', darkHeaders);
             row.classList.remove('active');
             Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
                 const nextCell = convertTableCell(cell, 'th', { bold: true });

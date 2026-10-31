@@ -226,7 +226,7 @@ const tableEditorElements = {
         'tableEditorCanvas', 'tableEditorNumber', 'tableEditorCaption',
         'tableEditorUnit', 'tableEditorId', 'tableEditorNumberSuggestion', 'tableEditorCaptionSuggestion',
         'tableEditorUnitSuggestion', 'tableEditorIdSuggestion',
-        'tableEditorComplexScoping', 'tableEditorFinancial', 'tableEditorFrench',
+        'tableEditorComplexScoping', 'tableEditorFinancial', 'tableEditorDarkHeaders', 'tableEditorFrench',
         'optionTooltip'
     ].map((id) => [id, document.getElementById(id)]))
 };
