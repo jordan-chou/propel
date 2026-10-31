@@ -4,6 +4,7 @@ import { moveRowsToTableFooter } from './footer.js';
 import { deleteSelectedTableColumns } from './columns.js';
 import { classifyTableCaptionLabels, suggestTableId } from './caption-suggestions.js';
 import { removeEmptyClassAttributes } from '../commands/table-cleanup.js';
+import { hasRichTableCellContent } from '../commands/table-cell.js';
 import {
     applyTableScopes,
     hasHeaderRelationship,
@@ -2016,8 +2017,9 @@ export function createTableEditorController(config) {
             if (row.closest('thead')) {
                 row.classList.remove('bg-dark', 'text-white');
                 Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
-                    const nextCell = convertTableCell(cell, index === 0 ? 'th' : 'td');
-                    if (index === 0) {
+                    const isRowHeader = index === 0 && !hasRichTableCellContent(cell);
+                    const nextCell = convertTableCell(cell, isRowHeader ? 'th' : 'td');
+                    if (isRowHeader) {
                         nextCell.setAttribute('scope', 'row');
                     } else {
                         nextCell.removeAttribute('scope');
