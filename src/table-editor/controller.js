@@ -1430,7 +1430,7 @@ export function createTableEditorController(config) {
         const suggestedId = hasAcceptedNumber ? suggestTableId(tableEditorNumber.value) : '';
         const currentId = table.id || '';
         const hasPendingSuggestion = tableEditorId.hasAttribute('data-caption-suggestion');
-        const canReplaceCurrentId = !currentId || /^t\d+$/i.test(currentId);
+        const canReplaceCurrentId = !currentId || /^(?:t|tbl)\d+$/i.test(currentId);
 
         if (!suggestedId || suggestedId === currentId || (!hasPendingSuggestion && !canReplaceCurrentId)) {
             tableEditorIdSuggestion.hidden = true;
