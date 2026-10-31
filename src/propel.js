@@ -3461,7 +3461,7 @@ function updateDocumentHealth() {
     if (!hasInput()) {
         healthScore.className = 'label label-default';
         healthScore.textContent = 'Not checked';
-        documentHealth.innerHTML = '<p class="text-muted">Document report will appear here after conversion or editing.</p>';
+        documentHealth.innerHTML = '<p class="text-muted">Add content to see the report.</p>';
         return;
     }
 
@@ -3540,6 +3540,7 @@ function updateHeadingOutline() {
         button.className = 'report-outline-button';
         button.innerHTML = `<span class="label label-default">${element.tagName.toLowerCase()}</span>`;
         label.textContent = getOutlineElementLabel(element, selectedOutlineType);
+        button.title = label.textContent;
         button.append(' ', label);
         button.addEventListener('click', () => {
             scrollEditorsToElementPath(path);
@@ -3579,7 +3580,7 @@ function updateIssues() {
     const issueGroups = getDocumentIssueGroups();
 
     if (!hasInput()) {
-        documentIssues.innerHTML = '<p class="text-muted">Items to review will appear here.</p>';
+        documentIssues.innerHTML = '<p class="text-muted">Add content to review.</p>';
         return;
     }
 
