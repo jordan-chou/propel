@@ -29,6 +29,10 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    In complex scoping it should receive column and applicable section headers,
    without becoming a header for adjacent cells; switching to simple scoping
    must leave it without a `scope` attribute.
+   Turning off Complex scoping must remove header-cell IDs and explicit
+   `headers` relationships while retaining the table ID and header `scope`
+   attributes. Check undo/redo and Apply, then turn it back on and confirm
+   all regenerated `headers` references point to existing header IDs.
 6. Review counts, issue navigation, outline filters, and flags update after edits.
 7. English/French switching changes relevant generated publishing text.
 8. Reload after editing, restore the offered browser recovery copy, and confirm
