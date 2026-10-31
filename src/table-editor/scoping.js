@@ -1,4 +1,5 @@
 import { addGenericID } from '../commands/anchors-aweigh.js';
+import { convertTableCell } from '../commands/table-cell.js';
 
 const INDENT_CLASSES = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
 export const MANUAL_SCOPE_ATTRIBUTES = ['data-propel-scope-add', 'data-propel-scope-remove'];
@@ -7,7 +8,6 @@ export const MANUAL_SCOPE_ATTRIBUTES = ['data-propel-scope-add', 'data-propel-sc
 export function applyTableScopes(table, options = {}) {
     if (!table) return;
 
-    const renameTag = options.renameTag || ((cell) => cell);
     const complex = options.complex !== false;
 
     const rows = Array.from(table.querySelectorAll(':scope > thead > tr, :scope > tbody > tr'));
@@ -18,7 +18,7 @@ export function applyTableScopes(table, options = {}) {
             row.classList.add('bg-dark', 'text-white');
             row.classList.remove('active');
             Array.from(row.querySelectorAll(':scope > th, :scope > td')).forEach((cell) => {
-                const columnHeader = renameTag(cell, 'th');
+                const columnHeader = convertTableCell(cell, 'th');
                 columnHeader.setAttribute('scope', getColumnHeaderScope(columnHeader));
             });
             return;
@@ -27,7 +27,7 @@ export function applyTableScopes(table, options = {}) {
         const cells = Array.from(row.querySelectorAll(':scope > th, :scope > td'));
         const firstCell = cells[0];
         if (!firstCell) return;
-        const rowHeader = renameTag(firstCell, 'th');
+        const rowHeader = convertTableCell(firstCell, 'th');
         rowHeader.setAttribute('scope', getRowHeaderScope(row, rowHeader, cells));
     });
 

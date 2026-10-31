@@ -1,3 +1,5 @@
+import { convertTableCell } from './table-cell.js';
+
 export const defaultTableCleanupOptions = {
     format: true,
     trim: true,
@@ -268,7 +270,9 @@ function formatThead(thead, options) {
         row.classList.remove('active');
 
         Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
-            const headerCell = renameTag(cell, 'th');
+            const headerCell = convertTableCell(cell, 'th', {
+                bold: cell.tagName === 'TD' ? true : 'preserve'
+            });
 
             if (options.addScope) {
                 headerCell.setAttribute('scope', getColumnHeaderScope(headerCell));
@@ -299,7 +303,12 @@ function formatTbody(tbody, options) {
             return;
         }
 
-        const rowHeader = renameTag(firstCell, 'th');
+        const removeBold = options.removeBoldFromRowHeaders
+            && !firstCell.hasAttribute('colspan')
+            && !(firstCell.hasAttribute('rowspan') && options.addScope);
+        const rowHeader = convertTableCell(firstCell, 'th', {
+            bold: removeBold ? false : firstCell.tagName === 'TD' ? true : 'preserve'
+        });
 
         if (options.addScope) {
             rowHeader.setAttribute('scope', 'row');
@@ -311,8 +320,6 @@ function formatTbody(tbody, options) {
             }
         } else if (rowHeader.hasAttribute('rowspan') && options.addScope) {
             rowHeader.setAttribute('scope', 'rowgroup');
-        } else if (options.removeBoldFromRowHeaders) {
-            rowHeader.classList.add('fnt-nrml');
         }
 
         if (options.financialTable) {

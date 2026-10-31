@@ -43,7 +43,7 @@ export function createTableEditorController(config) {
         cleanupTable,
         isCleanedTable,
         defaultTableCleanupOptions,
-        renameTag,
+        convertTableCell,
         copyToClipboard,
         formatHTML,
         getEditorSelection,
@@ -1980,7 +1980,6 @@ export function createTableEditorController(config) {
             complex: tableEditorComplexScoping ? tableEditorComplexScoping.checked : true,
             idRoot: inputHTML,
             addTableId: false,
-            renameTag,
             ...options
         });
     }
@@ -2004,7 +2003,7 @@ export function createTableEditorController(config) {
             if (row.closest('thead')) {
                 row.classList.remove('bg-dark', 'text-white');
                 Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
-                    const nextCell = index === 0 ? renameTag(cell, 'th') : renameTag(cell, 'td');
+                    const nextCell = convertTableCell(cell, index === 0 ? 'th' : 'td');
                     if (index === 0) {
                         nextCell.setAttribute('scope', 'row');
                     } else {
@@ -2018,7 +2017,7 @@ export function createTableEditorController(config) {
             row.classList.add('bg-dark', 'text-white');
             row.classList.remove('active');
             Array.from(row.querySelectorAll('th, td')).forEach((cell, index) => {
-                const nextCell = renameTag(cell, 'th');
+                const nextCell = convertTableCell(cell, 'th', { bold: true });
                 nextCell.setAttribute('scope', Number(nextCell.getAttribute('colspan')) > 1 ? 'colgroup' : 'col');
                 if (tableEditorFinancial && tableEditorFinancial.checked && index > 0) {
                     nextCell.classList.add('text-right');
@@ -2152,7 +2151,7 @@ export function createTableEditorController(config) {
     
             if (!wrapper) {
                 wrapper = document.createElement('div');
-                wrapper.classList.add('text-left', 'fnt-nrml');
+                wrapper.classList.add('text-left');
                 while (cell.firstChild) {
                     wrapper.appendChild(cell.firstChild);
                 }
@@ -2160,7 +2159,7 @@ export function createTableEditorController(config) {
             }
     
             wrapper.classList.remove(...levels);
-            wrapper.classList.add(levels[nextIndex], 'text-left', 'fnt-nrml');
+            wrapper.classList.add(levels[nextIndex], 'text-left');
         });
     }
     
@@ -2174,6 +2173,11 @@ export function createTableEditorController(config) {
     /** Removes an indentation wrapper while preserving its contents. */
     function unwrapTableEditorIndentWrapper(wrapper) {
         const parent = wrapper.parentNode;
+
+        // Keep explicit normal weight when removing its indentation container.
+        if (wrapper.classList.contains('fnt-nrml')) {
+            parent.classList.add('fnt-nrml');
+        }
     
         while (wrapper.firstChild) {
             parent.insertBefore(wrapper.firstChild, wrapper);
