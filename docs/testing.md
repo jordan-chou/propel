@@ -20,6 +20,10 @@ Before merging a structural refactor, manually verify with `test/test-document-d
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
 5. Table cleanup opens, supports selection and formatting, applies changes, and cancels safely.
+   Confirm **Dark header background** starts on. Turn it off, promote a body row
+   to a header, and change Financial table or Complex scoping; header rows should
+   remain without `bg-dark` and `text-white`. Check undo/redo, Copy table HTML,
+   Apply, and Cancel. Turning the switch back on restores both classes.
 6. Review counts, issue navigation, outline filters, and flags update after edits.
 7. English/French switching changes relevant generated publishing text.
 8. Reload after editing, restore the offered browser recovery copy, and confirm

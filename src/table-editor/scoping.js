@@ -15,7 +15,8 @@ export function applyTableScopes(table, options = {}) {
     rows.forEach((row) => {
         const inHead = Boolean(row.closest('thead'));
         if (inHead) {
-            row.classList.add('bg-dark', 'text-white');
+            row.classList.toggle('bg-dark', options.darkHeaders !== false);
+            row.classList.toggle('text-white', options.darkHeaders !== false);
             row.classList.remove('active');
             Array.from(row.querySelectorAll(':scope > th, :scope > td')).forEach((cell) => {
                 const columnHeader = convertTableCell(cell, 'th');

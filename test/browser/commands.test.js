@@ -1111,6 +1111,8 @@ test('Header row conversion normalizes bolding through undo, redo, demotion, and
     const selectBodyRow = () => elements.tableEditorCanvas.querySelector('tbody th').classList.add('selected');
     const assertHeader = () => {
         const row = elements.tableEditorCanvas.querySelector('thead tr:last-child');
+        equal(row.classList.contains('bg-dark'), true);
+        equal(row.classList.contains('text-white'), true);
         equal(row.querySelectorAll('th').length, 2);
         equal(row.querySelector('.fnt-nrml, strong'), null);
         equal(row.cells[0].firstElementChild.className, 'mrgn-lft-md');
@@ -1139,6 +1141,73 @@ test('table cleanup creates WET structure', () => {
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr><tr><td>A</td><td>1</td></tr></tbody></table>';
     const result = cleanupTable(host.querySelector('table'));
     equal(result.querySelectorAll('thead').length, 1);
+    equal(result.querySelector('thead tr').className, 'bg-dark text-white');
+});
+
+test('dark header styling can be disabled through cleanup and both scoping modes', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr class="custom bg-dark text-white"><th>Label</th><th colspan="2">Values</th></tr></thead><tbody><tr class="bg-dark text-white"><td>A</td><td>1</td><td>2</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    cleanupTable(table, { darkHeaders: false });
+    for (const complex of [true, false]) {
+        applyTableScopes(table, { complex, darkHeaders: false });
+        equal(table.querySelector('thead tr').className, 'custom');
+        equal(table.querySelector('thead th:last-child').getAttribute('scope'), 'colgroup');
+        equal(table.querySelector('tbody tr').className, 'bg-dark text-white');
+    }
+    applyTableScopes(table);
+    equal(table.querySelector('thead tr').className, 'custom bg-dark text-white');
+});
+
+test('dark header switch supports conversion, refresh, undo, redo, copy, Apply, and reopening', async () => {
+    const fixture = createTableEditorScopingFixture(
+        '<table id="t1"><thead><tr class="custom bg-dark text-white"><th>Label</th><th>Value</th></tr></thead><tbody><tr><th>A</th><td>1</td></tr><tr><th>B</th><td>2</td></tr></tbody></table>'
+    );
+    const { elements } = fixture;
+    const assertDark = (enabled) => {
+        for (const row of elements.tableEditorCanvas.querySelectorAll('thead tr')) {
+            equal(row.classList.contains('bg-dark'), enabled);
+            equal(row.classList.contains('text-white'), enabled);
+        }
+    };
+    try {
+        equal(elements.tableEditorDarkHeaders.checked, true);
+        elements.tableEditorDarkHeaders.click();
+        assertDark(false);
+        equal(elements.tableEditorCanvas.querySelector('thead tr').className, 'custom');
+        equal(fixture.inputHTML.querySelector('thead tr').classList.contains('bg-dark'), true);
+        elements.tableEditorUndoBtn.click();
+        equal(elements.tableEditorDarkHeaders.checked, true);
+        assertDark(true);
+        elements.tableEditorRedoBtn.click();
+        equal(elements.tableEditorDarkHeaders.checked, false);
+        assertDark(false);
+        elements.tableEditorCanvas.querySelector('tbody th').classList.add('selected');
+        elements.tableEditorHeaderBtn.click();
+        equal(elements.tableEditorCanvas.querySelectorAll('thead tr').length, 2);
+        equal(elements.tableEditorCanvas.querySelectorAll('thead tr:last-child th').length, 2);
+        assertDark(false);
+        elements.tableEditorFinancial.click();
+        elements.tableEditorComplexScoping.click();
+        assertDark(false);
+        elements.tableEditorDarkHeaders.click();
+        assertDark(true);
+        elements.tableEditorDarkHeaders.click();
+        elements.tableEditorCopyBtn.click();
+        await Promise.resolve();
+        equal(fixture.copiedHTML[0].includes('bg-dark'), false);
+        equal(fixture.copiedHTML[0].includes('text-white'), false);
+        elements.tableEditorApplyBtn.click();
+        equal(fixture.inputHTML.querySelector('.bg-dark, .text-white'), null);
+        fixture.controller.open(0);
+        equal(elements.tableEditorDarkHeaders.checked, false);
+        assertDark(false);
+        elements.tableEditorDarkHeaders.click();
+        elements.tableEditorCancelBtn.click();
+        equal(fixture.inputHTML.querySelector('.bg-dark, .text-white'), null);
+    } finally {
+        fixture.remove();
+    }
 });
 
 test('table cleanup removes empty classes after formatting and preserves populated classes', () => {
@@ -1262,6 +1331,7 @@ test('table scoping mode locks editing controls and provides an explicit exit', 
     equal(fixture.elements.tableEditorHeaderBtn.disabled, true);
     equal(fixture.elements.tableEditorNumber.disabled, true);
     equal(fixture.elements.tableEditorId.disabled, true);
+    equal(fixture.elements.tableEditorDarkHeaders.disabled, true);
     equal(fixture.elements.tableEditorApplyBtn.disabled, true);
     equal(fixture.elements.tableEditorScopingModeBtn.disabled, false);
     equal(fixture.elements.tableEditorScopingModeBtn.getAttribute('aria-label'), 'Exit scoping mode');
@@ -1506,6 +1576,7 @@ function createTableEditorScopingFixture(
                 <input id="tableEditorId"><button id="tableEditorIdSuggestion"></button>
                 <input id="tableEditorComplexScoping" type="checkbox" checked>
                 <input id="tableEditorFinancial" type="checkbox">
+                <input id="tableEditorDarkHeaders" type="checkbox" checked>
                 <input id="tableEditorFrench" type="checkbox">
             </aside>
             <div class="table-editor-workspace">
@@ -1550,7 +1621,7 @@ function createTableEditorScopingFixture(
         'tableEditorNumber', 'tableEditorCaption', 'tableEditorUnit', 'tableEditorNumberSuggestion',
         'tableEditorCaptionSuggestion', 'tableEditorUnitSuggestion', 'tableEditorId', 'tableEditorIdSuggestion',
         'tableEditorComplexScoping',
-        'tableEditorFinancial', 'tableEditorFrench', 'optionTooltip',
+        'tableEditorFinancial', 'tableEditorDarkHeaders', 'tableEditorFrench', 'optionTooltip',
         'liveTableEditPopover', 'liveTableComponentPopover', 'liveTableCopyPopover'
     ];
     const elements = Object.fromEntries(ids.map((id) => [id, host.querySelector(`#${id}`)]));
