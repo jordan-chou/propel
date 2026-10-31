@@ -47,6 +47,7 @@ import {
 } from '../../src/document/recovery-store.js';
 import { runStandardCleanup } from '../../src/document/cleanup.js';
 import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
+import { highlightHTML } from '../../src/ui/html-syntax-highlight.js';
 import { createCodeFindController } from '../../src/ui/code-find.js';
 import {
     buildBugReportUrl,
@@ -456,6 +457,54 @@ test('repeated native Enter commands do not leave empty paragraphs in synchroniz
     equal(clone.innerHTML, '<p>Before</p>');
     selection.removeAllRanges();
     live.remove();
+});
+
+test('attribute entity highlighting preserves source text and does not create document elements', () => {
+    const source = '<img alt="&quot;Revenue&quot; &amp; costs&nbsp; &#160; &#xA0; &lt;b&gt;total&lt;/b&gt;" title=\'L&apos;économie&#8239;\'><p>&amp; &#160;</p>';
+    const code = document.createElement('code');
+    code.innerHTML = highlightHTML(source);
+
+    equal(code.textContent, source);
+    equal(code.querySelector('img, b, p'), null);
+    equal(code.querySelectorAll('.syntax-value').length, 2);
+    equal(code.querySelectorAll('.syntax-value .syntax-entity').length, 0);
+    equal(code.querySelector('.syntax-value').textContent, '"&quot;Revenue&quot; &amp; costs&nbsp; &#160; &#xA0; &lt;b&gt;total&lt;/b&gt;"');
+    equal([...code.querySelectorAll('.syntax-entity')].map(node => node.textContent).join(' '), '&amp; &#160;');
+});
+
+test('code viewport keeps attribute entities in value highlighting after scrolling', () => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:relative;width:420px;height:110px';
+    host.innerHTML = `
+        <pre style="position:absolute;inset:0;margin:0;overflow:hidden"><code></code></pre>
+        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:0;border:0;white-space:pre;font:14px/22px monospace"></textarea>`;
+    document.body.append(host);
+    const textarea = host.querySelector('textarea');
+    const source = Array.from({ length: 100 }, (_, index) => `<p title="Line ${index} &amp; &#160;">Text &amp;</p>`).join('\n');
+    textarea.value = source;
+    const viewport = createCodeHighlightViewport({
+        overlay: host.querySelector('pre'), textarea, highlight: highlightHTML, overscanLines: 1
+    });
+    try {
+        viewport.update(source);
+        textarea.scrollTop = 1100;
+        viewport.render();
+        const code = host.querySelector('code');
+        const start = Number(code.dataset.highlightStart);
+        const end = Number(code.dataset.highlightEnd);
+        equal(start > 0, true);
+        equal(end < source.length, true);
+        equal(code.textContent, source.slice(start, end));
+        const values = [...code.querySelectorAll('.syntax-value')];
+        equal(values.length > 0, true);
+        equal(values.every(value => /^"Line \d+ &amp; &#160;"$/.test(value.textContent)), true);
+        equal(code.querySelectorAll('.syntax-value .syntax-entity').length, 0);
+        equal(code.querySelectorAll('.syntax-entity').length, values.length);
+        equal([...code.querySelectorAll('.syntax-entity')].every(node => node.textContent === '&amp;'), true);
+    } finally {
+        viewport.destroy();
+        host.remove();
+    }
 });
 
 test('code highlighting renders only the visible source window', () => {
