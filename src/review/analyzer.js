@@ -12,11 +12,11 @@ export function analyzeDocument(root) {
         Number(heading.tagName.substring(1)) > Number(headings[index - 1].tagName.substring(1)) + 1);
 
     const issueGroups = [
-        { label: 'Empty links', severity: 'error', targets: links.filter(link => !link.getAttribute('href')?.trim()), getMessage: target => `${describeTarget(target, 'Link')} has an empty or missing href value.` },
-        { label: 'Missing IDs', severity: 'warning', action: 'addIds', actionLabel: 'Add IDs', targets: missingIdTargets, getMessage: target => `${describeTarget(target, getTargetType(target))} is missing an ID.` },
-        { label: 'Table cleanup', severity: 'error', action: 'tableCleanup', actionLabel: 'Table Cleanup', targets: tables.filter(table => !isCleanedTable(table)), getMessage: (target, index) => `${describeTarget(target, `Table ${index + 1}`)} may not have been cleaned up yet. Open Table cleanup to review.` },
-        { label: 'Heading level skips', severity: 'error', targets: headingSkips, getMessage: target => `${describeTarget(target, target.tagName)} may skip a heading level.` },
-        { label: 'Missing image alt text', severity: 'error', targets: images.filter(image => !image.hasAttribute('alt')), getMessage: (target, index) => `${describeTarget(target, `Image ${index + 1}`)} is missing an alt attribute. Empty alt may be valid for decorative images.` }
+        { label: 'Empty links', severity: 'error', targets: links.filter(link => !link.getAttribute('href')?.trim()), getMessage: target => `${describeTarget(target, 'Link')}: missing destination.` },
+        { label: 'Missing IDs', severity: 'warning', action: 'addIds', actionLabel: 'Add IDs', targets: missingIdTargets, getMessage: target => describeTarget(target, getTargetType(target)) },
+        { label: 'Table cleanup', severity: 'error', action: 'tableCleanup', actionLabel: 'Table Cleanup', targets: tables.filter(table => !isCleanedTable(table)), getMessage: (target, index) => `${describeTarget(target, `Table ${index + 1}`)}: check cleanup.` },
+        { label: 'Heading level skips', severity: 'error', targets: headingSkips, getMessage: target => `${describeTarget(target, target.tagName)}: check level.` },
+        { label: 'Missing image alt text', severity: 'error', targets: images.filter(image => !image.hasAttribute('alt')), getMessage: (target, index) => `${describeTarget(target, `Image ${index + 1}`)}: add alt; use empty alt if decorative.` }
     ].filter(group => group.targets.length > 0);
 
     return Object.freeze({
