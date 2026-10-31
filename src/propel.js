@@ -9,7 +9,8 @@
 import { modifyHeadings, modifyFigures, modifyTables, createOnThisPage } from './commands/anchors-aweigh.js';
 import { createBodyFtnTags, replaceFootnoteSection } from './commands/footnote-generator.js';
 import { transformNbspHTML } from './commands/nbsp.js';
-import { cleanupTable, defaultTableCleanupOptions, renameTag } from './commands/table-cleanup.js';
+import { cleanupTable, defaultTableCleanupOptions } from './commands/table-cleanup.js';
+import { convertTableCell } from './commands/table-cell.js';
 import { collapseAll, setCodeTheme, countTags, qaHelperTagsDefault, setUpPresetBtns } from './commands/qa-helper.js';
 
 import { engStrings, frStrings } from './strings.js';
@@ -357,7 +358,7 @@ const tableEditor = createTableEditorController({
     cleanupTable,
     isCleanedTable,
     defaultTableCleanupOptions,
-    renameTag,
+    convertTableCell,
     copyToClipboard: Utils.copyToClipboard,
     formatHTML: Utils.formattedHTML,
     getEditorSelection,

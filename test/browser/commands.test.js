@@ -10,6 +10,7 @@ import {
     setManualHeaderRelationship
 } from '../../src/table-editor/scoping.js';
 import { renameTag } from '../../src/commands/table-cleanup.js';
+import { convertTableCell } from '../../src/commands/table-cell.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
 import { applyBlockFormat } from '../../src/ui/block-format.js';
 import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from '../../src/ui/live-editing.js';
@@ -959,6 +960,131 @@ test('English footnote return text is preserved', () => {
     equal(root.querySelector('.fn-rtn .wb-inv:last-child').textContent.trim(), 'referrer');
 });
 
+test('generic table tag renaming preserves source formatting', () => {
+    const cell = document.createElement('td');
+    cell.className = 'fnt-nrml';
+    cell.innerHTML = '<strong>Value</strong>';
+    const header = renameTag(cell, 'th');
+    equal(header.outerHTML, '<th class="fnt-nrml"><strong>Value</strong></th>');
+});
+
+test('cell conversion preserves attributes and child identity while removing nested whole-cell emphasis', () => {
+    const cell = document.createElement('td');
+    cell.setAttribute('id', 'amount');
+    cell.setAttribute('headers', 'year');
+    cell.setAttribute('rowspan', '2');
+    cell.className = 'text-right';
+    cell.innerHTML = ' <p><strong id="emphasis" lang="fr"><b><a href="#detail">Recettes</a></b></strong></p> ';
+    const link = cell.querySelector('a');
+    const header = convertTableCell(cell, 'th');
+    equal(header.id, 'amount');
+    equal(header.getAttribute('headers'), 'year');
+    equal(header.getAttribute('rowspan'), '2');
+    equal(header.className, 'text-right');
+    equal(header.innerHTML, ' <p><span id="emphasis" lang="fr"><a href="#detail">Recettes</a></span></p> ');
+    equal(header.querySelector('a'), link);
+    equal(convertTableCell(header, 'th'), header);
+
+    const normalizedHTML = header.innerHTML;
+    const data = convertTableCell(header, 'td');
+    equal(data.querySelectorAll('strong').length, 1);
+    equal(data.firstElementChild.tagName, 'STRONG');
+    equal(data.querySelector('a'), link);
+    const roundTrip = convertTableCell(data, 'th');
+    equal(roundTrip.innerHTML, normalizedHTML);
+});
+
+test('cell conversion preserves normal weight and does not mistake partial emphasis for whole-cell bold', () => {
+    for (const content of ['<strong>First</strong> and last', 'First <strong>last</strong>']) {
+        const cell = document.createElement('td');
+        cell.innerHTML = content;
+        const header = convertTableCell(cell, 'th');
+        equal(header.classList.contains('fnt-nrml'), true);
+        equal(header.innerHTML, content);
+        const data = convertTableCell(header, 'td');
+        equal(data.innerHTML, content);
+    }
+    const header = document.createElement('th');
+    header.innerHTML = '<div class="mrgn-lft-md fnt-nrml">Normal</div>';
+    const data = convertTableCell(header, 'td');
+    equal(data.innerHTML, '<div class="mrgn-lft-md">Normal</div>');
+    equal(data.querySelector('strong'), null);
+});
+
+test('table cleanup normalizes converted header bolding while preserving partial emphasis and data cells', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><td class="fnt-nrml"><strong>Label</strong></td><td><b>Value</b></td></tr><tr><td><strong><a href="#detail">Revenue</a></strong></td><td><strong>10</strong></td></tr><tr><td>Total <strong>net</strong></td><td>20</td></tr></tbody></table>';
+    cleanupTable(host.querySelector('table'));
+    const headers = host.querySelectorAll('thead th');
+    equal(headers[0].innerHTML, 'Label');
+    equal(headers[0].classList.contains('fnt-nrml'), false);
+    equal(headers[1].innerHTML, 'Value');
+    const rows = host.querySelectorAll('tbody th');
+    equal(rows[0].innerHTML, '<a href="#detail">Revenue</a>');
+    equal(rows[0].classList.contains('fnt-nrml'), true);
+    equal(rows[1].innerHTML, 'Total <strong>net</strong>');
+    equal(host.querySelector('tbody td').innerHTML, '<strong>10</strong>');
+});
+
+test('table cleanup retains bold spanning headers and the row-header bold option', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><td colspan="2"><strong>Section</strong></td></tr><tr><td><strong>Revenue</strong></td><td>10</td></tr></tbody></table>';
+    cleanupTable(host.querySelector('table'), { removeBoldFromRowHeaders: false });
+    const headers = host.querySelectorAll('tbody th');
+    equal(headers[0].innerHTML, 'Section');
+    equal(headers[0].classList.contains('fnt-nrml'), false);
+    equal(headers[1].innerHTML, 'Revenue');
+    equal(headers[1].classList.contains('fnt-nrml'), false);
+});
+
+test('scoping converts cells without changing their bold state or partial emphasis', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><td id="label" class="text-left"><strong>Label</strong></td><td>Value</td></tr></thead><tbody><tr><td>Normal <strong>detail</strong></td><td>10</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: false });
+    const headers = table.querySelectorAll('thead th');
+    equal(headers[0].innerHTML, 'Label');
+    equal(headers[0].id, 'label');
+    equal(headers[0].className, 'text-left');
+    equal(headers[1].classList.contains('fnt-nrml'), true);
+    equal(table.querySelector('tbody th').classList.contains('fnt-nrml'), true);
+    equal(table.querySelector('tbody th').innerHTML, 'Normal <strong>detail</strong>');
+    const firstHTML = table.outerHTML;
+    applyTableScopes(table, { complex: false });
+    equal(table.outerHTML, firstHTML);
+});
+
+test('Header row conversion normalizes bolding through undo, redo, demotion, and Apply', () => {
+    const fixture = createTableEditorScopingFixture(
+        '<table id="t1"><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th class="fnt-nrml"><div class="mrgn-lft-md fnt-nrml">Revenue</div></th><td><strong><a href="#detail">10</a></strong></td></tr></tbody></table>'
+    );
+    const { elements } = fixture;
+    const selectBodyRow = () => elements.tableEditorCanvas.querySelector('tbody th').classList.add('selected');
+    const assertHeader = () => {
+        const row = elements.tableEditorCanvas.querySelector('thead tr:last-child');
+        equal(row.querySelectorAll('th').length, 2);
+        equal(row.querySelector('.fnt-nrml, strong'), null);
+        equal(row.cells[0].firstElementChild.className, 'mrgn-lft-md');
+        equal(row.cells[1].innerHTML, '<a href="#detail">10</a>');
+    };
+    try {
+        selectBodyRow();
+        elements.tableEditorHeaderBtn.click();
+        assertHeader();
+        elements.tableEditorUndoBtn.click();
+        equal(elements.tableEditorCanvas.querySelector('tbody th').classList.contains('fnt-nrml'), true);
+        elements.tableEditorRedoBtn.click();
+        assertHeader();
+        elements.tableEditorCanvas.querySelector('thead tr:last-child th').classList.add('selected');
+        elements.tableEditorHeaderBtn.click();
+        equal(elements.tableEditorCanvas.querySelector('tbody td').innerHTML, '<strong><a href="#detail">10</a></strong>');
+        elements.tableEditorApplyBtn.click();
+        equal(fixture.inputHTML.querySelector('tbody td').innerHTML, '<strong><a href="#detail">10</a></strong>');
+    } finally {
+        fixture.remove();
+    }
+});
+
 test('table cleanup creates WET structure', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><tbody><tr><td>Name</td><td>Value</td></tr><tr><td>A</td><td>1</td></tr></tbody></table>';
@@ -1291,7 +1417,7 @@ test('table editor removes empty classes when copying and applying pending edits
 
     fixture.elements.tableEditorApplyBtn.click();
     equal(Array.from(fixture.inputHTML.querySelectorAll('[class]')).every((element) => element.classList.length > 0), true);
-    equal(fixture.inputHTML.querySelector('span').parentElement.className, 'keep');
+    equal(fixture.inputHTML.querySelector('span').parentElement.className, 'keep fnt-nrml');
     fixture.remove();
 });
 
@@ -1399,7 +1525,7 @@ function createTableEditorScopingFixture(
         cleanupTable,
         isCleanedTable,
         defaultTableCleanupOptions,
-        renameTag,
+        convertTableCell,
         copyToClipboard: async (html) => copiedHTML.push(html),
         formatHTML: (element) => `formatted:${element.outerHTML}`,
         getEditorSelection: () => null,
@@ -1913,7 +2039,7 @@ test('complex scoping associates active parent, row, and column headers', () => 
     const host = document.createElement('div');
     host.innerHTML = '<table id="expenses"><thead><tr><th>Trip</th><th>Cost</th></tr></thead><tbody><tr class="active"><th colspan="2">Toronto</th></tr><tr><th>Meals</th><td>$20</td></tr></tbody></table>';
     const table = host.querySelector('table');
-    applyTableScopes(table, { complex: true, renameTag });
+    applyTableScopes(table, { complex: true });
     const headers = table.querySelectorAll('th');
     const value = table.querySelector('td');
 
@@ -1924,7 +2050,7 @@ test('complex scoping groups subsequent rows under a spanning section until the 
     const host = document.createElement('div');
     host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th colspan="2">Assets</th></tr><tr><th>Cash</th><td>10</td></tr><tr><th>Investments</th><td>20</td></tr><tr><th colspan="2">Liabilities</th></tr><tr><th>Debt</th><td>30</td></tr></tbody></table>';
     const table = host.querySelector('table');
-    applyTableScopes(table, { complex: true, renameTag });
+    applyTableScopes(table, { complex: true });
     const bodyHeaders = table.querySelectorAll('tbody th');
     const values = table.querySelectorAll('tbody td');
 
@@ -1942,7 +2068,7 @@ test('complex scoping follows md, lg, and xl indentation levels', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr class="active"><th colspan="2">Total</th></tr><tr><th><div class="mrgn-lft-md">Group</div></th><td>1</td></tr><tr><th><div class="mrgn-lft-lg">Subgroup</div></th><td>2</td></tr><tr><th><div class="mrgn-lft-xl">Item</div></th><td>3</td></tr></tbody></table>';
     const table = host.querySelector('table');
-    applyTableScopes(table, { complex: true, renameTag });
+    applyTableScopes(table, { complex: true });
     const bodyHeaders = table.querySelectorAll('tbody th');
     const item = table.querySelectorAll('tbody td')[2];
     const associations = item.getAttribute('headers').split(' ');
@@ -1957,7 +2083,7 @@ test('simple scoping omits explicit headers associations', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th>Cash</th><td headers="old">10</td></tr></tbody></table>';
     const table = host.querySelector('table');
-    applyTableScopes(table, { complex: false, renameTag });
+    applyTableScopes(table, { complex: false });
 
     equal(table.querySelector('td').hasAttribute('headers'), false);
     equal(table.querySelector('tbody th').getAttribute('scope'), 'row');
@@ -1967,7 +2093,7 @@ test('table scoping recalculates thead colspans without treating rowspan as a ro
     const host = document.createElement('div');
     host.innerHTML = '<table><thead><tr><th colspan="2" scope="col">Amounts</th><th rowspan="2" scope="rowgroup">Notes</th></tr><tr><th>Current</th><th>Previous</th></tr></thead><tbody><tr><th>Revenue</th><td>10</td><td>One</td></tr></tbody></table>';
     const table = host.querySelector('table');
-    applyTableScopes(table, { complex: false, renameTag });
+    applyTableScopes(table, { complex: false });
     const headers = table.querySelectorAll('thead th');
 
     equal(headers[0].getAttribute('scope'), 'colgroup');
@@ -1978,7 +2104,7 @@ test('complex scoping uses the next Add IDs table identifier', () => {
     const host = document.createElement('div');
     host.innerHTML = '<div id="t1"></div><table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th>Cash</th><td>10</td></tr></tbody></table>';
     const table = host.querySelector('table');
-    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    applyTableScopes(table, { complex: true, idRoot: host });
 
     equal(table.id, 't2');
     equal(table.querySelector('th').id, 't2-h1');
@@ -1997,8 +2123,7 @@ test('complex scoping matches header IDs and references to the current table ID 
     applyTableScopes(table, {
         complex: true,
         idRoot: host,
-        matchHeaderIdsToTable: true,
-        renameTag
+        matchHeaderIdsToTable: true
     });
     const headers = table.querySelectorAll('th');
 
@@ -2009,8 +2134,7 @@ test('complex scoping matches header IDs and references to the current table ID 
     applyTableScopes(table, {
         complex: true,
         idRoot: host,
-        matchHeaderIdsToTable: true,
-        renameTag
+        matchHeaderIdsToTable: true
     });
     equal(Array.from(headers, (header) => header.id).join(' '), 'expenses-h1 expenses-h2 expenses-h3');
 });
@@ -2019,16 +2143,16 @@ test('painted scoping relationships override automatic associations', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr class="active"><th colspan="2">Parent</th></tr><tr><th>Child</th><td>10</td></tr></tbody></table>';
     const table = host.querySelector('table');
-    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    applyTableScopes(table, { complex: true, idRoot: host });
     const parent = table.querySelector('tbody th');
     const child = table.querySelector('tbody td');
 
     equal(hasHeaderRelationship(parent, child), true);
     setManualHeaderRelationship(parent, child, false);
-    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    applyTableScopes(table, { complex: true, idRoot: host });
     equal(hasHeaderRelationship(parent, child), false);
     setManualHeaderRelationship(parent, child, true);
-    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    applyTableScopes(table, { complex: true, idRoot: host });
     equal(hasHeaderRelationship(parent, child), true);
 });
 
@@ -2038,7 +2162,7 @@ test('existing explicit scoping is preserved when a table is reopened', () => {
     const table = host.querySelector('table');
     const child = table.querySelector('td');
     preserveExistingHeaderRelationships(table);
-    applyTableScopes(table, { complex: true, idRoot: host, renameTag });
+    applyTableScopes(table, { complex: true, idRoot: host });
 
     equal(child.getAttribute('headers'), 'value child');
 });

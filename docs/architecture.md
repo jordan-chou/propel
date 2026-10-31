@@ -23,6 +23,13 @@ Third-party browser distributions remain isolated from application modules and s
 
 `src/table-editor/controller.js` owns table-editor UI state, selection, sizing, caption suggestions, and table-editor history. It consumes table transformations and commits through callbacks supplied by `propel.js`; it does not own canonical document state or register document commands.
 
+`src/commands/table-cell.js` converts table cells and normalizes whole-cell bold
+formatting. Cleanup, Header row, and scoping use this shared transformation.
+Header row requests bold headers; cleanup applies its row-header weight option;
+scoping preserves existing weight. Header cells use default bold or `fnt-nrml`,
+and bold data cells use `strong`. Partial emphasis and authored attributes are
+retained. Generic tag-renaming utilities do not change formatting.
+
 `src/ui/drawers.js` owns activity-drawer and shortcut-dialog visibility, focus restoration, keyboard trapping, and accessibility state. Review analysis and rendering remain outside the drawer controller.
 
 `src/app/document-recovery.js` observes canonical revisions and coordinates
