@@ -20,7 +20,8 @@ import { replaceWithSanitizedHTML, sanitizeDocumentTree } from './document/secur
 import { runStandardCleanup } from './document/cleanup.js';
 import {
     captureLiveEditBaseline,
-    normalizeLiveEditClone
+    normalizeLiveEditClone,
+    restoreLiveListPlaceholders
 } from './document/live-edit-normalization.js';
 import { analyzeDocument, isCleanedTable } from './review/analyzer.js';
 import { createDeferredWork } from './app/deferred-work.js';
@@ -52,7 +53,7 @@ import {
 } from './ui/wet-live-editor.js';
 import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
-import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
+import { combineLiveEditorComponents, ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
 import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
 import { highlightHTML } from './ui/html-syntax-highlight.js';
 import { goToCodeLine, isGoToLineShortcut } from './ui/code-navigation.js';
@@ -582,7 +583,13 @@ function createModernDashboardListeners() {
         });
         liveEditor.addEventListener('keydown', handleLiveEditorKeydown);
         liveEditor.addEventListener('beforeinput', (event) => {
-            combineLiveEditorComponents(event);
+            if (combineLiveEditorComponents(event, liveEditor, getEditorSelection(liveEditor))) {
+                syncLiveToInputHTML();
+                updateCodeView();
+                refreshReviewPanel();
+                rememberLiveSelection();
+                updateBlockFormatSelect();
+            }
             ensureRootTextBlockForInput(event, liveEditor, getEditorSelection(liveEditor));
         });
         liveEditor.addEventListener('keyup', () => {
@@ -1705,77 +1712,6 @@ function handleLiveEditorKeydown(event) {
     }
 
     runLiveEditCommand(shortcut.command, shortcut.value ?? null, shortcut.label);
-}
-
-/** Combines adjacent Live editor components at a boundary while preserving the caret. */
-function combineLiveEditorComponents(event) {
-    if (!liveEditor || !event || event.defaultPrevented || !event.inputType) {
-        return;
-    }
-
-    const isBackward = event.inputType === 'deleteContentBackward';
-    const isForward = event.inputType === 'deleteContentForward';
-    if (!isBackward && !isForward) {
-        return;
-    }
-
-    const selection = getEditorSelection(liveEditor);
-    if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
-        return;
-    }
-
-    const range = selection.getRangeAt(0);
-    const component = getLiveEditorComponent(range.startContainer);
-    if (!component || !isCaretAtComponentEdge(range, component, isBackward)) {
-        return;
-    }
-
-    const sibling = isBackward ? component.previousElementSibling : component.nextElementSibling;
-    if (!sibling) {
-        return;
-    }
-
-    event.preventDefault();
-
-    const target = isBackward ? sibling : component;
-    const source = isBackward ? component : sibling;
-    const joinRange = document.createRange();
-    joinRange.selectNodeContents(target);
-    joinRange.collapse(false);
-
-    while (source.firstChild) {
-        target.appendChild(source.firstChild);
-    }
-    source.remove();
-
-    selection.removeAllRanges();
-    selection.addRange(joinRange);
-    syncLiveToInputHTML();
-    updateCodeView();
-    refreshReviewPanel();
-    rememberLiveSelection();
-    updateBlockFormatSelect();
-}
-
-/** Returns live editor component. */
-function getLiveEditorComponent(node) {
-    let component = node && node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    while (component && component.parentElement !== liveEditor) {
-        component = component.parentElement;
-    }
-    return component && component.parentElement === liveEditor ? component : null;
-}
-
-/** Reports whether caret at component edge. */
-function isCaretAtComponentEdge(range, component, atStart) {
-    const edgeRange = range.cloneRange();
-    edgeRange.selectNodeContents(component);
-    if (atStart) {
-        edgeRange.setEnd(range.startContainer, range.startOffset);
-    } else {
-        edgeRange.setStart(range.startContainer, range.startOffset);
-    }
-    return edgeRange.collapsed || edgeRange.toString() === '';
 }
 
 /** Returns live editor shortcut. */
@@ -3100,6 +3036,7 @@ function updateLiveView() {
     const clone = inputHTML.cloneNode(true);
     clone.querySelectorAll('script, style, link').forEach(element => element.remove());
     liveEditor.innerHTML = hasInput() ? clone.innerHTML : '';
+    restoreLiveListPlaceholders(liveEditor);
     liveEditBaseline = captureLiveEditBaseline(liveEditor);
     updateFileDropZoneState(hasInput());
 }

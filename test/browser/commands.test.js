@@ -14,7 +14,7 @@ import { renameTag } from '../../src/commands/table-cleanup.js';
 import { convertTableCell } from '../../src/commands/table-cell.js';
 import { createDrawerControllers } from '../../src/ui/drawers.js';
 import { applyBlockFormat } from '../../src/ui/block-format.js';
-import { ensureRootTextBlockForInput, preserveParagraphsOnEnter } from '../../src/ui/live-editing.js';
+import { combineLiveEditorComponents, ensureRootTextBlockForInput, preserveParagraphsOnEnter } from '../../src/ui/live-editing.js';
 import { renameTag as renameElementTag } from '../../src/util.js';
 import { createOnboardingController } from '../../src/ui/onboarding.js';
 import { createRecoveryPrompt } from '../../src/ui/recovery-prompt.js';
@@ -35,7 +35,8 @@ import { buildElementSourceMap } from '../../src/app/editor-source-map.js';
 import { getLiveCaretForSourceIndex, getSourceIndexForLiveCaret } from '../../src/app/reciprocal-caret.js';
 import {
     captureLiveEditBaseline,
-    normalizeLiveEditClone
+    normalizeLiveEditClone,
+    restoreLiveListPlaceholders
 } from '../../src/document/live-edit-normalization.js';
 import {
     isUnsafeDocumentUrl,
@@ -171,6 +172,73 @@ test('Enter preserves a heading while creating a following paragraph', () => {
     selection.removeAllRanges();
     live.remove();
 });
+
+for (const inputType of ['deleteContentBackward', 'deleteContentForward']) {
+    test(`${inputType} still combines adjacent paragraphs and preserves the join caret`, () => {
+        const live = document.createElement('div');
+        live.innerHTML = '<p>Before</p><p><em>After</em></p>';
+        document.body.append(live);
+        const selection = window.getSelection();
+        const range = document.createRange();
+        const backward = inputType === 'deleteContentBackward';
+        range.selectNodeContents(live.children[backward ? 1 : 0]);
+        range.collapse(backward);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const event = new InputEvent('beforeinput', { inputType, cancelable: true });
+
+        try {
+            equal(combineLiveEditorComponents(event, live, selection), true);
+            equal(event.defaultPrevented, true);
+            equal(live.innerHTML, '<p>Before<em>After</em></p>');
+            const beforeCaret = document.createRange();
+            beforeCaret.selectNodeContents(live);
+            beforeCaret.setEnd(selection.anchorNode, selection.anchorOffset);
+            equal(beforeCaret.toString(), 'Before');
+        } finally {
+            selection.removeAllRanges();
+            live.remove();
+        }
+    });
+}
+
+for (const tag of ['ul', 'ol']) {
+    for (const wrapped of [false, true]) {
+        test(`Backspace removes an empty ${tag}${wrapped ? ' wrapped in a paragraph' : ''} without leaving a bullet`, () => {
+            const host = document.createElement('div');
+            document.body.append(host);
+            const live = createWetLiveEditor(host);
+            live.innerHTML = `<p>Before</p><${tag}><li><br></li></${tag}><p>After</p>`;
+            if (wrapped) {
+                const paragraph = document.createElement('p');
+                const list = live.querySelector(tag);
+                list.before(paragraph);
+                paragraph.append(list);
+            }
+            live.focus();
+            const selection = live.getRootNode().getSelection();
+            const range = document.createRange();
+            range.setStart(live.querySelector('li'), 0);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            const event = new InputEvent('beforeinput', { inputType: 'deleteContentBackward', cancelable: true });
+
+            try {
+                equal(combineLiveEditorComponents(event, live, selection), false);
+                equal(event.defaultPrevented, false);
+                document.execCommand('delete', false, null);
+                equal(live.querySelector('li, ul, ol'), null);
+                equal(live.textContent, 'BeforeAfter');
+                document.execCommand('insertText', false, ' text');
+                equal(live.textContent, 'Before textAfter');
+            } finally {
+                selection.removeAllRanges();
+                host.remove();
+            }
+        });
+    }
+}
 
 test('typing at the Live editor root starts a paragraph', () => {
     const host = document.createElement('div');
@@ -477,6 +545,152 @@ test('repeated native Enter commands do not leave empty paragraphs in synchroniz
     selection.removeAllRanges();
     live.remove();
 });
+
+test('Live list normalization preserves surrounding prose, attributes, and nested lists', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p id="intro" class="lead" lang="fr">Avant <em>la liste</em></p>';
+    const baseline = captureLiveEditBaseline(live);
+    const paragraph = live.firstElementChild;
+    const list = document.createElement('ul');
+    list.innerHTML = '<li>Un<ol><li>Deux</li></ol></li>';
+    paragraph.append(list, 'Après');
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<p id="intro" class="lead" lang="fr">Avant <em>la liste</em></p>' +
+        '<ul class="lead" lang="fr"><li>Un<ol><li>Deux</li></ol></li></ul>' +
+        '<p class="lead" lang="fr">Après</p>');
+    equal(live.firstElementChild, paragraph);
+    equal(list.parentNode, paragraph);
+});
+
+test('Live list normalization retains paragraph attributes and empty list items without duplicate IDs', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<p id="items" class="lead" lang="fr"></p>';
+    const baseline = captureLiveEditBaseline(live);
+    const list = document.createElement('ul');
+    list.innerHTML = '<li><br></li>';
+    live.firstElementChild.append(list);
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<ul id="items" class="lead" lang="fr"><li></li></ul>');
+    const canonical = document.createElement('div');
+    replaceWithSanitizedHTML(canonical, clone.innerHTML);
+    equal(canonical.innerHTML, clone.innerHTML);
+});
+
+test('rendering empty list items restores Live placeholders without changing canonical HTML', () => {
+    const canonical = document.createElement('div');
+    canonical.innerHTML = '<ul><li id="empty"></li><li>Parent<ol><li> \n </li></ol></li>' +
+        '<li>Text<br></li><li><br><br></li></ul>';
+    const originalHTML = canonical.innerHTML;
+    const live = canonical.cloneNode(true);
+
+    restoreLiveListPlaceholders(live);
+    const liveHTML = live.innerHTML;
+    restoreLiveListPlaceholders(live);
+
+    equal(live.querySelector('#empty').innerHTML, '<br>');
+    equal(live.querySelector('ol li').innerHTML, ' \n <br>');
+    equal(live.innerHTML, liveHTML);
+    equal(canonical.innerHTML, originalHTML);
+    const clone = live.cloneNode(true);
+    normalizeLiveEditClone(live, clone, captureLiveEditBaseline(live));
+    equal(clone.innerHTML, originalHTML);
+});
+
+test('Live normalization removes only a lone placeholder break from empty list items', () => {
+    const live = document.createElement('div');
+    live.innerHTML = '<ul><li id="empty"> \n<br> </li><li>Line<br>Next</li>' +
+        '<li><br><br></li><li><img alt="Chart"><br></li><li><br id="anchor"></li>' +
+        '<li>Parent<ul><li><br></li></ul></li></ul>';
+    const baseline = captureLiveEditBaseline(live);
+    const originalHTML = live.innerHTML;
+    const clone = live.cloneNode(true);
+
+    normalizeLiveEditClone(live, clone, baseline);
+
+    equal(clone.innerHTML, '<ul><li id="empty"> \n </li><li>Line<br>Next</li>' +
+        '<li><br><br></li><li><img alt="Chart"><br></li><li><br id="anchor"></li>' +
+        '<li>Parent<ul><li></li></ul></li></ul>');
+    equal(live.innerHTML, originalHTML);
+});
+
+for (const tag of ['ul', 'ol']) {
+    test(`Enter in a ${tag} keeps a Live caret placeholder out of synchronized HTML`, () => {
+        const host = document.createElement('div');
+        document.body.append(host);
+        const live = createWetLiveEditor(host);
+        live.innerHTML = `<${tag}><li>First</li></${tag}>`;
+        const baseline = captureLiveEditBaseline(live);
+        live.focus();
+        const selection = live.getRootNode().getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(live.querySelector('li'));
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+            document.execCommand('insertParagraph', false, null);
+            const emptyItem = live.querySelector('li:last-child');
+            equal(emptyItem.innerHTML, '<br>');
+            const anchor = selection.anchorNode;
+            const offset = selection.anchorOffset;
+            const clone = live.cloneNode(true);
+            normalizeLiveEditClone(live, clone, baseline);
+            equal(clone.innerHTML, `<${tag}><li>First</li><li></li></${tag}>`);
+            equal(emptyItem.innerHTML, '<br>');
+            equal(selection.anchorNode, anchor);
+            equal(selection.anchorOffset, offset);
+            document.execCommand('insertText', false, 'Second');
+            equal(emptyItem.textContent, 'Second');
+        } finally {
+            selection.removeAllRanges();
+            host.remove();
+        }
+    });
+}
+
+for (const [command, tag] of [['insertUnorderedList', 'ul'], ['insertOrderedList', 'ol']]) {
+    test(`native ${command} does not create empty paragraphs in synchronized HTML`, () => {
+        const host = document.createElement('div');
+        host.contentEditable = 'true';
+        document.body.append(host);
+        const live = createWetLiveEditor(host);
+        live.innerHTML = '<p>Before</p><p>List <em>item</em></p><p>After</p>';
+        const baseline = captureLiveEditBaseline(live);
+        live.focus();
+        const selection = live.getRootNode().getSelection();
+        const range = document.createRange();
+        range.setStart(live.children[1].firstChild, 2);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+            document.execCommand(command, false, null);
+            const nativeHTML = live.innerHTML;
+            const anchorNode = selection.anchorNode;
+            const anchorOffset = selection.anchorOffset;
+            const clone = live.cloneNode(true);
+            normalizeLiveEditClone(live, clone, baseline);
+            const canonical = document.createElement('div');
+            replaceWithSanitizedHTML(canonical, clone.innerHTML);
+
+            equal(canonical.innerHTML, `<p>Before</p><${tag}><li>List <em>item</em></li></${tag}><p>After</p>`);
+            equal(live.innerHTML, nativeHTML);
+            equal(selection.anchorNode, anchorNode);
+            equal(selection.anchorOffset, anchorOffset);
+        } finally {
+            selection.removeAllRanges();
+            host.remove();
+        }
+    });
+}
 
 test('attribute entity highlighting preserves source text and does not create document elements', () => {
     const source = '<img alt="&quot;Revenue&quot; &amp; costs&nbsp; &#160; &#xA0; &lt;b&gt;total&lt;/b&gt;" title=\'L&apos;économie&#8239;\'><p>&amp; &#160;</p>';
