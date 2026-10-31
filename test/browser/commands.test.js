@@ -1,4 +1,5 @@
 import { createBodyFtnTags, replaceFootnoteSection } from '../../src/commands/footnote-generator.js';
+import { modifyHeadings, modifyTables, modifyFigures } from '../../src/commands/anchors-aweigh.js';
 import { cleanupTable, defaultTableCleanupOptions } from '../../src/commands/table-cleanup.js';
 import { fixNbspHTML, transformNbspHTML } from '../../src/commands/nbsp.js';
 import { getCellsInRange } from '../../src/table-editor/model.js';
@@ -60,6 +61,23 @@ import {
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
 function equal(actual, expected) { if (actual !== expected) throw new Error(`Expected ${expected}; received ${actual}`); }
+
+test('Add IDs uses tbl for tables, skips occupied IDs, and preserves existing IDs on repeat runs', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<h2>Heading</h2><div id="tbl1"></div><table id="t1"></table><table></table><table id="custom"></table><details><summary>Text version</summary><table></table></details><figure></figure>';
+    const modified = [];
+    modifyHeadings(host, 0, modified);
+    modifyTables(host, 0, modified);
+    modifyFigures(host, 0, modified);
+
+    equal(host.querySelector('h2').id, 'a1');
+    equal(Array.from(host.querySelectorAll('table'), table => table.id).join(' '), 't1 tbl2 custom tbl3');
+    equal(host.querySelector('figure').id, 'f1');
+    equal(modified.map(element => element.id).join(' '), 'a1 t1 tbl2 custom tbl3 f1');
+    const html = host.innerHTML;
+    modifyTables(host, 0, []);
+    equal(host.innerHTML, html);
+});
 
 test('renameTag preserves attributes and children without leaving the old element', () => {
     const host = document.createElement('div');
@@ -1545,32 +1563,34 @@ test('turning off complex scoping removes header IDs through undo, redo, and App
     }
 });
 
-test('table ID suggestion follows the table number and updates scoped header IDs when accepted', () => {
-    const fixture = createTableEditorScopingFixture(
-        '<p>Table 2b.1</p><table id="t1"><thead><tr><th id="old-label">Label</th><th id="old-value">Value</th></tr></thead><tbody><tr><th id="old-row">One</th><td>1</td></tr></tbody></table>'
-    );
+for (const genericId of ['t1', 'tbl1']) {
+    test(`table ID suggestion replaces ${genericId} and updates scoped header IDs when accepted`, () => {
+        const fixture = createTableEditorScopingFixture(
+            `<p>Table 2b.1</p><table id="${genericId}"><thead><tr><th id="old-label">Label</th><th id="old-value">Value</th></tr></thead><tbody><tr><th id="old-row">One</th><td>1</td></tr></tbody></table>`
+        );
 
-    equal(fixture.elements.tableEditorNumber.value, 'Table 2b.1');
-    equal(fixture.elements.tableEditorNumber.hasAttribute('data-caption-suggestion'), true);
-    equal(fixture.elements.tableEditorId.value, 't1');
-    equal(fixture.elements.tableEditorId.hasAttribute('data-caption-suggestion'), false);
-    fixture.elements.tableEditorNumberSuggestion.click();
+        equal(fixture.elements.tableEditorNumber.value, 'Table 2b.1');
+        equal(fixture.elements.tableEditorNumber.hasAttribute('data-caption-suggestion'), true);
+        equal(fixture.elements.tableEditorId.value, genericId);
+        equal(fixture.elements.tableEditorId.hasAttribute('data-caption-suggestion'), false);
+        fixture.elements.tableEditorNumberSuggestion.click();
 
-    equal(fixture.elements.tableEditorId.value, 't2b-1');
-    equal(fixture.elements.tableEditorId.hasAttribute('data-caption-suggestion'), true);
-    equal(fixture.elements.tableEditorCanvas.querySelector('table').id, 't1');
-    fixture.elements.tableEditorIdSuggestion.click();
-    equal(fixture.elements.tableEditorCanvas.querySelector('table').id, 't2b-1');
-    fixture.elements.tableEditorApplyBtn.click();
+        equal(fixture.elements.tableEditorId.value, 't2b-1');
+        equal(fixture.elements.tableEditorId.hasAttribute('data-caption-suggestion'), true);
+        equal(fixture.elements.tableEditorCanvas.querySelector('table').id, genericId);
+        fixture.elements.tableEditorIdSuggestion.click();
+        equal(fixture.elements.tableEditorCanvas.querySelector('table').id, 't2b-1');
+        fixture.elements.tableEditorApplyBtn.click();
 
-    const table = fixture.inputHTML.querySelector('table');
-    equal(table.id, 't2b-1');
-    equal(
-        Array.from(table.querySelectorAll('th'), (header) => header.id).join(' '),
-        't2b-1-h1 t2b-1-h2 t2b-1-h3'
-    );
-    fixture.remove();
-});
+        const table = fixture.inputHTML.querySelector('table');
+        equal(table.id, 't2b-1');
+        equal(
+            Array.from(table.querySelectorAll('th'), (header) => header.id).join(' '),
+            't2b-1-h1 t2b-1-h2 t2b-1-h3'
+        );
+        fixture.remove();
+    });
+}
 
 test('initial table cleanup leaves the Table ID empty until its suggestion is accepted', () => {
     const fixture = createTableEditorScopingFixture(
@@ -2397,7 +2417,7 @@ test('table scoping recalculates thead colspans without treating rowspan as a ro
     equal(headers[1].getAttribute('scope'), 'col');
 });
 
-test('complex scoping uses the next Add IDs table identifier', () => {
+test('complex scoping uses the next available t-prefixed table identifier', () => {
     const host = document.createElement('div');
     host.innerHTML = '<div id="t1"></div><table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><th>Cash</th><td>10</td></tr></tbody></table>';
     const table = host.querySelector('table');

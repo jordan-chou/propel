@@ -59,7 +59,7 @@ export function modifyTables(inputHTML, tableIDCount, modifiedComponents) {
         // }
         // // END   TAX EXPENDITURES EXPERIMENT
 
-        addIDToComponent(inputHTML, table, counter, "t");
+        addIDToComponent(inputHTML, table, counter, "tbl");
         modifiedComponents.push(table.cloneNode(true));
     }
 
