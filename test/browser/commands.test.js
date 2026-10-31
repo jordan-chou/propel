@@ -1075,6 +1075,130 @@ test('table cleanup normalizes converted header bolding while preserving partial
     equal(host.querySelector('tbody td').innerHTML, '<strong>10</strong>');
 });
 
+test('table cleanup keeps single-paragraph labels as row headers', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><td><p>Revenue <em>net</em></p></td><td>10</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    cleanupTable(table);
+    applyTableScopes(table, { complex: false });
+    equal(table.tBodies[0].rows[0].cells[0].outerHTML, '<th class="fnt-nrml" scope="row">Revenue <em>net</em></th>');
+});
+
+test('table cleanup preserves paragraph and list data in first body cells', () => {
+    const contents = [
+        '<p>First paragraph</p><p>Second <em>paragraph</em></p>',
+        '<p>Description</p><ul><li>First</li><li>Second</li></ul>',
+        '<ol><li>First</li><li>Second</li></ol>',
+        '<dl><dt>Term</dt><dd>Definition</dd></dl>',
+        '<div class="mrgn-lft-md"><p>Première partie</p><p>Deuxième partie</p></div>'
+    ];
+    for (const content of contents) {
+        for (const tag of ['td', 'th']) {
+            const host = document.createElement('div');
+            host.innerHTML = `<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><${tag} id="description" class="fnt-nrml" scope="row">${content}</${tag}><td>10</td></tr></tbody></table>`;
+            const table = host.querySelector('table');
+            cleanupTable(table);
+            const cell = table.tBodies[0].rows[0].cells[0];
+            equal(cell.tagName, 'TD');
+            equal(cell.innerHTML, content);
+            equal(cell.id, 'description');
+            equal(cell.hasAttribute('scope'), false);
+            equal(cell.classList.contains('text-right'), false);
+            equal(cell.nextElementSibling.classList.contains('text-right'), true);
+            const cleaned = table.outerHTML;
+            cleanupTable(table);
+            equal(table.outerHTML, cleaned);
+            for (const complex of [true, false, true]) {
+                applyTableScopes(table, { complex });
+                equal(cell.tagName, 'TD');
+                equal(cell.innerHTML, content);
+                equal(cell.hasAttribute('scope'), false);
+                equal((cell.nextElementSibling.getAttribute('headers') || '').split(' ').includes(cell.id), false);
+            }
+        }
+    }
+});
+
+test('scoping removes relationships to rich first cells converted from headers', () => {
+    for (const complex of [true, false]) {
+        const host = document.createElement('div');
+        host.innerHTML = '<table><thead><tr><th id="label">Label</th><th id="value">Value</th></tr></thead><tbody><tr><th id="description" scope="row"><p>First</p><p>Second</p></th><td headers="value description" data-propel-scope-add="description">10</td></tr></tbody></table>';
+        const table = host.querySelector('table');
+        applyTableScopes(table, { complex });
+        const [description, value] = table.tBodies[0].rows[0].cells;
+        equal(description.tagName, 'TD');
+        equal(description.hasAttribute('scope'), false);
+        equal(description.querySelectorAll('p').length, 2);
+        equal(value.hasAttribute('data-propel-scope-add'), false);
+        equal(value.getAttribute('headers'), complex ? 'value' : null);
+        equal(description.getAttribute('headers'), complex ? 'label' : null);
+    }
+});
+
+test('rich first-cell data survives editor options, Header row, undo, redo, Apply, and reopen', () => {
+    const content = '<p>Description</p><ul><li>First</li><li>Second</li></ul>';
+    const fixture = createTableEditorScopingFixture(
+        `<table id="t1"><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><td>${content}</td><td>10</td></tr></tbody></table>`, true
+    );
+    const { elements } = fixture;
+    const firstCell = () => elements.tableEditorCanvas.querySelector('tbody tr').cells[0];
+    const assertData = () => {
+        equal(firstCell().tagName, 'TD');
+        equal(firstCell().hasAttribute('scope'), false);
+        equal(firstCell().querySelectorAll('p, ul, li').length, 4);
+    };
+    try {
+        assertData();
+        equal(firstCell().innerHTML, content);
+        for (const option of ['tableEditorFinancial', 'tableEditorComplexScoping']) {
+            elements[option].click();
+            assertData();
+            elements.tableEditorUndoBtn.click();
+            assertData();
+            elements.tableEditorRedoBtn.click();
+            assertData();
+        }
+        firstCell().classList.add('selected');
+        elements.tableEditorHeaderBtn.click();
+        equal(elements.tableEditorCanvas.querySelector('thead tr:last-child').cells[0].tagName, 'TH');
+        elements.tableEditorCanvas.querySelector('thead tr:last-child th').classList.add('selected');
+        elements.tableEditorHeaderBtn.click();
+        assertData();
+        elements.tableEditorApplyBtn.click();
+        equal(fixture.inputHTML.querySelector('tbody tr').cells[0].tagName, 'TD');
+        fixture.controller.open(0, { previewCleanup: false });
+        assertData();
+        elements.tableEditorCancelBtn.click();
+    } finally {
+        fixture.remove();
+    }
+});
+
+test('rich data cells retain spanning column and section associations without becoming group headers', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table id="details"><thead><tr><th id="period" colspan="2">Period</th><th id="notes" rowspan="2">Notes</th></tr><tr><th id="current">Current</th><th id="prior">Prior</th></tr></thead><tbody><tr><th id="section" colspan="3">Section</th></tr><tr><th id="description" colspan="2" scope="rowgroup" class="fnt-nrml"><p>First</p><p>Second</p></th><td headers="notes description" data-propel-scope-add="description current">Note</td></tr><tr><th id="item">Item</th><td>2</td><td>Other</td></tr></tbody></table>';
+    const table = host.querySelector('table');
+    cleanupTable(table);
+    applyTableScopes(table);
+    const [section, data, item] = table.tBodies[0].rows;
+    equal(section.cells[0].getAttribute('scope'), 'rowgroup');
+    equal(data.cells[0].tagName, 'TD');
+    equal(data.cells[0].hasAttribute('scope'), false);
+    equal(data.cells[0].getAttribute('headers'), 'period current prior section');
+    equal(data.cells[1].getAttribute('headers'), 'notes section current');
+    equal(data.cells[1].getAttribute('data-propel-scope-add'), 'current');
+    equal(item.cells[1].getAttribute('headers'), 'period prior section item');
+    applyTableScopes(table, { matchHeaderIdsToTable: true });
+    for (const cell of table.querySelectorAll('[headers]')) {
+        for (const id of cell.getAttribute('headers').split(' ')) {
+            equal(Array.from(table.querySelectorAll('th[id]')).some((header) => header.id === id), true);
+        }
+    }
+    const scoped = table.outerHTML;
+    applyTableScopes(table, { matchHeaderIdsToTable: true });
+    equal(table.outerHTML, scoped);
+});
+
 test('table cleanup retains bold spanning headers and the row-header bold option', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody><tr><td colspan="2"><strong>Section</strong></td></tr><tr><td><strong>Revenue</strong></td><td>10</td></tr></tbody></table>';

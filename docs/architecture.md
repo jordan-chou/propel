@@ -29,6 +29,10 @@ Header row requests bold headers; cleanup applies its row-header weight option;
 scoping preserves existing weight. Header cells use default bold or `fnt-nrml`,
 and bold data cells use `strong`. Partial emphasis and authored attributes are
 retained. Generic tag-renaming utilities do not change formatting.
+Cleanup and scoping share a content check from the same module: a first body
+cell with multiple paragraphs or a list remains a data cell. Cleanup preserves
+paragraphs in these structured cells so later scoping can apply the same rule.
+Explicit column header rows still use header cells.
 
 `src/ui/drawers.js` owns activity-drawer and shortcut-dialog visibility, focus restoration, keyboard trapping, and accessibility state. Review analysis and rendering remain outside the drawer controller.
 

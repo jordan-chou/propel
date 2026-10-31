@@ -1,4 +1,4 @@
-import { convertTableCell } from './table-cell.js';
+import { convertTableCell, hasRichTableCellContent } from './table-cell.js';
 
 export const defaultTableCleanupOptions = {
     format: true,
@@ -199,6 +199,9 @@ function ensureResponsiveWrapper(table) {
 
 function cleanTableElements(table, options) {
     const elements = [table, ...Array.from(table.querySelectorAll('*'))];
+    // Decide before unwrapping: removing paragraphs would erase the evidence
+    // used by cleanup and subsequent scoping to distinguish data from labels.
+    const richCells = new Set(Array.from(table.querySelectorAll('th, td')).filter(hasRichTableCellContent));
 
     elements.forEach((element) => {
         options.removeAttributes.forEach((attribute) => {
@@ -209,6 +212,7 @@ function cleanTableElements(table, options) {
     options.unwrapTags.forEach((tagName) => {
         Array.from(table.querySelectorAll(tagName))
             .filter((element) => tagName.toLowerCase() !== 'p' || !element.closest('tfoot'))
+            .filter((element) => tagName.toLowerCase() !== 'p' || !richCells.has(element.closest('th, td')))
             .forEach(unwrapElement);
     });
 }
@@ -305,28 +309,34 @@ function formatTbody(tbody, options) {
             return;
         }
 
-        const removeBold = options.removeBoldFromRowHeaders
-            && !firstCell.hasAttribute('colspan')
-            && !(firstCell.hasAttribute('rowspan') && options.addScope);
-        const rowHeader = convertTableCell(firstCell, 'th', {
-            bold: removeBold ? false : firstCell.tagName === 'TD' ? true : 'preserve'
-        });
+        const richContent = hasRichTableCellContent(firstCell);
+        if (richContent) {
+            const dataCell = convertTableCell(firstCell, 'td');
+            dataCell.removeAttribute('scope');
+        } else {
+            const removeBold = options.removeBoldFromRowHeaders
+                && !firstCell.hasAttribute('colspan')
+                && !(firstCell.hasAttribute('rowspan') && options.addScope);
+            const rowHeader = convertTableCell(firstCell, 'th', {
+                bold: removeBold ? false : firstCell.tagName === 'TD' ? true : 'preserve'
+            });
 
-        if (options.addScope) {
-            rowHeader.setAttribute('scope', 'row');
-        }
-
-        if (rowHeader.hasAttribute('colspan')) {
             if (options.addScope) {
-                rowHeader.setAttribute('scope', isSpanningSectionRow(row, rowHeader) ? 'rowgroup' : 'colgroup');
+                rowHeader.setAttribute('scope', 'row');
             }
-        } else if (rowHeader.hasAttribute('rowspan') && options.addScope) {
-            rowHeader.setAttribute('scope', 'rowgroup');
+
+            if (rowHeader.hasAttribute('colspan')) {
+                if (options.addScope) {
+                    rowHeader.setAttribute('scope', isSpanningSectionRow(row, rowHeader) ? 'rowgroup' : 'colgroup');
+                }
+            } else if (rowHeader.hasAttribute('rowspan') && options.addScope) {
+                rowHeader.setAttribute('scope', 'rowgroup');
+            }
         }
 
         if (options.financialTable) {
             Array.from(row.querySelectorAll('td')).forEach((cell) => {
-                cell.classList.add('text-right');
+                cell.classList.toggle('text-right', !richContent || cell !== row.cells[0]);
             });
         } else {
             Array.from(row.querySelectorAll('td')).forEach((cell) => {

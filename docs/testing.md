@@ -24,6 +24,11 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    to a header, and change Financial table or Complex scoping; header rows should
    remain without `bg-dark` and `text-white`. Check undo/redo, Copy table HTML,
    Apply, and Cancel. Turning the switch back on restores both classes.
+   Also try a first body cell with multiple paragraphs or a list: it should
+   remain `td` with its paragraphs/list intact after option changes and Apply.
+   In complex scoping it should receive column and applicable section headers,
+   without becoming a header for adjacent cells; switching to simple scoping
+   must leave it without a `scope` attribute.
 6. Review counts, issue navigation, outline filters, and flags update after edits.
 7. English/French switching changes relevant generated publishing text.
 8. Reload after editing, restore the offered browser recovery copy, and confirm

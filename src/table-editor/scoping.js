@@ -1,5 +1,5 @@
 import { addGenericID } from '../commands/anchors-aweigh.js';
-import { convertTableCell } from '../commands/table-cell.js';
+import { convertTableCell, hasRichTableCellContent } from '../commands/table-cell.js';
 
 const INDENT_CLASSES = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
 export const MANUAL_SCOPE_ATTRIBUTES = ['data-propel-scope-add', 'data-propel-scope-remove'];
@@ -11,6 +11,7 @@ export function applyTableScopes(table, options = {}) {
     const complex = options.complex !== false;
 
     const rows = Array.from(table.querySelectorAll(':scope > thead > tr, :scope > tbody > tr'));
+    let hasRichDataCells = false;
 
     rows.forEach((row) => {
         const inHead = Boolean(row.closest('thead'));
@@ -28,9 +29,17 @@ export function applyTableScopes(table, options = {}) {
         const cells = Array.from(row.querySelectorAll(':scope > th, :scope > td'));
         const firstCell = cells[0];
         if (!firstCell) return;
+        if (hasRichTableCellContent(firstCell)) {
+            const dataCell = convertTableCell(firstCell, 'td');
+            dataCell.removeAttribute('scope');
+            hasRichDataCells = true;
+            return;
+        }
         const rowHeader = convertTableCell(firstCell, 'th');
         rowHeader.setAttribute('scope', getRowHeaderScope(row, rowHeader, cells));
     });
+
+    if (hasRichDataCells) pruneTableHeaderRelationships(table);
 
     if (!complex) {
         table.querySelectorAll('[headers]').forEach((cell) => cell.removeAttribute('headers'));

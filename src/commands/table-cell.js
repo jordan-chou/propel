@@ -3,6 +3,14 @@ import { renameTag } from '../util.js';
 const INDENT_SELECTOR = '.mrgn-lft-md, .mrgn-lft-lg, .mrgn-lft-xl';
 const CONTENT_CONTAINERS = /^(?:DIV|P|SPAN|A|EM|I|U|S|SMALL|ABBR|STRONG|B)$/;
 
+/** Multiple paragraphs or lists describe data rather than an automatic row label. */
+export function hasRichTableCellContent(cell) {
+    if (!cell) return false;
+    const belongsToCell = (element) => element.closest('th, td') === cell;
+    return Array.from(cell.querySelectorAll('ul, ol, dl')).some(belongsToCell)
+        || Array.from(cell.querySelectorAll('p')).filter(belongsToCell).length > 1;
+}
+
 /**
  * Converts a table cell while representing whole-cell bold with header classes
  * or data-cell emphasis. Callers can request bold/normal weight explicitly;
