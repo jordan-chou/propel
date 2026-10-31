@@ -966,6 +966,27 @@ test('table cleanup creates WET structure', () => {
     equal(result.querySelectorAll('thead').length, 1);
 });
 
+test('table cleanup removes empty classes after formatting and preserves populated classes', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table class="custom-table"><caption class=" ">Summary</caption><tbody class=""><tr><td>Name</td><td class="text-right">Value</td></tr><tr class="text-right"><td>A</td><td class="text-right"><span class="">1</span><span class="custom-value">2</span></td></tr></tbody><tfoot><tr><td colspan="2"><p class="">Note</p></td></tr></tfoot></table>';
+    const result = cleanupTable(host.querySelector('table'), { financialTable: false });
+
+    equal(Array.from(result.querySelectorAll('[class]')).every((element) => element.classList.length > 0), true);
+    equal(result.querySelector('table').className, 'custom-table table table-bordered');
+    equal(result.querySelector('.custom-value').textContent, '2');
+    equal(result.querySelector('tbody th').className, 'fnt-nrml');
+    equal(result.querySelector('tfoot p').textContent, 'Note');
+});
+
+test('table cleanup removes empty classes on the table and descendants without formatting', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table class=" \t\n"><tbody class=""><tr class=""><td class="keep"><span class="">Value</span></td></tr></tbody></table>';
+    const result = cleanupTable(host.querySelector('table'), { format: false, trim: false });
+
+    equal(result.hasAttribute('class'), false);
+    equal(result.outerHTML, '<table><tbody><tr><td class="keep"><span>Value</span></td></tr></tbody></table>');
+});
+
 test('table cleanup scopes thead colspans as column groups and rowspan-only headers as columns', () => {
     const host = document.createElement('div');
     host.innerHTML = '<table><thead><tr><td colspan="2">Amounts</td><td rowspan="2">Notes</td></tr><tr><td>Current</td><td>Previous</td></tr></thead><tbody><tr><td>10</td><td>8</td><td>One</td></tr></tbody></table>';
@@ -1252,6 +1273,25 @@ test('table cleanup copies the pending table with a responsive wrapper without a
     equal(fixture.processingLogs[0], 'Copied table HTML to clipboard.:success');
     equal(fixture.activityToasts.length, 0);
     equal(fixture.inputHTML.querySelector('td').textContent, 'Original');
+    fixture.remove();
+});
+
+test('table editor removes empty classes when copying and applying pending edits', async () => {
+    const fixture = createTableEditorScopingFixture('<table class=""><tbody class=" "><tr class=""><td class="keep"><span class="">Value</span></td><td>2</td></tr></tbody></table>');
+    const canvas = fixture.elements.tableEditorCanvas;
+    canvas.querySelector('td:last-child').classList.add('selected');
+    const pendingHTML = canvas.innerHTML;
+
+    fixture.elements.tableEditorCopyBtn.click();
+    await Promise.resolve();
+
+    equal(fixture.copiedHTML[0], 'formatted:<div class="table-responsive"><table><tbody><tr><td class="keep"><span>Value</span></td><td>2</td></tr></tbody></table></div>');
+    equal(canvas.innerHTML, pendingHTML);
+    equal(fixture.inputHTML.querySelector('table').hasAttribute('class'), true);
+
+    fixture.elements.tableEditorApplyBtn.click();
+    equal(Array.from(fixture.inputHTML.querySelectorAll('[class]')).every((element) => element.classList.length > 0), true);
+    equal(fixture.inputHTML.querySelector('span').parentElement.className, 'keep');
     fixture.remove();
 });
 
