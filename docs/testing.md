@@ -17,6 +17,16 @@ Before merging a structural refactor, manually verify with `test/test-document-d
 1. Import completes, language detection does not block conversion, and the tab
    title uses the first non-empty `h1` or falls back to the imported filename.
 2. Live and code edits synchronize in both directions.
+   Convert a paragraph to each list type in Live view and confirm Code view
+   contains no empty paragraphs around the list. Check surrounding text,
+   inline formatting, and undo/redo.
+   Empty a list item, then press Backspace again: its bullet or number should
+   disappear, typing should continue at the caret, and undo/redo should restore
+   and remove the item in both Live and Code views.
+   Press Enter at the end of a list item. The new empty item should appear as
+   `<li></li>` in Code view, with its caret placeholder kept only in Live view.
+   Switch views and try undo/redo, then continue typing in that empty item.
+   Confirm intentional line breaks inside populated items remain in Code view.
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
 5. Table cleanup opens, supports selection and formatting, applies changes, and cancels safely.

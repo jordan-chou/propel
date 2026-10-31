@@ -39,6 +39,11 @@ export function normalizeLiveEditClone(sourceRoot, cloneRoot, baseline) {
         normalizeBrowserCreatedElement(clone, cloneRoot);
     }
 
+    // Native list commands can leave <p><ul>…</ul></p> in the editable DOM.
+    // Lift lists before serialization: reparsing that invalid nesting creates
+    // empty paragraphs on both sides of the list.
+    normalizeParagraphLists(cloneRoot);
+
     for (let index = 0; index < sourceElements.length; index += 1) {
         const clone = cloneElements[index];
         if (isEmptyTextBlock(clone)) {
@@ -46,7 +51,66 @@ export function normalizeLiveEditClone(sourceRoot, cloneRoot, baseline) {
         }
     }
 
+    // A lone, unadorned <br> in an empty item is a browser caret placeholder.
+    // Keep real breaks (text, multiple breaks, or attributed breaks) intact.
+    for (const item of cloneRoot.querySelectorAll('li')) {
+        const content = getListItemContent(item);
+        if (content.length === 1 && content[0].nodeName === 'BR' && content[0].attributes.length === 0) {
+            content[0].remove();
+        }
+    }
+
     return cloneRoot;
+}
+
+/** Adds caret placeholders only to the Live view when canonical empty items are rendered. */
+export function restoreLiveListPlaceholders(root) {
+    for (const item of root.querySelectorAll('li')) {
+        if (getListItemContent(item).length === 0) {
+            item.appendChild(item.ownerDocument.createElement('br'));
+        }
+    }
+}
+
+function getListItemContent(item) {
+    return Array.from(item.childNodes).filter(node =>
+        node.nodeType !== 3 || !/^[\t\n\r ]*$/.test(node.textContent));
+}
+
+function normalizeParagraphLists(root) {
+    for (const paragraph of root.querySelectorAll('p')) {
+        if (!Array.from(paragraph.children).some(child => child.matches('ul, ol'))) {
+            continue;
+        }
+
+        const replacements = [];
+        let prose = paragraph.ownerDocument.createElement('p');
+        const flushProse = () => {
+            if (!isEmptyTextBlock(prose)) {
+                replacements.push(prose);
+            }
+            prose = paragraph.ownerDocument.createElement('p');
+        };
+
+        for (const child of Array.from(paragraph.childNodes)) {
+            if (child.nodeType === 1 && child.matches('ul, ol')) {
+                flushProse();
+                replacements.push(child);
+            } else {
+                prose.append(child);
+            }
+        }
+        flushProse();
+
+        replacements.forEach((element, index) => {
+            for (const attribute of paragraph.attributes) {
+                if ((attribute.name !== 'id' || index === 0) && !element.hasAttribute(attribute.name)) {
+                    element.setAttribute(attribute.name, attribute.value);
+                }
+            }
+        });
+        paragraph.replaceWith(...replacements);
+    }
 }
 
 function isEmptyTextBlock(element) {

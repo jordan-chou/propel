@@ -119,3 +119,77 @@ function isRootPhrasingNode(node) {
     }
     return node.nodeType === 1 && node.matches(ROOT_PHRASING_SELECTOR);
 }
+
+/** Combines adjacent Live editor components at a boundary while preserving the caret. */
+export function combineLiveEditorComponents(event, root, selection) {
+    if (!root || !event || event.defaultPrevented || !event.inputType) {
+        return false;
+    }
+
+    const isBackward = event.inputType === 'deleteContentBackward';
+    const isForward = event.inputType === 'deleteContentForward';
+    if (!isBackward && !isForward) {
+        return false;
+    }
+
+    if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
+        return false;
+    }
+
+    const range = selection.getRangeAt(0);
+    const component = getLiveEditorComponent(range.startContainer, root);
+    if (!component || !isCaretAtComponentEdge(range, component, isBackward)) {
+        return false;
+    }
+
+    const sibling = isBackward ? component.previousElementSibling : component.nextElementSibling;
+    if (!sibling) {
+        return false;
+    }
+
+    // Moving a list's children into prose strands its <li> elements and leaves
+    // the caret before a bullet. Native deletion handles list boundaries,
+    // including empty items, nested lists, and lists still wrapped in a <p>.
+    if ([component, sibling].some(element =>
+        element.matches('ul, ol, li') || element.querySelector('ul, ol, li'))) {
+        return false;
+    }
+
+    event.preventDefault();
+
+    const target = isBackward ? sibling : component;
+    const source = isBackward ? component : sibling;
+    const joinRange = document.createRange();
+    joinRange.selectNodeContents(target);
+    joinRange.collapse(false);
+
+    while (source.firstChild) {
+        target.appendChild(source.firstChild);
+    }
+    source.remove();
+
+    selection.removeAllRanges();
+    selection.addRange(joinRange);
+    return true;
+}
+
+/** Returns live editor component. */
+function getLiveEditorComponent(node, root) {
+    let component = node && node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    while (component && component.parentElement !== root) {
+        component = component.parentElement;
+    }
+    return component && component.parentElement === root ? component : null;
+}
+
+/** Reports whether caret at component edge. */
+function isCaretAtComponentEdge(range, component, atStart) {
+    const edgeRange = range.cloneRange();
+    edgeRange.selectNodeContents(component);
+    if (atStart) {
+        edgeRange.setEnd(range.startContainer, range.startOffset);
+    } else {
+        edgeRange.setStart(range.startContainer, range.startOffset);
+    }
+    return edgeRange.collapsed || edgeRange.toString() === '';
+}
