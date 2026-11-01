@@ -1,7 +1,7 @@
 import { addGenericID } from '../commands/anchors-aweigh.js';
 import { convertTableCell, hasRichTableCellContent } from '../commands/table-cell.js';
 
-const INDENT_CLASSES = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
+const INDENT_CLASSES = ['ml-2', 'ml-3', 'ml-4', 'ml-5', 'mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
 export const MANUAL_SCOPE_ATTRIBUTES = ['data-propel-scope-add', 'data-propel-scope-remove'];
 
 /** Applies either explicit complex-table associations or simple scope attributes. */
@@ -259,7 +259,8 @@ function ensureHeaderId(table, cell, ordinal) {
 function getIndentLevel(cell) {
     const wrapper = Array.from(cell.children).find((child) => INDENT_CLASSES.some((name) => child.classList.contains(name)));
     if (!wrapper) return 0;
-    return INDENT_CLASSES.findIndex((name) => wrapper.classList.contains(name)) + 1;
+    const index = INDENT_CLASSES.findIndex((name) => wrapper.classList.contains(name));
+    return index < 4 ? index + 1 : index - 3;
 }
 
 function rangesOverlap(startA, spanA, startB, spanB) {

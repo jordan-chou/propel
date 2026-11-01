@@ -2148,15 +2148,19 @@ export function createTableEditorController(config) {
     
     /** Changes table editor indent. */
     function changeTableEditorIndent(direction) {
-        const levels = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
+        const levels = ['ml-2', 'ml-3', 'ml-4', 'ml-5'];
+        const legacyLevels = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
     
         getTableEditorSelectedCells().forEach((cell) => {
             if (cell.tagName.toLowerCase() !== 'th' || !cell.closest('tbody')) {
                 return;
             }
     
-            let wrapper = getTableEditorIndentWrapper(cell, levels);
+            let wrapper = getTableEditorIndentWrapper(cell, [...levels, ...legacyLevels]);
             let currentIndex = wrapper ? levels.findIndex((className) => wrapper.classList.contains(className)) : -1;
+            if (wrapper && currentIndex === -1) {
+                currentIndex = legacyLevels.findIndex((className) => wrapper.classList.contains(className));
+            }
             const nextIndex = Math.min(Math.max(currentIndex + direction, -1), levels.length - 1);
     
             if (nextIndex === -1) {
@@ -2175,7 +2179,7 @@ export function createTableEditorController(config) {
                 cell.appendChild(wrapper);
             }
     
-            wrapper.classList.remove(...levels);
+            wrapper.classList.remove(...levels, ...legacyLevels);
             wrapper.classList.add(levels[nextIndex], 'text-left');
         });
     }

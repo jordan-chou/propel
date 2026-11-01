@@ -29,7 +29,8 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    Confirm intentional line breaks inside populated items remain in Code view.
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
-5. Table cleanup opens, supports selection and formatting, applies changes, and cancels safely.
+5. Indent a table row header through `ml-2`, `ml-3`, `ml-4`, and `ml-5`, then outdent to no wrapper. Confirm bold state, complex header relationships, undo/redo, and Apply preserve the selected level.
+   Table cleanup opens, supports selection and formatting, applies changes, and cancels safely.
    Confirm **Dark header background** starts on. Turn it off, promote a body row
    to a header, and change Financial table or Complex scoping; header rows should
    remain without `bg-dark` and `text-white`. Check undo/redo, Copy table HTML,

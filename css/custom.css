@@ -2300,6 +2300,12 @@ textarea {
     font-weight: 400;
 }
 
+/* Publishing margin utilities, also used by Live and table previews. */
+.ml-2 { margin-left: 0.5rem !important; }
+.ml-3 { margin-left: 1rem !important; }
+.ml-4 { margin-left: 1.5rem !important; }
+.ml-5 { margin-left: 3rem !important; }
+
 .table-editor-canvas .mrgn-lft-md {
     margin-left: 15px;
 }
