@@ -14,7 +14,7 @@ repository. A production build is only needed to create the portable release.
 - Detects English or French metadata from DOCX files when available.
 - Restores original web destinations from Outlook Safe Links during import and Standard cleanup, preserving link text and destination query parameters and fragments.
 - Provides synchronized Live and Code editing views with reciprocal caret guidance.
-- Adds line navigation and find-and-replace tools to Code view.
+- Adds line navigation and find-and-replace tools to Code view. Wrapped lines visually retain their source indentation without adding whitespace to the HTML.
 - Adds stable IDs to headings, tables, and figures. Add IDs uses `tbl1`, `tbl2`, etc. for tables, while table-number suggestions in cleanup use `t` (for example, `t2-1` for Table 2.1). Existing IDs are preserved by Add IDs.
 - Generates publishing markup for footnotes.
 - Corrects language-specific non-breaking spaces.

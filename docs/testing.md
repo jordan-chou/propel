@@ -27,6 +27,16 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    `<li></li>` in Code view, with its caret placeholder kept only in Live view.
    Switch views and try undo/redo, then continue typing in that empty item.
    Confirm intentional line breaks inside populated items remain in Code view.
+   In Code view, paste a long indented line and narrow the pane. Wrapped rows
+   should align with its first non-whitespace character, and copying should
+   preserve the original source. Check click/drag selection, typing, Tab and
+   Shift+Tab, find/replace, go to line, scrolling, and reciprocal caret guidance.
+   Repeat with tabs, French accented text, unbroken URLs, and a trailing newline.
+   Very deep indentation is visually capped at half the pane width.
+   At 960px and 1024px viewport widths, verify Live sits above Code with a
+   horizontal draggable divider. At 1025px in landscape, verify the panes sit
+   side by side with a vertical divider. Portrait and mobile layouts should
+   retain their existing stacking behavior.
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
    For a document with multiple footnotes, generate footnotes and confirm that

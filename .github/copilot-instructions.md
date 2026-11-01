@@ -8,7 +8,8 @@ Propel is a browser-based Word-to-HTML editor for Canada.ca/WET publishing. Read
 - Prefer focused, stateless transformations with explicit inputs and structured results. Keep DOM rendering and UI controls outside transformation logic.
 - Add Node tests for pure logic and real-browser tests for DOM, selection, shadow DOM, file, and `contenteditable` behavior.
 - Run `npm run check` and `git diff --check`. Follow `docs/testing.md` for editor/conversion changes.
-- Do not edit or reformat vendored JS/CSS or Font Awesome assets during application work.
+- Code view uses `src/ui/code-editor.js` to adapt the local CodeMirror view to the textarea input/selection boundary. Keep wrapped indentation visual only and preserve Propel document history.
+- Do not edit or reformat vendored JS/CSS (including `assets/codemirror/`) or Font Awesome assets during application work.
 - Propel has no content-facing AI integration. Do not add AI API clients, provider keys, remote document processing, or document-content telemetry unless explicitly requested as a separately reviewed feature. Copilot is used only to assist development.
 - Reduce `src/propel.js` incrementally; avoid framework or whole-application rewrites without an explicit request and migration plan.
 - Update documentation when setup, commands, architecture, or constraints change.

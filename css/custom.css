@@ -2834,7 +2834,6 @@ textarea {
     display: block;
 }
 
-#outputText,
 #liveEditor {
     height: 100%;
     border: 0;
@@ -2843,7 +2842,6 @@ textarea {
 }
 
 .code-editor {
-    --code-line-number-width: 48px;
     position: relative;
     grid-column: 3;
     grid-row: 2;
@@ -2979,110 +2977,6 @@ textarea {
 .code-find-row-spacer {
     width: 28px;
     flex: 0 0 28px;
-}
-
-#codeHighlight,
-#outputText {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    padding: 16px;
-    overflow: auto;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    tab-size: 4;
-    font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 400;
-    font-variant-ligatures: none;
-    font-feature-settings: "liga" 0, "calt" 0;
-    letter-spacing: 0;
-    line-height: 22px;
-}
-
-#outputText {
-    padding-left: calc(var(--code-line-number-width) + 16px);
-}
-
-#codeLineNumbers {
-    position: absolute;
-    inset: 0 auto 0 0;
-    z-index: 2;
-    width: var(--code-line-number-width);
-    overflow: hidden;
-    border-right: 1px solid rgba(154, 170, 208, 0.18);
-    background: #0d172f;
-    color: #657596;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    line-height: 22px;
-    pointer-events: none;
-    user-select: none;
-}
-
-#codeLineNumbers span {
-    position: absolute;
-    right: 8px;
-    left: 0;
-    display: block;
-    height: 22px;
-    text-align: right;
-}
-
-@media (max-width: 760px) {
-    .code-find-status {
-        display: none;
-    }
-}
-
-#codeHighlight {
-    z-index: 0;
-    padding: 0;
-    overflow: hidden;
-    color: #d7deea;
-    pointer-events: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-#codeHighlight code {
-    position: absolute;
-    display: block;
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-}
-
-.code-search-match {
-    margin: 0;
-    padding: 0;
-    border-radius: 2px;
-    background: rgba(250, 204, 21, 0.42);
-    color: inherit;
-    box-shadow: inset 0 0 0 1px rgba(253, 224, 71, 0.55);
-}
-
-#outputText {
-    z-index: 1;
-    resize: none;
-    background: transparent;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
-    caret-color: #f8fafc;
-}
-
-#outputText::placeholder {
-    color: #94a3b8;
-    opacity: 1;
-}
-
-#outputText::selection {
-    background: rgba(110, 168, 254, 0.35);
-    color: transparent;
-    -webkit-text-fill-color: transparent;
 }
 
 .code-reciprocal-caret {
@@ -3381,7 +3275,11 @@ textarea {
     .rail-copy-action {
         margin-left: auto;
     }
+}
 
+/* Stack at half of a 1080p display, including landscape browser viewports.
+   Keep this query aligned with isPaneSplitterStacked() in src/propel.js. */
+@media (min-width: 768px) and (max-width: 1024px), (orientation: portrait) and (min-width: 768px) {
     .editor-surface {
         grid-template-columns: 1fr;
         grid-template-rows: auto minmax(260px, var(--live-pane-width, 1fr)) 8px auto minmax(260px, 1fr);
@@ -3441,7 +3339,9 @@ textarea {
     .code-editor {
         grid-row: 5;
     }
+}
 
+@media (orientation: portrait) and (min-width: 768px) {
     .table-editor-dialog {
         top: auto;
         left: 0;
@@ -4068,7 +3968,6 @@ textarea {
         min-height: 0;
     }
 
-    #outputText,
     #liveEditor {
         min-height: 0;
     }
@@ -4515,16 +4414,10 @@ body {
 
 #liveEditor:empty::before { color: #8794aa; }
 
-.code-editor,
-#outputText,
-#codeHighlight {
+.code-editor {
     background: #111b35;
     color: #dce7ff;
 }
-
-#outputText { caret-color: #67e8f9; }
-
-#outputText::placeholder { color: #8999b8; }
 
 .pane-splitter { background: #d3dcea; }
 
@@ -4694,30 +4587,6 @@ textarea:focus {
     .editor-panel { border-radius: 3px; }
 }
 
-/* Code view: keep the editable textarea transparent so the highlighted layer
-   remains visible, with a palette tuned for the cool code surface. */
-#outputText {
-    background: transparent;
-    color: transparent;
-}
-
-#codeHighlight { background: #111b35; }
-#codeHighlight .pln { color: #dce7ff; }
-#codeHighlight .tag,
-#codeHighlight .kwd { color: #67e8f9; }
-#codeHighlight .atn,
-#codeHighlight .typ,
-#codeHighlight .dec,
-#codeHighlight .var { color: #fbbf7a; }
-#codeHighlight .atv,
-#codeHighlight .str { color: #a7e3a1; }
-#codeHighlight .pun,
-#codeHighlight .opn,
-#codeHighlight .clo { color: #9aaad0; }
-#codeHighlight .com { color: #7f91b7; font-style: italic; }
-#codeHighlight .lit { color: #f4a7a7; }
-#codeHighlight .fun { color: #d8a7f3; }
-
 /* Only the document preview retains WET/Canada.ca presentation. The table
    editor chrome continues to use Propel's corporate visual system. */
 .table-editor-canvas {
@@ -4730,4 +4599,44 @@ textarea:focus {
 
 .table-editor-canvas .selected {
     outline-color: rgba(37, 87, 214, 0.45);
+}
+
+/* CodeMirror owns source layout so wrapped rows, selections and caret agree. */
+#codeEditor .propel-code-editor {
+    position: absolute;
+    inset: 0;
+    height: auto;
+    background: #111b35;
+    color: #dce7ff;
+    font: 14px/22px var(--font-mono);
+    font-variant-ligatures: none;
+}
+#codeEditor .CodeMirror-lines { padding: 16px 0; }
+#codeEditor .CodeMirror pre.CodeMirror-line,
+#codeEditor .CodeMirror pre.CodeMirror-line-like { padding-right: 16px; }
+#codeEditor .CodeMirror-gutters { background: #0d172f; border-color: rgba(154, 170, 208, 0.18); }
+#codeEditor .CodeMirror-linenumber { color: #657596; padding: 0 8px; min-width: 24px; }
+#codeEditor .CodeMirror-cursor { border-left-color: #f8fafc; }
+#codeEditor .CodeMirror-selected { background: rgba(110, 168, 254, 0.35); }
+#codeEditor .cm-tag { color: #67e8f9; }
+#codeEditor .cm-attribute { color: #fbbf7a; }
+#codeEditor .cm-string { color: #a7e3a1; }
+#codeEditor .cm-comment { color: #7f91b7; font-style: italic; }
+#codeEditor .cm-atom { color: #f4a7a7; }
+
+.code-search-match {
+    border-radius: 2px;
+    background: rgba(250, 204, 21, 0.42);
+    box-shadow: inset 0 0 0 1px rgba(253, 224, 71, 0.55);
+}
+
+#codeEditor .propel-code-editor.is-empty::before {
+    content: attr(data-placeholder);
+    position: absolute;
+    z-index: 1;
+    top: 16px;
+    left: 52px;
+    right: 16px;
+    color: #8999b8;
+    pointer-events: none;
 }

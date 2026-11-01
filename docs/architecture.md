@@ -40,3 +40,9 @@ Explicit column header rows still use header cells.
 debounced recovery writes. `src/document/recovery-store.js` is the IndexedDB
 adapter. Recovery snapshots are serialized copies only: neither module owns live
 document state, and restoration returns HTML through `DocumentStore`.
+
+`src/ui/code-editor.js` adapts the local CodeMirror view to the existing Code
+textarea's value, selection, focus, and event boundary. Wrapped-line indentation
+is a rendering style only; it adds no source whitespace. Editor changes flow
+through the existing input synchronization and document history. CodeMirror's
+private undo history is cleared so Propel remains responsible for undo/redo.

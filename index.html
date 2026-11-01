@@ -11,6 +11,7 @@
     <meta name="referrer" content="no-referrer">
     <link type="image/svg+xml" sizes="any" rel="icon" href="assets/favicon.svg">
     <link id="theme" rel="stylesheet" href="css/prettify.css">
+    <link rel="stylesheet" href="assets/codemirror/codemirror.css">
     <link rel="stylesheet" href="css/custom.css">
 </head>
 
@@ -321,8 +322,6 @@
                                     <button type="button" class="code-find-action-btn" id="codeReplaceAllBtn">Replace all</button>
                                 </div>
                             </div>
-                            <div id="codeLineNumbers" aria-hidden="true" inert></div>
-                            <pre id="codeHighlight" aria-hidden="true" inert><code></code></pre>
                             <textarea name="outputTextArea" id="outputText" placeholder="Upload a Word document or paste HTML code here" spellcheck="false" aria-keyshortcuts="Control+F Meta+F Control+Shift+F Meta+Shift+F Control+G Meta+G"></textarea>
                             <span id="codeReciprocalCaret" class="code-reciprocal-caret" aria-hidden="true"></span>
                         </div>
@@ -697,6 +696,8 @@
     <script src="src/mammoth.browser.js"></script>
     <script src="src/beautify-html.js"></script>
     <script src="src/prettify.js"></script>
+    <script src="assets/codemirror/codemirror.js"></script>
+    <script src="assets/codemirror/xml.js"></script>
     <script type="module" src="src/propel.js"></script>
 </body>
 </html>
