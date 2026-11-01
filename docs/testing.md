@@ -27,6 +27,12 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    `<li></li>` in Code view, with its caret placeholder kept only in Live view.
    Switch views and try undo/redo, then continue typing in that empty item.
    Confirm intentional line breaks inside populated items remain in Code view.
+   In Code view, paste a long indented line and narrow the pane. Wrapped rows
+   should align with its first non-whitespace character, and copying should
+   preserve the original source. Check click/drag selection, typing, Tab and
+   Shift+Tab, find/replace, go to line, scrolling, and reciprocal caret guidance.
+   Repeat with tabs, French accented text, unbroken URLs, and a trailing newline.
+   Very deep indentation is visually capped at half the pane width.
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
 5. Indent a table row header through `ml-2`, `ml-3`, `ml-4`, and `ml-5`, then outdent to no wrapper. Confirm bold state, complex header relationships, undo/redo, and Apply preserve the selected level.

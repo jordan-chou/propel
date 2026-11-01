@@ -1,3 +1,4 @@
+import { createCodeEditor } from '../../src/ui/code-editor.js';
 import { createBodyFtnTags, replaceFootnoteSection } from '../../src/commands/footnote-generator.js';
 import { modifyHeadings, modifyTables, modifyFigures } from '../../src/commands/anchors-aweigh.js';
 import { cleanupTable, defaultTableCleanupOptions } from '../../src/commands/table-cleanup.js';
@@ -49,8 +50,6 @@ import {
     DOCUMENT_RECOVERY_SCHEMA_VERSION
 } from '../../src/document/recovery-store.js';
 import { runStandardCleanup } from '../../src/document/cleanup.js';
-import { createCodeHighlightViewport, getLineStarts } from '../../src/ui/code-highlight-viewport.js';
-import { highlightHTML } from '../../src/ui/html-syntax-highlight.js';
 import { createCodeFindController } from '../../src/ui/code-find.js';
 import {
     buildBugReportUrl,
@@ -692,185 +691,104 @@ for (const [command, tag] of [['insertUnorderedList', 'ul'], ['insertOrderedList
     });
 }
 
-test('attribute entity highlighting preserves source text and does not create document elements', () => {
-    const source = '<img alt="&quot;Revenue&quot; &amp; costs&nbsp; &#160; &#xA0; &lt;b&gt;total&lt;/b&gt;" title=\'L&apos;économie&#8239;\'><p>&amp; &#160;</p>';
-    const code = document.createElement('code');
-    code.innerHTML = highlightHTML(source);
-
-    equal(code.textContent, source);
-    equal(code.querySelector('img, b, p'), null);
-    equal(code.querySelectorAll('.syntax-value').length, 2);
-    equal(code.querySelectorAll('.syntax-value .syntax-entity').length, 0);
-    equal(code.querySelector('.syntax-value').textContent, '"&quot;Revenue&quot; &amp; costs&nbsp; &#160; &#xA0; &lt;b&gt;total&lt;/b&gt;"');
-    equal([...code.querySelectorAll('.syntax-entity')].map(node => node.textContent).join(' '), '&amp; &#160;');
-});
-
-test('code viewport keeps attribute entities in value highlighting after scrolling', () => {
+test('source rendering escapes markup and virtualizes highlighted lines and numbers', () => {
     const host = document.createElement('div');
-    host.style.cssText = 'position:relative;width:420px;height:110px';
-    host.innerHTML = `
-        <pre style="position:absolute;inset:0;margin:0;overflow:hidden"><code></code></pre>
-        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:0;border:0;white-space:pre;font:14px/22px monospace"></textarea>`;
+    host.style.width = '360px';
+    host.innerHTML = '<textarea></textarea>';
     document.body.append(host);
     const textarea = host.querySelector('textarea');
-    const source = Array.from({ length: 100 }, (_, index) => `<p title="Line ${index} &amp; &#160;">Text &amp;</p>`).join('\n');
+    const source = Array.from({ length: 300 }, (_, n) => `<p title="L&apos;économie &amp; &#160; ${n}">&lt;b&gt;Line ${n}</p>`).join('\n');
     textarea.value = source;
-    const viewport = createCodeHighlightViewport({
-        overlay: host.querySelector('pre'), textarea, highlight: highlightHTML, overscanLines: 1
-    });
-    try {
-        viewport.update(source);
-        textarea.scrollTop = 1100;
-        viewport.render();
-        const code = host.querySelector('code');
-        const start = Number(code.dataset.highlightStart);
-        const end = Number(code.dataset.highlightEnd);
-        equal(start > 0, true);
-        equal(end < source.length, true);
-        equal(code.textContent, source.slice(start, end));
-        const values = [...code.querySelectorAll('.syntax-value')];
-        equal(values.length > 0, true);
-        equal(values.every(value => /^"Line \d+ &amp; &#160;"$/.test(value.textContent)), true);
-        equal(code.querySelectorAll('.syntax-value .syntax-entity').length, 0);
-        equal(code.querySelectorAll('.syntax-entity').length, values.length);
-        equal([...code.querySelectorAll('.syntax-entity')].every(node => node.textContent === '&amp;'), true);
-    } finally {
-        viewport.destroy();
-        host.remove();
+    const view = createCodeEditor(textarea);
+    view.editor.setSize('100%', 120);
+    textarea.scrollTop = view.scrollTopForIndex(source.indexOf('Line 150'));
+    const lines = [...host.querySelectorAll('.CodeMirror-code pre')];
+    equal(lines.length > 0 && lines.length < 60, true);
+    equal(lines.some(line => line.textContent.includes('Line 150')), true);
+    equal(lines.every(line => !line.querySelector('p, b')), true);
+    equal(lines.some(line => line.textContent.includes('L&apos;économie &amp; &#160;')), true);
+    equal(host.querySelectorAll('.cm-string').length > 0, true);
+    equal(Number(host.querySelector('.CodeMirror-linenumber').textContent) > 1, true);
+    equal(textarea.value, source);
+    view.destroy();
+    host.remove();
+});
+
+test('wrapped source rows retain visual indentation without changing source or selection offsets', () => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:relative;width:320px;height:180px';
+    host.innerHTML = '<textarea aria-keyshortcuts="Control+F"></textarea>';
+    document.body.append(host);
+    const textarea = host.querySelector('textarea');
+    const source = '    <p>' + 'English français &amp; text '.repeat(20) + '</p>\n\t\t<p>' + 'unbroken'.repeat(60) + '</p>\n';
+    textarea.value = source;
+    const view = createCodeEditor(textarea);
+    const cm = view.editor;
+    cm.setSize('100%', '180px');
+    cm.refresh();
+    let inputs = 0;
+    textarea.addEventListener('input', () => inputs++);
+    for (const [line, indent] of [[0, 4], [1, 2]]) {
+        const first = cm.charCoords({ line, ch: indent }, 'local');
+        let continuation = null;
+        for (let ch = indent + 1; ch < cm.getLine(line).length; ch++) {
+            const rect = cm.charCoords({ line, ch }, 'local');
+            if (rect.top > first.top) { continuation = { ch, rect }; break; }
+        }
+        equal(Boolean(continuation), true);
+        equal(Math.abs(continuation.rect.left - first.left) < 1, true);
+        const hit = cm.coordsChar({ left: continuation.rect.left + 1, top: continuation.rect.top + 2 }, 'local');
+        equal(hit.line, line);
+        equal(hit.ch, continuation.ch);
     }
-});
-
-test('code highlighting renders only the visible source window', () => {
-    const host = document.createElement('div');
-    host.style.cssText = 'position: relative; width: 420px; height: 110px;';
-    host.innerHTML = `
-        <div class="line-numbers" style="position:absolute;inset:0 auto 0 0;width:40px;overflow:hidden"></div>
-        <pre style="position:absolute;inset:0;margin:0;overflow:hidden"><code></code></pre>
-        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:0 0 0 40px;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
-    document.body.append(host);
-    const overlay = host.querySelector('pre');
-    const textarea = host.querySelector('textarea');
-    const lineNumbers = host.querySelector('.line-numbers');
-    const source = Array.from({ length: 200 }, (_, index) => `<p>Line ${index}</p>`).join('\n');
-    textarea.value = source;
-    const viewport = createCodeHighlightViewport({
-        overlay,
-        textarea,
-        lineNumbers,
-        highlight: value => value.replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
-        overscanLines: 2
-    });
-    viewport.update(source);
-    textarea.scrollTop = 1100;
-    viewport.render();
-    const code = overlay.querySelector('code');
-    const mirror = Array.from(document.querySelectorAll('[aria-hidden="true"][inert]'))
-        .find(element => element.textContent.includes('Line 199'));
-    const start = Number(code.dataset.highlightStart);
-    const end = Number(code.dataset.highlightEnd);
-
-    equal(start > 0, true);
-    equal(end < source.length, true);
-    equal(code.textContent, source.slice(start, end));
-    equal(code.textContent.includes('Line 0</p>'), false);
-    equal(code.textContent.length < source.length / 4, true);
-    equal(Number(lineNumbers.dataset.firstLine) > 1, true);
-    equal(Number(lineNumbers.dataset.lastLine) < 200, true);
-    equal(lineNumbers.firstElementChild.textContent, lineNumbers.dataset.firstLine);
-    equal(Boolean(mirror), true);
-    viewport.destroy();
+    equal(textarea.value, source);
+    textarea.setSelectionRange(12, 28, 'backward');
+    equal(textarea.selectionStart, 12);
+    equal(textarea.selectionEnd, 28);
+    equal(textarea.selectionDirection, 'backward');
+    textarea.setRangeText('replacement', 12, 28, 'end');
+    equal(textarea.value, source.slice(0, 12) + 'replacement' + source.slice(28));
+    equal(textarea.selectionStart, 23);
+    equal(inputs, 0);
+    cm.replaceSelection('typed', 'end', '+input');
+    equal(inputs, 1);
+    equal(textarea.value.includes('replacementtyped'), true);
+    view.setSearchRange({ start: 12, end: 23 });
+    equal(host.querySelector('.code-search-match').textContent, 'replacement');
+    host.style.width = '220px';
+    cm.refresh();
+    const rect = view.coordinates(23);
+    equal(Number.isFinite(rect.left) && Number.isFinite(rect.top), true);
+    textarea.scrollTop = view.scrollTopForIndex(textarea.value.length - 2);
+    equal(textarea.scrollTop > 0, true);
+    equal(textarea.value.endsWith('\n'), true);
+    view.destroy();
     host.remove();
 });
 
-test('code highlighting marks the active find result', () => {
+test('Code editor bridges cancellable shortcuts and preserves native textarea writes and Enter', () => {
     const host = document.createElement('div');
-    host.style.cssText = 'position: relative; width: 420px; height: 88px;';
-    host.innerHTML = `
-        <pre style="position:absolute;inset:0;margin:0;overflow:hidden"><code></code></pre>
-        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:8px;border:0;white-space:pre-wrap;font:14px/22px monospace"></textarea>`;
+    host.innerHTML = '<textarea>    first</textarea>';
     document.body.append(host);
     const textarea = host.querySelector('textarea');
-    const source = '<p>Find this text</p>';
-    textarea.value = source;
-    const viewport = createCodeHighlightViewport({
-        overlay: host.querySelector('pre'),
-        textarea,
-        highlight: value => value.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    });
-    viewport.update(source);
-    viewport.setSearchRange({ start: source.indexOf('this'), end: source.indexOf('this') + 4 });
-
-    const marker = host.querySelector('.code-search-match');
-    equal(marker.textContent, 'this');
-    equal(host.querySelector('code').textContent, source);
-    viewport.destroy();
+    const view = createCodeEditor(textarea);
+    textarea.value = '    second';
+    equal(textarea.selectionStart, textarea.value.length);
+    let inputs = 0;
+    textarea.addEventListener('input', () => inputs++);
+    textarea.addEventListener('keydown', event => { if (event.key === 'Tab') event.preventDefault(); });
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
+    view.editor.getInputField().dispatchEvent(tab);
+    equal(tab.defaultPrevented, true);
+    equal(textarea.value, '    second');
+    view.editor.getInputField().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true, cancelable: true }));
+    equal(textarea.value, '    second\n');
+    equal(inputs, 1);
+    view.destroy();
+    textarea.value = 'native again';
+    equal(textarea.selectionStart, 12);
+    equal(textarea.hasOwnProperty('value'), false);
     host.remove();
-});
-
-test('application syntax and line-number layers are inert and unselectable', async () => {
-    const response = await fetch('../../index.html');
-    const source = await response.text();
-    const app = new DOMParser().parseFromString(source, 'text/html');
-    const highlight = app.getElementById('codeHighlight');
-    const lineNumbers = app.getElementById('codeLineNumbers');
-
-    equal(highlight.hasAttribute('inert'), true);
-    equal(highlight.getAttribute('aria-hidden'), 'true');
-    equal(lineNumbers.hasAttribute('inert'), true);
-    equal(lineNumbers.getAttribute('aria-hidden'), 'true');
-});
-
-test('virtualized code highlighting stays aligned after wrapped lines', () => {
-    const host = document.createElement('div');
-    host.style.cssText = 'position: relative; width: 260px; height: 88px;';
-    host.innerHTML = `
-        <style>.line-numbers span { position: absolute; }</style>
-        <div class="line-numbers" style="position:absolute;inset:0 auto 0 0;width:40px;overflow:hidden"></div>
-        <pre style="position:absolute;inset:0;margin:0;padding:0;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"><code style="position:absolute;display:block;white-space:inherit;overflow-wrap:inherit;font:inherit"></code></pre>
-        <textarea style="position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;padding:8px 8px 8px 48px;border:0;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace"></textarea>`;
-    document.body.append(host);
-    const overlay = host.querySelector('pre');
-    const textarea = host.querySelector('textarea');
-    const lineNumbers = host.querySelector('.line-numbers');
-    const longLine = 'A'.repeat(120);
-    const source = Array.from({ length: 80 }, (_, index) => index % 5 === 0 ? longLine : `Line ${index}`).join('\n');
-    textarea.value = source;
-    const viewport = createCodeHighlightViewport({
-        overlay,
-        textarea,
-        lineNumbers,
-        highlight: value => value,
-        overscanLines: 1
-    });
-    viewport.update(source);
-    textarea.scrollTop = 700;
-    viewport.render();
-
-    const code = overlay.querySelector('code');
-    const start = Number(code.dataset.highlightStart);
-    const reference = document.createElement('div');
-    reference.style.cssText = `position:fixed;visibility:hidden;left:-10000px;top:0;box-sizing:border-box;width:${textarea.clientWidth}px;height:auto;margin:0;padding:8px 8px 8px 48px;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/22px monospace`;
-    const referenceText = document.createTextNode(`${source}\u200b`);
-    reference.append(referenceText);
-    document.body.append(reference);
-    const range = document.createRange();
-    range.setStart(referenceText, start);
-    range.setEnd(referenceText, start + 1);
-    const expectedTop = range.getBoundingClientRect().top - reference.getBoundingClientRect().top - textarea.scrollTop;
-    const actualTop = code.getBoundingClientRect().top - overlay.getBoundingClientRect().top;
-    const firstNumberTop = lineNumbers.firstElementChild.getBoundingClientRect().top
-        - lineNumbers.getBoundingClientRect().top;
-
-    equal(Math.abs(actualTop - expectedTop) < 1, true);
-    equal(Math.abs(firstNumberTop - expectedTop) < 1, true);
-    equal(code.textContent.length < source.length / 3, true);
-    reference.remove();
-    viewport.destroy();
-    host.remove();
-});
-
-test('code highlight line indexes include empty and trailing lines', () => {
-    equal(getLineStarts('first\n\nthird\n').join(','), '0,6,7,13');
 });
 
 test('Code view find panel navigates, replaces, collapses, and closes', () => {
@@ -893,6 +811,7 @@ test('Code view find panel navigates, replaces, collapses, and closes', () => {
         <textarea>cat dog cat</textarea>`;
     document.body.append(host);
     const textarea = host.querySelector('textarea');
+    const view = createCodeEditor(textarea);
     const panel = host.querySelector('.panel');
     const searchInput = host.querySelector('.find');
     const replaceInput = host.querySelector('.replace');
@@ -953,7 +872,8 @@ test('Code view find panel navigates, replaces, collapses, and closes', () => {
     equal(replaceRow.hidden, true);
     searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     equal(panel.hidden, true);
-    equal(document.activeElement, textarea);
+    equal(document.activeElement, view.editor.getInputField());
+    view.destroy();
     host.remove();
 });
 

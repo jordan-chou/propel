@@ -7,7 +7,7 @@ These instructions apply to the entire repository. Propel is expected to be deve
 - Read `README.md` and the directly relevant files in `docs/` before changing architecture or behavior.
 - Trace the actual browser entry point from `index.html` and `src/propel.js`; do not infer that an unreferenced file is active.
 - Inspect `git status` and preserve unrelated user changes.
-- Treat `src/mammoth.browser.js`, `src/beautify-html.js`, `src/prettify.js`, `src/run_prettify.js`, minified CSS, and Font Awesome assets as vendored code. Do not reformat or edit them during application work.
+- Treat `src/mammoth.browser.js`, `src/beautify-html.js`, `src/prettify.js`, `src/run_prettify.js`, minified CSS, `assets/codemirror/`, and Font Awesome assets as vendored code. Do not reformat or edit them during application work.
 
 ## Preserve behavior deliberately
 
@@ -19,6 +19,7 @@ These instructions apply to the entire repository. Propel is expected to be deve
 ## Architectural boundaries
 
 - `DocumentStore` owns canonical document state. Do not introduce another independent document state owner.
+- Code view uses `src/ui/code-editor.js` as the adapter to the local CodeMirror view; preserve its textarea input/selection boundary and Propel document history. Wrapped indentation must remain visual only.
 - Live/code/table editors and review features consume or update the canonical document through established synchronization and mutation boundaries.
 - Register user-invokable operations with stable IDs in `CommandRegistry`.
 - Prefer stateless transformations with explicit inputs and structured results. Avoid module-global document state and direct access to unrelated UI elements.

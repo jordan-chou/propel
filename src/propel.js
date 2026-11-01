@@ -54,8 +54,7 @@ import {
 import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { combineLiveEditorComponents, ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
-import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
-import { highlightHTML } from './ui/html-syntax-highlight.js';
+import { createCodeEditor } from './ui/code-editor.js';
 import { goToCodeLine, isGoToLineShortcut } from './ui/code-navigation.js';
 import { createCodeFindController } from './ui/code-find.js';
 import { createFeedbackComposer } from './support/feedback.js';
@@ -177,8 +176,6 @@ const editorPanel = document.querySelector('.editor-panel');
 const paneSplitter = document.getElementById('paneSplitter');
 const paneSnapGuides = document.querySelectorAll('.pane-snap-guide');
 const codeEditor = document.getElementById('codeEditor');
-const codeHighlight = document.getElementById('codeHighlight');
-const codeLineNumbers = document.getElementById('codeLineNumbers');
 const codeFindPanel = document.getElementById('codeFindPanel');
 const codeFindInput = document.getElementById('codeFindInput');
 const codeReplaceInput = document.getElementById('codeReplaceInput');
@@ -191,12 +188,7 @@ const codeReplaceBtn = document.getElementById('codeReplaceBtn');
 const codeReplaceAllBtn = document.getElementById('codeReplaceAllBtn');
 const codeFindCloseBtn = document.getElementById('codeFindCloseBtn');
 const codeFindStatus = document.getElementById('codeFindStatus');
-const codeHighlightViewport = createCodeHighlightViewport({
-    overlay: codeHighlight,
-    textarea: outputText,
-    lineNumbers: codeLineNumbers,
-    highlight: highlightHTML
-});
+const codeEditorView = createCodeEditor(outputText);
 const codeReciprocalCaret = document.getElementById('codeReciprocalCaret');
 const liveReciprocalCaret = liveEditor?.getRootNode().getElementById('liveReciprocalCaret');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
@@ -249,7 +241,7 @@ const deferredTypingRefresh = createDeferredWork(() => {
         syncEditorToInputHTML();
         scheduleDocumentHistoryCommit('typing');
         updateLiveView();
-        updateCodeHighlight();
+        updateCodeLayout();
         updateLiveReciprocalCaret();
     }
     documentRecovery.schedule();
@@ -413,7 +405,7 @@ const codeFind = createCodeFindController({
     closeButton: codeFindCloseBtn,
     status: codeFindStatus,
     onReveal: scrollCodeToIndex,
-    onMatch: (match) => codeHighlightViewport.setSearchRange(match),
+    onMatch: (match) => codeEditorView.setSearchRange(match),
     onBeforeReplace: () => {
         deferredTypingRefresh.flush();
         commitDocumentHistory('typing');
@@ -1058,7 +1050,6 @@ function createListeners() {
 
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
-        codeHighlightViewport.update(outputText.value);
         codeFind.refresh();
         scheduleTypingRefresh('code');
         hideReciprocalCaret(liveReciprocalCaret);
@@ -1073,7 +1064,6 @@ function createListeners() {
     });
     outputText.addEventListener('keydown', handleCodeEditorKeydown);
     outputText.addEventListener('scroll', () => {
-        syncCodeHighlightScroll();
         if (activeEditorView === 'live') updateCodeReciprocalCaret();
     });
     outputText.addEventListener('click', (event) => {
@@ -2156,7 +2146,7 @@ function syncCodeEditorAfterProgrammaticEdit() {
     syncEditorToInputHTML();
     updateLiveView();
     refreshReviewPanel();
-    updateCodeHighlight();
+    updateCodeLayout();
 }
 
 /** Returns shortcut digit. */
@@ -3023,7 +3013,7 @@ function updateCodeView() {
     outputText.value = hasInput() ? Utils.formattedHTML(inputHTML) : '';
     updateFileDropZoneState(hasInput());
     updateElementSyncLineMap();
-    updateCodeHighlight();
+    updateCodeLayout();
     codeFind.refresh();
 }
 
@@ -3184,33 +3174,9 @@ function getFallbackCaretRect(node) {
     return element?.getBoundingClientRect() || null;
 }
 
-/** Measures a textarea character using a hidden layout mirror. */
+/** Measures a source character in the rendered Code view. */
 function getCodeCoordinatesForIndex(codeIndex) {
-    const style = window.getComputedStyle(outputText);
-    const mirror = document.createElement('div');
-    const marker = document.createElement('span');
-    [
-        'boxSizing', 'fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'letterSpacing',
-        'lineHeight', 'paddingBottom', 'paddingLeft', 'paddingRight', 'paddingTop',
-        'tabSize', 'textAlign', 'textIndent', 'textTransform', 'whiteSpace', 'wordBreak'
-    ].forEach(property => { mirror.style[property] = style[property]; });
-    mirror.style.overflowWrap = style.overflowWrap;
-    mirror.style.position = 'absolute';
-    mirror.style.visibility = 'hidden';
-    mirror.style.left = '-9999px';
-    mirror.style.top = '0';
-    mirror.style.width = `${outputText.clientWidth}px`;
-    mirror.style.height = 'auto';
-    mirror.style.overflow = 'hidden';
-    marker.textContent = '\u200b';
-    mirror.append(document.createTextNode(outputText.value.slice(0, codeIndex)), marker);
-    document.body.appendChild(mirror);
-    const coordinates = {
-        left: marker.offsetLeft - outputText.scrollLeft,
-        top: marker.offsetTop - outputText.scrollTop
-    };
-    mirror.remove();
-    return coordinates;
+    return codeEditorView.coordinates(codeIndex);
 }
 
 /** Returns code entry for path. */
@@ -3282,58 +3248,11 @@ function updateElementSyncLineMap() {
 /** Scrolls code to index. */
 function scrollCodeToIndex(codeIndex) {
     outputText.scrollTop = getCodeScrollTopForIndex(codeIndex);
-    syncCodeHighlightScroll();
 }
 
 /** Returns code scroll top for index. */
 function getCodeScrollTopForIndex(codeIndex) {
-    const style = window.getComputedStyle(outputText);
-    const mirror = document.createElement('div');
-    const marker = document.createElement('span');
-    const mirroredProperties = [
-        'boxSizing',
-        'fontFamily',
-        'fontSize',
-        'fontStyle',
-        'fontWeight',
-        'letterSpacing',
-        'lineHeight',
-        'paddingBottom',
-        'paddingLeft',
-        'paddingRight',
-        'paddingTop',
-        'tabSize',
-        'textAlign',
-        'textIndent',
-        'textTransform',
-        'whiteSpace',
-        'wordBreak'
-    ];
-
-    mirroredProperties.forEach((property) => {
-        mirror.style[property] = style[property];
-    });
-    mirror.style.overflowWrap = style.overflowWrap;
-    mirror.style.position = 'absolute';
-    mirror.style.visibility = 'hidden';
-    mirror.style.left = '-9999px';
-    mirror.style.top = '0';
-    mirror.style.width = `${outputText.clientWidth}px`;
-    mirror.style.minHeight = '0';
-    mirror.style.height = 'auto';
-    mirror.style.overflow = 'hidden';
-
-    marker.textContent = '\u200b';
-    marker.style.display = 'inline-block';
-
-    mirror.appendChild(document.createTextNode(outputText.value.slice(0, codeIndex)));
-    mirror.appendChild(marker);
-    document.body.appendChild(mirror);
-
-    const targetTop = Math.max(0, marker.offsetTop - (outputText.clientHeight * 0.28));
-    mirror.remove();
-
-    return targetTop;
+    return codeEditorView.scrollTopForIndex(codeIndex);
 }
 
 /** Scrolls live element into view. */
@@ -3345,23 +3264,9 @@ function scrollLiveElementIntoView(element) {
     liveEditor.scrollTop = targetTop;
 }
 
-/** Refreshes code highlight. */
-function updateCodeHighlight() {
-    if (!codeHighlight || !outputText) {
-        return;
-    }
-
-    codeHighlightViewport.update(outputText.value);
-    syncCodeHighlightScroll();
-}
-
-/** Synchronizes code highlight scroll. */
-function syncCodeHighlightScroll() {
-    if (!codeHighlight || !outputText) {
-        return;
-    }
-
-    codeHighlightViewport.schedule();
+/** Refreshes source layout after rendering or showing the Code pane. */
+function updateCodeLayout() {
+    codeEditorView.refresh();
 }
 
 /**
@@ -3369,7 +3274,7 @@ function syncCodeHighlightScroll() {
  */
 function clearOutputText() {
     outputText.value = " ";
-    updateCodeHighlight();
+    updateCodeLayout();
     if (liveEditor) {
         liveEditor.innerHTML = "";
     }
