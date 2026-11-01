@@ -2753,8 +2753,8 @@ function addIDsCommand() {
 function generateFootnotesCommand() {
     try {
         syncActiveEditorToInputHTML();
-        createBodyFtnTags(inputHTML, langStrings);
-        replaceFootnoteSection(inputHTML, langStrings, isEngLang);
+        const footnoteNumbers = createBodyFtnTags(inputHTML, langStrings);
+        replaceFootnoteSection(inputHTML, langStrings, isEngLang, footnoteNumbers);
         
         updateOutputText();
         addProcessingLog('Generate Footnotes successful.', 'success');

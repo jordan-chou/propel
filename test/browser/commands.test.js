@@ -1,4 +1,5 @@
 import { createBodyFtnTags, replaceFootnoteSection } from '../../src/commands/footnote-generator.js';
+import { engStrings, frStrings } from '../../src/strings.js';
 import { modifyHeadings, modifyTables, modifyFigures } from '../../src/commands/anchors-aweigh.js';
 import { cleanupTable, defaultTableCleanupOptions } from '../../src/commands/table-cleanup.js';
 import { fixNbspHTML, transformNbspHTML } from '../../src/commands/nbsp.js';
@@ -1240,6 +1241,46 @@ test('English footnote return text is preserved', () => {
     replaceFootnoteSection(root, strings, true);
     equal(root.querySelector('.fn-rtn .wb-inv:last-child').textContent.trim(), 'referrer');
 });
+
+for (const [language, strings, isEnglish] of [['English', engStrings, true], ['French', frStrings, false]]) {
+    for (const sourceIds of [[1, 2], [1, 2, 3, 4], [2, 3], [7, 3, 12, 5]]) {
+        test(`${language} footnotes match body numbering for source IDs ${sourceIds.join(', ')}`, () => {
+            const root = document.createElement('div');
+            root.innerHTML = sourceIds.map((id, index) =>
+                `<p>Body ${index + 1}<sup><a href="#footnote-${id}" id="footnote-ref-${id}">[${index + 1}]</a></sup></p>`
+            ).join('') + '<ol>' + sourceIds.map((id, index) =>
+                `<li id="footnote-${id}"><p>Note <em>${index + 1}</em> <a href="#footnote-ref-${id}">↑</a></p></li>`
+            ).join('') + '</ol>';
+
+            const footnoteNumbers = createBodyFtnTags(root, strings);
+            replaceFootnoteSection(root, strings, isEnglish, footnoteNumbers);
+
+            const aside = root.querySelector('aside.wb-fnote');
+            equal(aside.getAttribute('role'), 'note');
+            equal(aside.querySelector('h2').textContent, strings.FN_H2);
+            equal(aside.querySelectorAll('dd').length, sourceIds.length);
+            equal(root.querySelectorAll('ol, li, a[href^="#footnote-"]').length, 0);
+            const ids = Array.from(root.querySelectorAll('[id]'), element => element.id);
+            equal(new Set(ids).size, ids.length);
+            sourceIds.forEach((id, index) => {
+                const number = index + 1;
+                const body = root.querySelectorAll('sup')[index];
+                equal(body.id, `fn${number}-rf`);
+                equal(body.querySelector('a').getAttribute('href'), `#fn${number}`);
+                equal(body.textContent, `${strings.FN_DT} ${number}`);
+                const note = aside.querySelectorAll('dd')[index];
+                equal(note.id, `fn${number}`);
+                equal(note.previousElementSibling.textContent, `${strings.FN_DT} ${number}`);
+                equal(note.querySelector('p').innerHTML, `Note <em>${number}</em> `);
+                const returnLink = note.querySelector('.fn-rtn a');
+                equal(returnLink.getAttribute('href'), `#fn${number}-rf`);
+                equal(returnLink.childNodes[1].textContent, String(number));
+                equal(returnLink.querySelectorAll('.wb-inv').length, isEnglish ? 2 : 1);
+                equal(returnLink.firstElementChild.textContent.trim(), strings.FN_SP1.trim());
+            });
+        });
+    }
+}
 
 test('generic table tag renaming preserves source formatting', () => {
     const cell = document.createElement('td');

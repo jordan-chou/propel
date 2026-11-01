@@ -15,6 +15,7 @@
  * Note: uses each footnote's numerical value
  * @param {HTMLElement} inputHTML input HTML
  * @param {String[]} langStrings Strings in EN or FR
+ * @returns {Map<string, string>} Source note IDs mapped to displayed body numbers
  */
 // <sup><a href="#footnote-2" id="footnote-ref-2">[1]</a></sup>
 // <sup id="fn1-rf"><a class="fn-lnk" href="#fn1"><span class="wb-inv">Footnote </span>1</a></sup>
@@ -22,7 +23,7 @@
 export function createBodyFtnTags(inputHTML, langStrings) {
     const superscripts = inputHTML.querySelectorAll('sup>a[id^="footnote-ref-"]');
 
-    // var fnCount = 1;
+    const footnoteNumbers = new Map();
     
     for (var s of superscripts) {
         const sup = document.createElement('sup');
@@ -30,6 +31,7 @@ export function createBodyFtnTags(inputHTML, langStrings) {
         // get footnote number from <div id="ftn###">
         let matches = s.textContent.match(/(\d+)/);
         const fnNum = matches[0];
+        footnoteNumbers.set(s.getAttribute('href').slice(1), fnNum);
         // const fnNum = fnCount++; // This assumes that references and footnotes are matched 1-to-1 sequentially
 
         
@@ -39,6 +41,7 @@ export function createBodyFtnTags(inputHTML, langStrings) {
 
         s.parentNode.parentNode.replaceChild(sup, s.parentNode);
     }
+    return footnoteNumbers;
 }
 
 /**
@@ -46,10 +49,11 @@ export function createBodyFtnTags(inputHTML, langStrings) {
  * @param {HTMLElement} inputHTML input HTML
  * @param {String[]} langStrings Strings in EN or FR
  * @param {Boolean} isEngLang Is in lang EN
+ * @param {Map<string, string>} footnoteNumbers Numbering returned by createBodyFtnTags
  */
-export function replaceFootnoteSection(inputHTML, langStrings, isEngLang) {
+export function replaceFootnoteSection(inputHTML, langStrings, isEngLang, footnoteNumbers = new Map()) {
     const firstFootnote = inputHTML.querySelector('li[id^="footnote-"]');
-    firstFootnote.parentNode.parentNode.replaceChild(createFootnotes(inputHTML, langStrings, isEngLang), firstFootnote.parentNode);
+    firstFootnote.parentNode.parentNode.replaceChild(createFootnotes(inputHTML, langStrings, isEngLang, footnoteNumbers), firstFootnote.parentNode);
 }
 
 /**
@@ -66,9 +70,10 @@ function createTextNode(text) {
  * @param {HTMLElement} inputHTML input HTML
  * @param {String[]} langStrings Strings in EN or FR
  * @param {Boolean} isEngLang Is in lang EN
+ * @param {Map<string, string>} footnoteNumbers Source note IDs mapped to body numbers
  * @returns aside component
  */
-function createFootnotes(inputHTML, langStrings, isEngLang) {
+function createFootnotes(inputHTML, langStrings, isEngLang, footnoteNumbers) {
     const footnotes = inputHTML.querySelectorAll('li[id^="footnote-"]');
 
     // set up 'aside' element
@@ -77,19 +82,12 @@ function createFootnotes(inputHTML, langStrings, isEngLang) {
     aside.setAttribute('role', 'note');
     aside.innerHTML = `<h2 id="fn">${langStrings['FN_H2']}</h2>`;
 
-    var fnCount = 1;
-
     // set up 'dl' element
     const dl = document.createElement('dl');
 
     for (var f of footnotes) {
-        // get footnote number from <li id="footnote-###">
-        let matches = f.id.match(/(\d+)/);
-        let fnNum = matches[0]-1;
-        if (fnNum <= 0) {
-            fnNum = 1;
-        }
-        // const fnNum = fnCount++; // This assumes that references and footnotes are matched 1-to-1 sequentially
+        // Mammoth's source IDs are internal Word IDs, not displayed note numbers.
+        const fnNum = footnoteNumbers.get(f.id) ?? f.id.match(/(\d+)/)[0];
 
         // remove old link to footnote ref
         const a = f.querySelector('a[href^="#footnote-ref-"]');
