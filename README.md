@@ -13,10 +13,10 @@ repository. A production build is only needed to create the portable release.
 - Imports Word documents and converts them to HTML, or starts with a blank document for direct editing.
 - Detects English or French metadata from DOCX files when available.
 - Restores original web destinations from Outlook Safe Links during import and Standard cleanup, preserving link text and destination query parameters and fragments.
-- Provides synchronized Live and Code editing views with reciprocal caret guidance.
+- Provides synchronized Live and Code editing views with reciprocal caret guidance. The panes stack vertically in narrower windows (up to 1024px wide) and portrait layouts.
 - Adds line navigation and find-and-replace tools to Code view. Wrapped lines visually retain their source indentation without adding whitespace to the HTML.
 - Adds stable IDs to headings, tables, and figures. Add IDs uses `tbl1`, `tbl2`, etc. for tables, while table-number suggestions in cleanup use `t` (for example, `t2-1` for Table 2.1). Existing IDs are preserved by Add IDs.
-- Generates publishing markup for footnotes.
+- Generates publishing markup for footnotes, matching note numbers and return links to the corresponding body references.
 - Corrects language-specific non-breaking spaces.
 - Inserts previewable component snippets with editable placeholder text in Live or Code view.
 - Cleans and interactively edits financial and complex tables, including their headers, footers, rows, columns, formatting, and accessibility relationships.
