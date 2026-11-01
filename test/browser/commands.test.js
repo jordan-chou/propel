@@ -2398,15 +2398,15 @@ for (const normalWeight of [false, true]) {
         try {
             header.classList.add('selected');
             data.classList.add('selected');
-            for (const level of ['md', 'lg', 'xl', 'xl']) {
+            for (const level of [2, 3, 4, 5, 5]) {
                 elements.tableEditorIndentBtn.click();
-                equal(header.firstElementChild.classList.contains(`mrgn-lft-${level}`), true);
+                equal(header.firstElementChild.classList.contains(`ml-${level}`), true);
                 equal(header.firstElementChild.innerHTML, content);
                 assertWeight();
             }
-            for (const level of ['lg', 'md']) {
+            for (const level of [4, 3, 2]) {
                 elements.tableEditorOutdentBtn.click();
-                equal(header.firstElementChild.classList.contains(`mrgn-lft-${level}`), true);
+                equal(header.firstElementChild.classList.contains(`ml-${level}`), true);
                 assertWeight();
             }
             elements.tableEditorOutdentBtn.click();
@@ -2696,6 +2696,17 @@ test('existing explicit scoping is preserved when a table is reopened', () => {
     applyTableScopes(table, { complex: true, idRoot: host });
 
     equal(child.getAttribute('headers'), 'value child');
+});
+
+
+test('complex scoping follows all four ml indentation levels', () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<table><tbody><tr><th>Root</th><td>0</td></tr>' + [2, 3, 4, 5].map(level => `<tr><th><div class="ml-${level}">Level ${level}</div></th><td>${level}</td></tr>`).join('') + '</tbody></table>';
+    const table = host.querySelector('table');
+    applyTableScopes(table, { complex: true });
+    const headers = Array.from(table.querySelectorAll('th'));
+    const associations = table.querySelectorAll('td')[4].getAttribute('headers').split(' ');
+    headers.forEach(header => equal(associations.includes(header.id), true));
 });
 
 const output = document.getElementById('results');

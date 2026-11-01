@@ -1,4 +1,4 @@
-const INDENT_CLASSES = ['mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
+const INDENT_CLASSES = ['ml-2', 'ml-3', 'ml-4', 'ml-5', 'mrgn-lft-md', 'mrgn-lft-lg', 'mrgn-lft-xl'];
 
 function getIndentedHeaderContent(cell) {
     if (!cell || cell.tagName.toLowerCase() !== 'th') {

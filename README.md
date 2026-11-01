@@ -105,7 +105,7 @@ Within the table editor, an editor can:
 - Review every table without losing its place in the Live document.
 - Use detected table numbers, titles, and units as caption suggestions, and derive editable table IDs from table numbers.
 - Apply financial alignment or French number formatting.
-- Select and format cells, identify header and highlighted rows, merge cells, and indent hierarchical labels.
+- Select and format cells, identify header and highlighted rows, merge cells, and indent hierarchical labels through four levels (`ml-2` through `ml-5`).
 - Keep first body cells containing multiple paragraphs or lists as data cells (`td`), with their content structure preserved. Simple row labels still become row headers (`th`).
 - Turn off **Dark header background** to omit `bg-dark` and `text-white` from header rows. It starts on and retains your choice across tables until the page is reloaded; changes are previewed until you apply them and support undo/redo.
 - Add footers or move selected source and note rows into a full-width `tfoot`.
