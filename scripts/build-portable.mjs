@@ -41,7 +41,7 @@ const bundle = (await readFile(bundlePath, 'utf8'))
     .replaceAll('assets/fontawesome/solid.svg#', '#');
 await writeFile(bundlePath, bundle);
 
-const themePath = join(outputRoot, 'css', 'theme.min.css');
+const themePath = join(outputRoot, 'assets/gcweb/GCWeb/css/theme.min.css');
 const theme = stripRemoteCssResources(await readFile(themePath, 'utf8'));
 await writeFile(themePath, theme);
 
