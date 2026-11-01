@@ -10,8 +10,8 @@ const requiredFiles = [
     'logo.png',
     'css/custom.css',
     'css/prettify.css',
-    'css/theme.min.css',
-    'css/wet-boew.min.css',
+    'assets/gcweb/GCWeb/css/theme.min.css',
+    'assets/gcweb/GCWeb/css/wet-boew.min.css',
     'src/budget.js',
     'src/mammoth.browser.js',
     'src/beautify-html.js',
@@ -25,7 +25,7 @@ for (const relativePath of requiredFiles) {
 
 const html = await readFile(join(portableRoot, 'index.html'), 'utf8');
 const bundle = await readFile(join(portableRoot, 'src', 'propel.bundle.js'), 'utf8');
-const theme = await readFile(join(portableRoot, 'css', 'theme.min.css'), 'utf8');
+const theme = await readFile(join(portableRoot, 'assets/gcweb/GCWeb/css/theme.min.css'), 'utf8');
 
 assertAbsent(html, 'type="module"', 'portable HTML still loads an ES module');
 assertAbsent(html, 'src="src/propel.js"', 'portable HTML still loads the source entry point');

@@ -1446,7 +1446,7 @@ function previewComponent(component) {
 
 function renderComponentPreview(html, title) {
     if (componentPreviewTitle) componentPreviewTitle.textContent = title;
-    componentPreviewFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="css/wet-boew.min.css"><link rel="stylesheet" href="css/theme.min.css"><style>body{margin:0;padding:12px;background:#fff;zoom:.70}.component-preview-root{max-width:100%}.component-preview-root img{max-width:100%;height:auto}</style></head><body><main class="component-preview-root">${html}</main></body></html>`;
+    componentPreviewFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="assets/gcweb/GCWeb/css/wet-boew.min.css"><link rel="stylesheet" href="assets/gcweb/GCWeb/css/theme.min.css"><style>body{margin:0;padding:12px;background:#fff;zoom:.70}.component-preview-root{max-width:100%}.component-preview-root img{max-width:100%;height:auto}</style></head><body><main class="component-preview-root">${html}</main></body></html>`;
 }
 
 function hideComponentPreview() {

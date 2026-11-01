@@ -11,8 +11,8 @@ export function createWetLiveEditor(host) {
 
     const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
     shadow.innerHTML = `
-        <link rel="stylesheet" href="css/wet-boew.min.css">
-        <link rel="stylesheet" href="css/theme.min.css">
+        <link rel="stylesheet" href="assets/gcweb/GCWeb/css/wet-boew.min.css">
+        <link rel="stylesheet" href="assets/gcweb/GCWeb/css/theme.min.css">
         <style>
             * {
                 box-sizing: border-box;
