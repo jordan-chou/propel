@@ -33,6 +33,10 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    Shift+Tab, find/replace, go to line, scrolling, and reciprocal caret guidance.
    Repeat with tabs, French accented text, unbroken URLs, and a trailing newline.
    Very deep indentation is visually capped at half the pane width.
+   At 960px and 1024px viewport widths, verify Live sits above Code with a
+   horizontal draggable divider. At 1025px in landscape, verify the panes sit
+   side by side with a vertical divider. Portrait and mobile layouts should
+   retain their existing stacking behavior.
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
 5. Indent a table row header through `ml-2`, `ml-3`, `ml-4`, and `ml-5`, then outdent to no wrapper. Confirm bold state, complex header relationships, undo/redo, and Apply preserve the selected level.

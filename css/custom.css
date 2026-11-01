@@ -3275,7 +3275,11 @@ textarea {
     .rail-copy-action {
         margin-left: auto;
     }
+}
 
+/* Stack at half of a 1080p display, including landscape browser viewports.
+   Keep this query aligned with isPaneSplitterStacked() in src/propel.js. */
+@media (min-width: 768px) and (max-width: 1024px), (orientation: portrait) and (min-width: 768px) {
     .editor-surface {
         grid-template-columns: 1fr;
         grid-template-rows: auto minmax(260px, var(--live-pane-width, 1fr)) 8px auto minmax(260px, 1fr);
@@ -3335,7 +3339,9 @@ textarea {
     .code-editor {
         grid-row: 5;
     }
+}
 
+@media (orientation: portrait) and (min-width: 768px) {
     .table-editor-dialog {
         top: auto;
         left: 0;

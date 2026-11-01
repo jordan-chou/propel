@@ -770,7 +770,7 @@ function getPaneResizeMetrics() {
 
 /** Reports whether pane splitter stacked. */
 function isPaneSplitterStacked() {
-    return window.matchMedia('(orientation: portrait) and (min-width: 768px)').matches;
+    return window.matchMedia('(min-width: 768px) and (max-width: 1024px), (orientation: portrait) and (min-width: 768px)').matches;
 }
 
 /** Refreshes pane splitter orientation. */
