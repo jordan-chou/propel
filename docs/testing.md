@@ -66,8 +66,16 @@ Before merging a structural refactor, manually verify with `test/test-document-d
 8. Reload after editing, restore the offered browser recovery copy, and confirm
    Live/Code content, document language, contextual tab title, and undo history
    start in the recovered state. Repeat once with **Discard recovery copy**.
+   Discarding should leave the regular onboarding card and focus **Choose Word
+   document**, even if onboarding was dismissed earlier in the same tab. Reload
+   again to confirm the regular onboarding card remains and recovery is gone.
 9. In **Information**, disable local recovery and confirm the saved copy is
    deleted and no recovery prompt appears after another edit and reload.
+   With recovery enabled, confirm a saved copy appears in the same card as
+   the start options. Close the card with its × button: the editor should
+   receive focus and the copy should remain available after reloading.
+   Without a recovery copy, closing the card should keep it hidden on reload
+   in the same tab. **Start with a blank file** should also close the whole card.
 10. Import a document containing an Outlook Safe Links URL. Confirm in Live
     and Code views that the `href` becomes the destination from its `url`
     query parameter, retaining destination query parameters and fragments.

@@ -156,11 +156,11 @@ const railUploadBtn = document.getElementById('railUploadBtn');
 const onboardingUploadBtn = document.getElementById('onboardingUploadBtn');
 const onboardingInstructionsBtn = document.getElementById('onboardingInstructionsBtn');
 const onboardingBlankBtn = document.getElementById('onboardingBlankBtn');
+const onboardingDismissBtn = document.getElementById('onboardingDismissBtn');
 const editorOnboarding = document.getElementById('editorOnboarding');
 const documentRecoveryPromptElement = document.getElementById('documentRecoveryPrompt');
 const documentRecoveryMessage = document.getElementById('documentRecoveryMessage');
 const documentRecoveryRestoreBtn = document.getElementById('documentRecoveryRestoreBtn');
-const documentRecoveryDismissBtn = document.getElementById('documentRecoveryDismissBtn');
 const documentRecoveryDiscardBtn = document.getElementById('documentRecoveryDiscardBtn');
 const documentRecoveryEnabledCheckbox = document.getElementById('documentRecoveryEnabled');
 const clearDocumentRecoveryBtn = document.getElementById('clearDocumentRecoveryBtn');
@@ -293,7 +293,12 @@ const sessionPreferences = createJSONStorage(window.sessionStorage, 'propel');
 const onboarding = createOnboardingController({
     card: editorOnboarding,
     blankButton: onboardingBlankBtn,
-    preferences: sessionPreferences
+    dismissButton: onboardingDismissBtn,
+    preferences: sessionPreferences,
+    onDismiss: () => {
+        documentRecoveryPrompt.hide();
+        liveEditor.focus();
+    }
 });
 const componentLibraryStorageKey = 'componentLibrary';
 const documentRecoveryEnabledStorageKey = 'documentRecoveryEnabled';
@@ -331,11 +336,10 @@ const documentRecoveryPrompt = createRecoveryPrompt({
     container: documentRecoveryPromptElement,
     message: documentRecoveryMessage,
     restoreButton: documentRecoveryRestoreBtn,
-    dismissButton: documentRecoveryDismissBtn,
     discardButton: documentRecoveryDiscardBtn,
     onRestore: restoreRecoveredDocument,
     onDiscard: discardRecoveredDocument,
-    onDismiss: () => onboarding.update(false)
+    onVisibilityChange: visible => onboarding.setRecoveryAvailable(visible)
 });
 documentStore.subscribe(() => {
     updateBrowserTitle();
@@ -1147,7 +1151,6 @@ function getDocumentRecoverySnapshot() {
 async function offerRecoveredDocument() {
     const candidate = await documentRecovery.findCandidate();
     if (!candidate || hasInput()) return;
-    if (editorOnboarding) editorOnboarding.hidden = true;
     documentRecoveryPrompt.show(candidate);
 }
 
@@ -1173,7 +1176,8 @@ async function restoreRecoveredDocument(record) {
 /** Permanently removes the selected browser recovery record. */
 async function discardRecoveredDocument(record) {
     const discarded = await documentRecovery.discard(record.draftId);
-    onboarding.update(false);
+    onboarding.show();
+    onboardingUploadBtn?.focus();
     if (discarded) {
         addProcessingLog('Discarded the browser recovery copy.', 'info');
     }
