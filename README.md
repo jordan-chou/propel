@@ -152,10 +152,16 @@ external action. Publishing URLs remain in copied HTML but cannot load as
 remote resources inside Propel. See [Security and privacy](docs/security.md) for
 the threat model, storage controls, portable-build guarantees, and limitations.
 
-The onboarding card uses `sessionStorage` under `propel.onboardingDismissed`.
-Starting with a blank file hides the card for the current browser tab session,
-including page reloads; it returns in a new session. The current recovery stream
-identifier is stored in the same tab session under `propel.recoveryDraftId`, so a
+The getting-started card includes recovery options when a saved copy is available.
+Its close (×) button and **Start with a blank file** hide the whole card without
+deleting the recovery copy. This dismissal uses `sessionStorage` under
+`propel.onboardingDismissed` for the current browser tab session, including page
+reloads; the start options return in a new session. A recovery copy can still
+be offered after reloading, even if the start options were dismissed.
+Choosing **Discard recovery copy** removes the recovery options and shows the
+regular onboarding card, clearing any previous onboarding dismissal for the tab.
+The current recovery stream identifier is stored in the same tab session under
+`propel.recoveryDraftId`, so a
 reload reconnects to that tab’s saved copy.
 
 ## Feedback and issue reporting

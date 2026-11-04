@@ -1005,6 +1005,139 @@ test('starting with a blank file dismisses onboarding for the current session', 
     equal(reloadedCard.hidden, true);
 });
 
+test('the close button dismisses onboarding for the tab session', () => {
+    const card = document.createElement('div');
+    const dismissButton = document.createElement('button');
+    const values = new Map();
+    const preferences = {
+        get: (key, fallback) => values.has(key) ? values.get(key) : fallback,
+        set: (key, value) => values.set(key, value)
+    };
+    let dismissals = 0;
+    const onboarding = createOnboardingController({
+        card, dismissButton, preferences, onDismiss: () => dismissals++
+    });
+    onboarding.bind();
+    dismissButton.click();
+    equal(card.hidden, true);
+    equal(dismissals, 1);
+
+    const reloadedCard = document.createElement('div');
+    const reloaded = createOnboardingController({ card: reloadedCard, preferences });
+    reloaded.bind();
+    equal(reloadedCard.hidden, true);
+    reloaded.setRecoveryAvailable(true);
+    equal(reloadedCard.hidden, false);
+    reloaded.update(true);
+    equal(reloadedCard.hidden, true);
+    reloaded.setRecoveryAvailable(false);
+    equal(reloadedCard.hidden, true);
+});
+
+test('one card combines recovery and start options with a non-destructive close button', async () => {
+    const shell = new DOMParser().parseFromString(await (await fetch('../index.html')).text(), 'text/html');
+    const card = document.importNode(shell.getElementById('editorOnboarding'), true);
+    document.body.append(card);
+    const find = id => card.querySelector(`#${id}`);
+    const container = find('documentRecoveryPrompt');
+    const focusTarget = document.createElement('button');
+    document.body.append(focusTarget);
+    let restored = 0;
+    let discarded = 0;
+    const onboarding = createOnboardingController({
+        card,
+        blankButton: find('onboardingBlankBtn'),
+        dismissButton: find('onboardingDismissBtn'),
+        onDismiss: () => {
+            prompt.hide();
+            focusTarget.focus();
+        }
+    });
+    const prompt = createRecoveryPrompt({
+        container,
+        message: find('documentRecoveryMessage'),
+        restoreButton: find('documentRecoveryRestoreBtn'),
+        discardButton: find('documentRecoveryDiscardBtn'),
+        onRestore: () => { restored++; onboarding.update(true); },
+        onDiscard: () => { discarded++; onboarding.update(false); },
+        onVisibilityChange: visible => onboarding.setRecoveryAvailable(visible),
+        formatSavedAt: () => 'recently'
+    });
+    try {
+        onboarding.bind();
+        prompt.bind();
+        const record = { draftId: 'combined-card', savedAt: 100 };
+        prompt.show(record);
+        equal(card.hidden, false);
+        equal(container.hidden, false);
+        equal(find('onboardingUploadBtn').hidden, false);
+        equal(document.activeElement, find('documentRecoveryRestoreBtn'));
+
+        find('onboardingDismissBtn').click();
+        equal(card.hidden, true);
+        equal(container.hidden, true);
+        equal(discarded, 0);
+        equal(restored, 0);
+        equal(document.activeElement, focusTarget);
+
+        prompt.show(record);
+        find('documentRecoveryRestoreBtn').click();
+        equal(restored, 1);
+        equal(card.hidden, true);
+
+        onboarding.update(false);
+        prompt.show(record);
+        find('onboardingBlankBtn').click();
+        equal(card.hidden, true);
+        equal(container.hidden, true);
+        equal(discarded, 0);
+    } finally {
+        card.remove();
+        focusTarget.remove();
+    }
+});
+
+test('discarding recovery leaves regular onboarding even after a previous dismissal', async () => {
+    for (const previouslyDismissed of [false, true]) {
+        const card = document.createElement('div');
+        const section = document.createElement('section');
+        const discardButton = document.createElement('button');
+        card.append(section);
+        const values = new Map([['onboardingDismissed', previouslyDismissed]]);
+        const preferences = {
+            get: (key, fallback) => values.has(key) ? values.get(key) : fallback,
+            set: (key, value) => values.set(key, value)
+        };
+        let discarded = null;
+        const onboarding = createOnboardingController({ card, preferences });
+        const prompt = createRecoveryPrompt({
+            container: section,
+            discardButton,
+            onDiscard: async record => {
+                await Promise.resolve();
+                discarded = record.draftId;
+                onboarding.show();
+            },
+            onVisibilityChange: visible => onboarding.setRecoveryAvailable(visible)
+        });
+        onboarding.bind();
+        prompt.bind();
+        equal(card.hidden, previouslyDismissed);
+        prompt.show({ draftId: 'discard-me', savedAt: 100 });
+        equal(card.hidden, false);
+        discardButton.click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        equal(discarded, 'discard-me');
+        equal(section.hidden, true);
+        equal(card.hidden, false);
+        equal(values.get('onboardingDismissed'), false);
+
+        const reloadedCard = document.createElement('div');
+        createOnboardingController({ card: reloadedCard, preferences }).bind();
+        equal(reloadedCard.hidden, false);
+    }
+});
+
 test('document recovery prompt offers restore and hides after the choice', () => {
     const host = document.createElement('div');
     host.innerHTML = `

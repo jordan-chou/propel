@@ -8,6 +8,7 @@ export function createRecoveryPrompt({
     onRestore,
     onDiscard,
     onDismiss,
+    onVisibilityChange,
     formatSavedAt = formatRecoverySavedAt
 }) {
     let candidate = null;
@@ -15,6 +16,7 @@ export function createRecoveryPrompt({
     function hide() {
         if (container) container.hidden = true;
         candidate = null;
+        onVisibilityChange?.(false);
     }
 
     function show(record) {
@@ -23,6 +25,7 @@ export function createRecoveryPrompt({
             message.textContent = `Propel saved a local recovery copy ${formatSavedAt(record.savedAt)}.`;
         }
         if (container) container.hidden = false;
+        onVisibilityChange?.(true);
         restoreButton?.focus();
     }
 
