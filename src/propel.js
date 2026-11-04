@@ -54,7 +54,8 @@ import {
 import { createDrawerControllers } from './ui/drawers.js';
 import { applyBlockFormat } from './ui/block-format.js';
 import { combineLiveEditorComponents, ensureRootTextBlockForInput, preserveParagraphsOnEnter } from './ui/live-editing.js';
-import { createCodeEditor } from './ui/code-editor.js';
+import { createCodeHighlightViewport } from './ui/code-highlight-viewport.js';
+import { highlightHTML } from './ui/html-syntax-highlight.js';
 import { goToCodeLine, isGoToLineShortcut } from './ui/code-navigation.js';
 import { createCodeFindController } from './ui/code-find.js';
 import { createFeedbackComposer } from './support/feedback.js';
@@ -176,6 +177,8 @@ const editorPanel = document.querySelector('.editor-panel');
 const paneSplitter = document.getElementById('paneSplitter');
 const paneSnapGuides = document.querySelectorAll('.pane-snap-guide');
 const codeEditor = document.getElementById('codeEditor');
+const codeHighlight = document.getElementById('codeHighlight');
+const codeLineNumbers = document.getElementById('codeLineNumbers');
 const codeFindPanel = document.getElementById('codeFindPanel');
 const codeFindInput = document.getElementById('codeFindInput');
 const codeReplaceInput = document.getElementById('codeReplaceInput');
@@ -188,7 +191,12 @@ const codeReplaceBtn = document.getElementById('codeReplaceBtn');
 const codeReplaceAllBtn = document.getElementById('codeReplaceAllBtn');
 const codeFindCloseBtn = document.getElementById('codeFindCloseBtn');
 const codeFindStatus = document.getElementById('codeFindStatus');
-const codeEditorView = createCodeEditor(outputText);
+const codeHighlightViewport = createCodeHighlightViewport({
+    overlay: codeHighlight,
+    textarea: outputText,
+    lineNumbers: codeLineNumbers,
+    highlight: highlightHTML
+});
 const codeReciprocalCaret = document.getElementById('codeReciprocalCaret');
 const liveReciprocalCaret = liveEditor?.getRootNode().getElementById('liveReciprocalCaret');
 const editorViewButtons = document.querySelectorAll('[data-editor-view]');
@@ -241,7 +249,7 @@ const deferredTypingRefresh = createDeferredWork(() => {
         syncEditorToInputHTML();
         scheduleDocumentHistoryCommit('typing');
         updateLiveView();
-        updateCodeLayout();
+        updateCodeHighlight();
         updateLiveReciprocalCaret();
     }
     documentRecovery.schedule();
@@ -409,7 +417,7 @@ const codeFind = createCodeFindController({
     closeButton: codeFindCloseBtn,
     status: codeFindStatus,
     onReveal: scrollCodeToIndex,
-    onMatch: (match) => codeEditorView.setSearchRange(match),
+    onMatch: (match) => codeHighlightViewport.setSearchRange(match),
     onBeforeReplace: () => {
         deferredTypingRefresh.flush();
         commitDocumentHistory('typing');
@@ -774,7 +782,7 @@ function getPaneResizeMetrics() {
 
 /** Reports whether pane splitter stacked. */
 function isPaneSplitterStacked() {
-    return window.matchMedia('(min-width: 768px) and (max-width: 1024px), (orientation: portrait) and (min-width: 768px)').matches;
+    return window.matchMedia('(orientation: portrait) and (min-width: 768px)').matches;
 }
 
 /** Refreshes pane splitter orientation. */
@@ -1054,6 +1062,7 @@ function createListeners() {
 
     outputText.addEventListener('input', () => {
         activeEditorView = 'code';
+        codeHighlightViewport.update(outputText.value);
         codeFind.refresh();
         scheduleTypingRefresh('code');
         hideReciprocalCaret(liveReciprocalCaret);
@@ -1068,6 +1077,7 @@ function createListeners() {
     });
     outputText.addEventListener('keydown', handleCodeEditorKeydown);
     outputText.addEventListener('scroll', () => {
+        syncCodeHighlightScroll();
         if (activeEditorView === 'live') updateCodeReciprocalCaret();
     });
     outputText.addEventListener('click', (event) => {
@@ -2148,7 +2158,7 @@ function syncCodeEditorAfterProgrammaticEdit() {
     syncEditorToInputHTML();
     updateLiveView();
     refreshReviewPanel();
-    updateCodeLayout();
+    updateCodeHighlight();
 }
 
 /** Returns shortcut digit. */
@@ -2999,7 +3009,7 @@ function updateCodeView() {
     outputText.value = hasInput() ? Utils.formattedHTML(inputHTML) : '';
     updateFileDropZoneState(hasInput());
     updateElementSyncLineMap();
-    updateCodeLayout();
+    updateCodeHighlight();
     codeFind.refresh();
 }
 
@@ -3160,9 +3170,33 @@ function getFallbackCaretRect(node) {
     return element?.getBoundingClientRect() || null;
 }
 
-/** Measures a source character in the rendered Code view. */
+/** Measures a textarea character using a hidden layout mirror. */
 function getCodeCoordinatesForIndex(codeIndex) {
-    return codeEditorView.coordinates(codeIndex);
+    const style = window.getComputedStyle(outputText);
+    const mirror = document.createElement('div');
+    const marker = document.createElement('span');
+    [
+        'boxSizing', 'fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'letterSpacing',
+        'lineHeight', 'paddingBottom', 'paddingLeft', 'paddingRight', 'paddingTop',
+        'tabSize', 'textAlign', 'textIndent', 'textTransform', 'whiteSpace', 'wordBreak'
+    ].forEach(property => { mirror.style[property] = style[property]; });
+    mirror.style.overflowWrap = style.overflowWrap;
+    mirror.style.position = 'absolute';
+    mirror.style.visibility = 'hidden';
+    mirror.style.left = '-9999px';
+    mirror.style.top = '0';
+    mirror.style.width = `${outputText.clientWidth}px`;
+    mirror.style.height = 'auto';
+    mirror.style.overflow = 'hidden';
+    marker.textContent = '\u200b';
+    mirror.append(document.createTextNode(outputText.value.slice(0, codeIndex)), marker);
+    document.body.appendChild(mirror);
+    const coordinates = {
+        left: marker.offsetLeft - outputText.scrollLeft,
+        top: marker.offsetTop - outputText.scrollTop
+    };
+    mirror.remove();
+    return coordinates;
 }
 
 /** Returns code entry for path. */
@@ -3234,11 +3268,58 @@ function updateElementSyncLineMap() {
 /** Scrolls code to index. */
 function scrollCodeToIndex(codeIndex) {
     outputText.scrollTop = getCodeScrollTopForIndex(codeIndex);
+    syncCodeHighlightScroll();
 }
 
 /** Returns code scroll top for index. */
 function getCodeScrollTopForIndex(codeIndex) {
-    return codeEditorView.scrollTopForIndex(codeIndex);
+    const style = window.getComputedStyle(outputText);
+    const mirror = document.createElement('div');
+    const marker = document.createElement('span');
+    const mirroredProperties = [
+        'boxSizing',
+        'fontFamily',
+        'fontSize',
+        'fontStyle',
+        'fontWeight',
+        'letterSpacing',
+        'lineHeight',
+        'paddingBottom',
+        'paddingLeft',
+        'paddingRight',
+        'paddingTop',
+        'tabSize',
+        'textAlign',
+        'textIndent',
+        'textTransform',
+        'whiteSpace',
+        'wordBreak'
+    ];
+
+    mirroredProperties.forEach((property) => {
+        mirror.style[property] = style[property];
+    });
+    mirror.style.overflowWrap = style.overflowWrap;
+    mirror.style.position = 'absolute';
+    mirror.style.visibility = 'hidden';
+    mirror.style.left = '-9999px';
+    mirror.style.top = '0';
+    mirror.style.width = `${outputText.clientWidth}px`;
+    mirror.style.minHeight = '0';
+    mirror.style.height = 'auto';
+    mirror.style.overflow = 'hidden';
+
+    marker.textContent = '\u200b';
+    marker.style.display = 'inline-block';
+
+    mirror.appendChild(document.createTextNode(outputText.value.slice(0, codeIndex)));
+    mirror.appendChild(marker);
+    document.body.appendChild(mirror);
+
+    const targetTop = Math.max(0, marker.offsetTop - (outputText.clientHeight * 0.28));
+    mirror.remove();
+
+    return targetTop;
 }
 
 /** Scrolls live element into view. */
@@ -3250,9 +3331,23 @@ function scrollLiveElementIntoView(element) {
     liveEditor.scrollTop = targetTop;
 }
 
-/** Refreshes source layout after rendering or showing the Code pane. */
-function updateCodeLayout() {
-    codeEditorView.refresh();
+/** Refreshes code highlight. */
+function updateCodeHighlight() {
+    if (!codeHighlight || !outputText) {
+        return;
+    }
+
+    codeHighlightViewport.update(outputText.value);
+    syncCodeHighlightScroll();
+}
+
+/** Synchronizes code highlight scroll. */
+function syncCodeHighlightScroll() {
+    if (!codeHighlight || !outputText) {
+        return;
+    }
+
+    codeHighlightViewport.schedule();
 }
 
 /**
@@ -3260,7 +3355,7 @@ function updateCodeLayout() {
  */
 function clearOutputText() {
     outputText.value = " ";
-    updateCodeLayout();
+    updateCodeHighlight();
     if (liveEditor) {
         liveEditor.innerHTML = "";
     }
