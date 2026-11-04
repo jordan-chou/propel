@@ -36,10 +36,7 @@ export function countTags(input) {
 
     if (!input.innerHTML) return;
 
-    const div = document.createElement('div');
-    div.appendChild(input.cloneNode(true));
-
-    let html = div.querySelector('div.content-area');
+    const html = input.cloneNode(true);
     
     let tags = getTagList();
     for (var i = 0; i < tags.length; i++) {

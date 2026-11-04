@@ -39,6 +39,10 @@ Before merging a structural refactor, manually verify with `test/test-document-d
    retain their existing stacking behavior.
 3. Undo and redo restore command and typing changes.
 4. Add IDs, footnotes, spacing, and copy behave as before.
+   Imported and edited HTML should not acquire a `content-area` class. Paste
+   HTML with authored classes (including nested `content-area` classes) and
+   confirm they remain intact after Live/Code synchronization and commands.
+   QA Helper counts should work without a `content-area` class.
    For a document with multiple footnotes, generate footnotes and confirm that
    each body link points to the corresponding note in the `aside`, with unique
    sequential note IDs and matching return links. Check English and French.

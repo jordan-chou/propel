@@ -1159,7 +1159,6 @@ async function restoreRecoveredDocument(record) {
 
     Array.from(inputHTML.attributes).forEach(attribute => inputHTML.removeAttribute(attribute.name));
     record.rootAttributes.forEach(attribute => inputHTML.setAttribute(attribute.name, attribute.value));
-    inputHTML.classList.add('content-area');
     activeDocumentFileName = record.sourceFileName || '';
     documentStore.replaceHTML(record.html, { source: 'recovery' });
     setCommandLanguage(record.language);
@@ -2015,7 +2014,6 @@ function restoreDocumentHistory(index) {
     documentHistoryRestoring = true;
     documentHistoryIndex = index;
     documentStore.replaceHTML(documentHistory[index], { source: 'history', historyIndex: index });
-    inputHTML.classList.add('content-area');
     updateCodeView();
     updateLiveView();
     refreshReviewPanel();
@@ -2895,9 +2893,6 @@ function getEndTime() {
  * Displays inputHTML into output HTML textbox
  */
 function updateOutputText() {
-    if (!inputHTML.classList.contains("content-area")) {
-        inputHTML.classList.add("content-area");
-    }
     const commandLabel = activeDocumentCommandLabel;
     commitDocumentHistory('command', commandLabel);
     activeDocumentCommandLabel = null;
@@ -2943,19 +2938,11 @@ function syncEditorToInputHTML() {
     replaceWithSanitizedHTML(inputHTML, outputText.value);
     adoptSingleOuterDiv();
     sanitizeDocumentTree(inputHTML, { includeRoot: true });
-    inputHTML.querySelectorAll('.content-area').forEach(element => {
-        element.classList.remove('content-area');
-        if (element.classList.length === 0) {
-            element.removeAttribute('class');
-        }
-    });
-    inputHTML.classList.add("content-area");
 }
 
 /**
  * Treat a sole top-level div in the code editor as the document root instead of
- * nesting it inside the internal root div. This preserves its attributes and
- * lets the content-area class be restored directly on that element.
+ * nesting it inside the internal root div. This preserves its attributes.
  */
 function adoptSingleOuterDiv() {
     const outerDiv = inputHTML.children.length === 1 &&
@@ -2997,17 +2984,12 @@ function syncLiveToInputHTML() {
     removeEmptyStyleAttributes(clone);
     replaceWithSanitizedHTML(inputHTML, clone.innerHTML);
     sanitizeDocumentTree(inputHTML, { includeRoot: true });
-    inputHTML.classList.add("content-area");
 }
 
 /** Refreshes code view. */
 function updateCodeView() {
     if (!outputText) {
         return;
-    }
-
-    if (!inputHTML.classList.contains("content-area")) {
-        inputHTML.classList.add("content-area");
     }
 
     outputText.value = hasInput() ? Utils.formattedHTML(inputHTML) : '';

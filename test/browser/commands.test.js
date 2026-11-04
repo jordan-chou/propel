@@ -63,6 +63,75 @@ const tests = [];
 function test(name, run) { tests.push({ name, run }); }
 function equal(actual, expected) { if (actual !== expected) throw new Error(`Expected ${expected}; received ${actual}`); }
 
+test('DOCX import and document editing preserve authored classes without requiring content-area', async () => {
+    const frame = document.createElement('iframe');
+    frame.src = '../index.html';
+    const loaded = new Promise(resolve => frame.addEventListener('load', resolve, { once: true }));
+    document.body.append(frame);
+    try {
+        await loaded;
+        const app = frame.contentDocument;
+        const view = frame.contentWindow;
+        const code = app.getElementById('outputText');
+        const live = app.getElementById('liveEditor').shadowRoot.querySelector('[contenteditable]');
+        const setCode = html => {
+            code.value = html;
+            code.dispatchEvent(new view.Event('focus'));
+            code.dispatchEvent(new view.Event('change'));
+        };
+        const parsedCode = () => new view.DOMParser().parseFromString(code.value, 'text/html').body;
+
+        const fixture = await (await fetch(new URL('../test-document-doc-to-html.docx', import.meta.url))).blob();
+        const transfer = new view.DataTransfer();
+        transfer.items.add(new view.File([fixture], 'test-document-doc-to-html.docx'));
+        const fileInput = app.getElementById('file');
+        fileInput.files = transfer.files;
+        fileInput.dispatchEvent(new view.Event('change'));
+        const deadline = Date.now() + 10000;
+        while (!code.value && Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 25));
+        }
+        equal(code.value.length > 0, true);
+        equal(parsedCode().querySelector('.content-area'), null);
+
+        setCode('<div id="document" class="publishing"><h2>Overview / Aperçu</h2><p>Body / Texte</p></div>');
+        equal(parsedCode().firstElementChild.id, 'document');
+        equal(parsedCode().firstElementChild.className, 'publishing');
+        equal(parsedCode().querySelector('.content-area'), null);
+
+        live.dispatchEvent(new view.Event('focus'));
+        live.querySelector('p').textContent = 'Edited / Modifié';
+        live.dispatchEvent(new view.Event('input'));
+        live.dispatchEvent(new view.Event('blur'));
+        equal(parsedCode().querySelector('p').textContent, 'Edited / Modifié');
+        equal(parsedCode().querySelector('.content-area'), null);
+
+        app.getElementById('documentUndoBtn').click();
+        equal(parsedCode().querySelector('p').textContent, 'Body / Texte');
+        equal(parsedCode().querySelector('.content-area'), null);
+        app.getElementById('documentRedoBtn').click();
+        equal(parsedCode().querySelector('p').textContent, 'Edited / Modifié');
+        equal(parsedCode().querySelector('.content-area'), null);
+
+        app.getElementById('addIDsApplyBtn').click();
+        equal(parsedCode().querySelector('h2').id, 'a1');
+        equal(parsedCode().firstElementChild.className, 'publishing');
+        equal(parsedCode().querySelector('.content-area'), null);
+
+        app.getElementById('tagList').value = 'h2\np';
+        app.getElementById('qaHelperCountBtn').click();
+        equal(app.querySelector('#qaHelperOutput summary').textContent, 'h2: 1');
+        equal(app.querySelectorAll('#qaHelperOutput summary')[1].textContent, 'p: 1');
+
+        setCode('<div class="content-area publishing"><section class="content-area"><p>Authored</p></section><p class="content-area keep">Retained</p></div>');
+        equal(parsedCode().firstElementChild.className, 'content-area publishing');
+        equal(parsedCode().querySelector('section').className, 'content-area');
+        equal(parsedCode().querySelector('p.keep').className, 'content-area keep');
+    } finally {
+        frame.remove();
+    }
+});
+
 test('Add IDs uses tbl for tables, skips occupied IDs, and preserves existing IDs on repeat runs', () => {
     const host = document.createElement('div');
     host.innerHTML = '<h2>Heading</h2><div id="tbl1"></div><table id="t1"></table><table></table><table id="custom"></table><details><summary>Text version</summary><table></table></details><figure></figure>';
